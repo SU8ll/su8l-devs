@@ -1,0 +1,23 @@
+{
+  "name": "su8l-devs",
+  "private": true,
+  "version": "1.0.0",
+  "description": "SU8L DEVs — Cloud Bot Service platform (server, bot, web)",
+  "workspaces": [
+    "server",
+    "bot",
+    "web"
+  ],
+  "scripts": {
+    "dev": "concurrently -n server,bot,web -c magenta,cyan,green \"npm run dev -w @su8l/server\" \"npm run dev -w @su8l/bot\" \"npm run dev -w @su8l/web\"",
+    "dev:server": "npm run dev -w @su8l/server",
+    "dev:web": "npm run dev -w @su8l/web",
+    "dev:bot": "npm run dev -w @su8l/bot",
+    "build": "npm run build -w @su8l/server && npm run build -w @su8l/web",
+    "start": "npm run start -w @su8l/server",
+    "typecheck": "npm run typecheck -w @su8l/server && npm run typecheck -w @su8l/bot && npm run typecheck -w @su8l/web"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
