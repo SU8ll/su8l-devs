@@ -28,7 +28,9 @@ export async function upsertOAuthUser(p: OAuthProfile): Promise<User> {
 
   if (user) {
     if (p.email && !user.email) await updateUser(user.id, { email: p.email });
-    if (p.avatar && !user.avatar) await updateUser(user.id, { avatar: p.avatar });
+    // Always refresh the avatar when the provider returns one (users change
+    // their Discord avatar, and animated avatars need the .gif variant).
+    if (p.avatar && p.avatar !== user.avatar) await updateUser(user.id, { avatar: p.avatar });
     if (p.username) await updateUser(user.id, { username: p.username, avatar: user.avatar });
     await addAccount({
       user_id: user.id,
@@ -62,5 +64,8 @@ export async function upsertOAuthUser(p: OAuthProfile): Promise<User> {
 
 export function discordAvatarUrl(discordId: string, avatarHash: string | null | undefined): string | null {
   if (!avatarHash) return null;
-  return `https://cdn.discordapp.com/avatars/${discordId}/${avatarHash}.png?size=256`;
+  // Animated avatars (hash prefixed "a_") only render via .gif — .png returns a
+  // blank/white static frame. Static avatars stay as .png.
+  const ext = avatarHash.startsWith('a_') ? 'gif' : 'png';
+  return `https://cdn.discordapp.com/avatars/${discordId}/${avatarHash}.${ext}?size=256`;
 }
