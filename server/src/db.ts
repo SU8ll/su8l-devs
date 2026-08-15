@@ -8,8 +8,16 @@ import { getPlan, planCycleMonths, type Plan } from './plans.js';
 types.setTypeParser(20, (v) => Number(v));
 types.setTypeParser(1700, (v) => Number(v));
 
+// Hosted Postgres (Supabase/Neon) uses TLS. `sslmode=require` in the connection
+// string makes newer pg treat the cert as verify-full, which fails on their
+// self-signed chain — so strip the param and enable TLS explicitly instead.
+const rawDbUrl = config.databaseUrl;
+const sslModeMatch = /[?&]sslmode=[^&]*/.exec(rawDbUrl);
 export const pool = new Pool({
-  connectionString: config.databaseUrl,
+  connectionString: sslModeMatch
+    ? rawDbUrl.replace(/([?&])sslmode=[^&]*/, (_m, q) => (q === '?' ? '?' : '')).replace(/\?&/, '?').replace(/[?&]$/, '')
+    : rawDbUrl,
+  ssl: sslModeMatch ? { rejectUnauthorized: false } : undefined,
   max: 10,
   idleTimeoutMillis: 30_000,
   connectionTimeoutMillis: 10_000,
