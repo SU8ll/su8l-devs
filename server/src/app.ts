@@ -30,6 +30,14 @@ app.use(
 );
 app.use(cookieParser());
 
+// Never let browsers (or any cache) serve a stale API response — e.g. an old
+// avatar URL captured before an avatar change. Everything under /api must be
+// fetched fresh.
+app.use('/api', (_req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store');
+  next();
+});
+
 // Webhooks must run BEFORE express.json so the raw JSON body is preserved
 // for PayPal signature verification.
 app.use('/api/webhooks', webhookRoutes);
