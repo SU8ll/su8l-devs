@@ -13,27 +13,6 @@ const PROVIDERS = [
     ),
     brand: '#5865F2',
   },
-  {
-    key: 'google',
-    labelKey: 'login.google',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24">
-        <path fill="#4285F4" d="M22.6 12.3c0-.8-.1-1.6-.2-2.4H12v4.5h5.9a5.4 5.4 0 0 1-2.3 3.6v3h3.7c2.2-2 3.3-5 3.3-8.7z" />
-        <path fill="#34A853" d="M12 23c3.2 0 5.8-1.1 7.7-2.9l-3.7-3a7 7 0 0 1-10.5-3.7H1.7v3A12 12 0 0 0 12 23z" />
-        <path fill="#FBBC05" d="M5.5 13.4a7.2 7.2 0 0 1 0-4.6v-3H1.7a12 12 0 0 0 0 10.6l3.8-3z" />
-        <path fill="#EA4335" d="M12 5.1c1.8 0 3.3.6 4.6 1.8l3.3-3.3A12 12 0 0 0 1.7 5.8l3.8 3A7.2 7.2 0 0 1 12 5.1z" />
-      </svg>
-    ),
-  },
-  {
-    key: 'facebook',
-    labelKey: 'login.facebook',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="#1877F2">
-        <path d="M22 12a10 10 0 1 0-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.5h-1.2c-1.2 0-1.6.8-1.6 1.6V12h2.7l-.4 2.9h-2.3v7A10 10 0 0 0 22 12z" />
-      </svg>
-    ),
-  },
 ];
 
 export default function Login() {
@@ -44,6 +23,7 @@ export default function Login() {
   const from = (location.state as { from?: string } | null)?.from;
 
   const [msg, setMsg] = useState('');
+  const [logoFailed, setLogoFailed] = useState(false);
 
   useEffect(() => {
     if (error) setMsg(t(`login.error.${error}`) ?? t('login.error.oauth_failed'));
@@ -58,9 +38,18 @@ export default function Login() {
     <div className="mx-auto flex min-h-[70vh] max-w-md flex-col items-center justify-center px-4 pb-20">
       <div className="glass-strong glow-border fade-up w-full rounded-3xl p-8 sm:p-10">
         <div className="text-center">
-          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-glow shadow-glow">
-            <span className="font-display text-lg font-black text-white">SU</span>
-          </div>
+          {logoFailed ? (
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-glow shadow-glow">
+              <span className="font-display text-lg font-black text-white">SU</span>
+            </div>
+          ) : (
+            <img
+              src="/logo.png"
+              alt={t('nav.brand')}
+              className="mx-auto mb-4 h-12 w-12 rounded-2xl object-contain"
+              onError={() => setLogoFailed(true)}
+            />
+          )}
           <h1 className="font-display text-2xl font-extrabold text-gradient">{t('login.title')}</h1>
           <p className="mt-2 text-sm text-muted">{t('login.subtitle')}</p>
         </div>

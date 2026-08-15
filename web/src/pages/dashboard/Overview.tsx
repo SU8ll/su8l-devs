@@ -43,7 +43,6 @@ export default function Overview() {
             </div>
             <p className="mt-1 text-sm text-muted">{data.user.email}</p>
             <div className="mt-4 flex flex-wrap gap-3">
-              <StatChip label={t('dash.slots')} value={`${data.slots.total}`} />
               <StatChip label={t('dash.activeSubs')} value={`${data.activeSubscriptions}`} />
               <StatChip label={t('dash.extraSlotTitle')} value={data.ownsExtraSlot ? '+1' : '—'} />
             </div>

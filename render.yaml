@@ -1,0 +1,61 @@
+# render.yaml — SU8L DEVs API (Render Free Web Service)
+# Push this repo to GitHub, then create the service from the Render dashboard
+# (Blueprint) or connect the repo directly. Tables are auto-created on boot.
+services:
+  - type: web
+    name: su8l-api
+    runtime: node
+    rootDir: server
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: APP_URL
+        sync: false
+      - key: API_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: DISCORD_CLIENT_ID
+        sync: false
+      - key: DISCORD_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: FACEBOOK_CLIENT_ID
+        sync: false
+      - key: FACEBOOK_CLIENT_SECRET
+        sync: false
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: PAYPAL_MODE
+        value: sandbox
+      - key: PAYPAL_WEBHOOK_ID
+        sync: false
+      - key: OWNER_WHATSAPP
+        sync: false
+      - key: OWNER_DISCORD_ID
+        sync: false
+      - key: BOT_API_KEY
+        sync: false
+      - key: BOT_CALLBACK_URL
+        sync: false
+      - key: STAFF_DISCORD_IDS
+        sync: false
+      - key: UPTIME_TARGET_URL
+        sync: false
+      - key: UPTIME_INTERVAL_MS
+        sync: false

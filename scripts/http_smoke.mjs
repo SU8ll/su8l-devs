@@ -203,32 +203,30 @@ try {
   // cloud configurator over HTTP
   const cc = await req('/api/dashboard/cloud-config', { token });
   check(
-    'cloud-config GET returns defaults + option lists',
+    'cloud-config GET returns defaults + schema',
     cc.status === 200 &&
-      cc.data?.options?.formations?.length > 0 &&
-      cc.data?.options?.boostDurations?.length > 0 &&
-      cc.data?.config?.island?.islandName === 'My Island'
+      cc.data?.schema?.version === 8 &&
+      cc.data?.schema?.categories?.length === 11 &&
+      cc.data?.config?.gathering?.gather_group?.gather_enable === true
   );
   check(
     'cloud-config reports linked discord identity',
     cc.data?.discord?.id === '100200300400500' && cc.data?.discord?.username === 'HTTP Tester'
   );
 
-  const fullConfig = {
-    island: { islandName: 'Nebula Prime', instanceEnabled: true },
-    gathering: {
-      enableGatherResources: true,
-      marchSlots: 6,
-      tileLevelMin: 4,
-      tileLevelMax: 18,
-      formation: 'Vanguard',
-      strategy: 'Aggressive',
-      ironPriority: 75,
-      includeAllianceTiles: true,
-      gatherWithoutBoostHero: true,
-      boost: { activateBeforeGather: true, duration: '4h', gemCost: 250, autoBuy: true },
-    },
-    connection: { reconnectDelay: 7, reconnectDelayOther: 15 },
+  const fullConfig = JSON.parse(JSON.stringify(cc.data.config));
+  fullConfig.gathering.gather_group = {
+    ...fullConfig.gathering.gather_group,
+    gather_slots: 5,
+    gather_lvl: 4,
+    gather_strat: 'DeficitWeighted',
+    gather_iron: 75,
+    gather_boost: true,
+  };
+  fullConfig.combat_traps.beast_group = {
+    ...fullConfig.combat_traps.beast_group,
+    beast_min: 4,
+    beast_max: 18,
   };
   const ccSave = await req('/api/dashboard/cloud-config', { method: 'PUT', token, body: fullConfig });
   check('cloud-config PUT saves', ccSave.status === 200 && ccSave.data?.ok === true);
@@ -237,24 +235,32 @@ try {
   const ccBack = await req('/api/dashboard/cloud-config', { token });
   check(
     'cloud-config reads back saved values',
-    ccBack.data?.config?.island?.islandName === 'Nebula Prime' &&
-      ccBack.data?.config?.gathering?.marchSlots === 6 &&
-      ccBack.data?.config?.gathering?.ironPriority === 75 &&
-      ccBack.data?.config?.gathering?.boost?.autoBuy === true
+    ccBack.data?.config?.gathering?.gather_group?.gather_slots === 5 &&
+      ccBack.data?.config?.gathering?.gather_group?.gather_iron === 75 &&
+      ccBack.data?.config?.gathering?.gather_group?.gather_boost === true
   );
 
-  const ccBad = await req('/api/dashboard/cloud-config', {
-    method: 'PUT',
-    token,
-    body: { ...fullConfig, gathering: { ...fullConfig.gathering, tileLevelMin: 25, tileLevelMax: 3 } },
-  });
-  check('cloud-config PUT rejects min>max', ccBad.status === 400);
+  const ccBad = JSON.parse(JSON.stringify(fullConfig));
+  ccBad.combat_traps.beast_group.beast_min = 25;
+  ccBad.combat_traps.beast_group.beast_max = 3;
+  const ccBadRes = await req('/api/dashboard/cloud-config', { method: 'PUT', token, body: ccBad });
+  check('cloud-config PUT rejects min>max', ccBadRes.status === 400);
   const ccBadEnum = await req('/api/dashboard/cloud-config', {
     method: 'PUT',
     token,
-    body: { ...fullConfig, gathering: { ...fullConfig.gathering, formation: 'Zerg' } },
+    body: {
+      ...fullConfig,
+      gathering: { ...fullConfig.gathering, gather_group: { ...fullConfig.gathering.gather_group, gather_strat: 'Zerg' } },
+    },
   });
   check('cloud-config PUT rejects bad enum', ccBadEnum.status === 400);
+
+  const ccTowerBad = JSON.parse(JSON.stringify(fullConfig));
+  ccTowerBad.towers_arena.climb_tower.col_inf = 60;
+  ccTowerBad.towers_arena.climb_tower.col_cav = 10;
+  ccTowerBad.towers_arena.climb_tower.col_arch = 10;
+  const ccTowerBadRes = await req('/api/dashboard/cloud-config', { method: 'PUT', token, body: ccTowerBad });
+  check('cloud-config PUT rejects non-100 tower ratio split', ccTowerBadRes.status === 400);
 
   await sleep(250);
   const dmDispatch = receivedDispatches.find((d) => d.type === 'cloud_config');
@@ -266,7 +272,7 @@ try {
   check(
     'dispatch message is the compiled summary',
     dmDispatch?.body?.message?.includes('Iron priority') &&
-      dmDispatch?.body?.message?.includes('75%') &&
+      dmDispatch?.body?.message?.includes('**75**') &&
       dmDispatch?.body?.message?.includes('HTTP Tester')
   );
   check('dispatch guarded by bot key', dmDispatch?.key === BOT_KEY);
@@ -283,7 +289,10 @@ try {
 
   // cloud-config persistence via direct GET
   const cfgFinal = await req('/api/dashboard/cloud-config', { token });
-  check('cloud-config persists across requests', cfgFinal.data?.config?.gathering?.marchSlots === 6);
+  check(
+    'cloud-config persists across requests',
+    cfgFinal.data?.config?.gathering?.gather_group?.gather_slots === 5
+  );
 } finally {
   server.kill('SIGKILL');
   mockBot.close();

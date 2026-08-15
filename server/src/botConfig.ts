@@ -1,6 +1,7 @@
 import {
   MASTER_SCHEMA,
   DEFAULT_CLOUD_CONFIG,
+  RATIO_GROUPS,
   cloudConfigSchema,
   type CloudCategorySchema,
   type CloudConfig,
@@ -25,6 +26,17 @@ export function cloudConfigIssues(cfg: CloudConfig): string[] {
   const checkPair = (a: string, b: string, minVal: number, maxVal: number, label: string) => {
     if (minVal > maxVal) issues.push(`${a} must not exceed ${b} (${label})`);
   };
+
+  // 100% troop-ratio constraint — applied to the Alliance Championship split AND
+  // every Climb Tower troop ratio (Coliseum, Forest of Life, Crystal Cave,
+  // Knowledge Nexus, Molten Fort, Radiant Spire). Each group must total exactly 100%.
+  const cfgObj = cfg as unknown as Record<string, Record<string, Record<string, unknown>>>;
+  for (const rg of RATIO_GROUPS) {
+    const group = cfgObj?.[rg.categoryId]?.[rg.groupId];
+    if (!group || typeof group !== 'object') continue;
+    const sum = rg.keys.reduce((acc, k) => acc + (typeof group[k] === 'number' ? group[k] : 0), 0);
+    if (sum !== 100) issues.push(`${rg.name} troop split must total exactly 100%`);
+  }
   const walk = (c: CloudCategorySchema, values: Record<string, unknown>) => {
     for (const f of c.fields ?? []) {
       if (f.type !== 'number') continue;
@@ -61,6 +73,7 @@ function mergeField(f: CloudFieldSchema, value: unknown): unknown {
     case 'boolean':
       return asBool(value, f.default as boolean);
     case 'number':
+    case 'slider':
       return asNum(value, f.default as number);
     case 'string':
       return asStr(value, f.default as string);
@@ -102,6 +115,7 @@ function formatValue(f: CloudFieldSchema, value: unknown): string {
     case 'boolean':
       return yesNo(Boolean(value));
     case 'number':
+    case 'slider':
       return `${value}${f.unit ? ` ${f.unit}` : ''}`;
     case 'string':
       return String(value || '—');

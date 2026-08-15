@@ -35,15 +35,25 @@ export default function Navbar() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [logoFailed, setLogoFailed] = useState(false);
 
   return (
     <header className="fixed top-0 inset-x-0 z-50">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className="glass-strong mt-4 flex items-center justify-between rounded-2xl px-4 py-3 sm:px-6">
           <Link to="/" className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-glow shadow-glow">
-              <span className="font-display text-sm font-black tracking-tight text-white">SU</span>
-            </div>
+            {logoFailed ? (
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-glow shadow-glow">
+                <span className="font-display text-sm font-black tracking-tight text-white">SU</span>
+              </div>
+            ) : (
+              <img
+                src="/logo.png"
+                alt={t('nav.brand')}
+                className="h-10 w-10 rounded-xl object-contain"
+                onError={() => setLogoFailed(true)}
+              />
+            )}
             <div className="leading-tight">
               <div className="font-display text-base font-extrabold tracking-wide text-gradient">
                 {t('nav.brand')}

@@ -119,47 +119,68 @@ const legacy = normalizeCloudConfig({
   reconnectDelayOther: 15,
 });
 check(
-  'legacy flat keys migrate to canonical shape',
-  legacy.island.islandName === 'Nebula Prime' &&
-    legacy.island.instanceEnabled === false &&
-    legacy.connection.reconnectDelay === 7 &&
-    legacy.connection.reconnectDelayOther === 15
+  'unknown legacy flat keys are dropped, canonical defaults returned',
+  JSON.stringify(legacy) === JSON.stringify(DEFAULT_CLOUD_CONFIG)
 );
 
-const full = {
-  island: { islandName: 'Nebula', instanceEnabled: true },
-  gathering: {
-    enableGatherResources: true,
-    marchSlots: 4,
-    tileLevelMin: 3,
-    tileLevelMax: 12,
-    formation: 'Offensive',
-    strategy: 'Aggressive',
-    ironPriority: 80,
-    includeAllianceTiles: true,
-    gatherWithoutBoostHero: true,
-    boost: { activateBeforeGather: true, duration: '4h', gemCost: 200, autoBuy: true },
-  },
-  connection: { reconnectDelay: 6, reconnectDelayOther: 12 },
+const full = JSON.parse(JSON.stringify(DEFAULT_CLOUD_CONFIG));
+full.gathering.gather_group = {
+  ...full.gathering.gather_group,
+  gather_slots: 4,
+  gather_lvl: 3,
+  gather_strat: 'DeficitWeighted',
+  gather_iron: 80,
+  gather_boost: true,
+};
+full.combat_traps.beast_group = {
+  ...full.combat_traps.beast_group,
+  beast_min: 8,
+  beast_max: 30,
 };
 check('cloud config schema accepts full config', cloudConfigSchema.safeParse(full).success === true);
 
-const bad = cloudConfigSchema.safeParse({
-  ...full,
-  gathering: { ...full.gathering, tileLevelMin: 20, tileLevelMax: 5 },
-});
+const bad = JSON.parse(JSON.stringify(full));
+bad.combat_traps.beast_group.beast_min = 20;
+bad.combat_traps.beast_group.beast_max = 5;
 check(
   'min>max flagged by cloudConfigIssues',
-  bad.success === true && cloudConfigIssues(bad.data).length === 1
+  cloudConfigSchema.safeParse(bad).success === true && cloudConfigIssues(bad).length === 1
 );
 
 check(
-  'schema rejects unknown formation enum',
-  cloudConfigSchema.safeParse({ ...full, gathering: { ...full.gathering, formation: 'NotAFormation' } }).success === false
+  'schema rejects unknown gather strategy enum',
+  cloudConfigSchema.safeParse({
+    ...full,
+    gathering: { ...full.gathering, gather_group: { ...full.gathering.gather_group, gather_strat: 'NotAFormation' } },
+  }).success === false
 );
 check(
   'schema rejects out-of-range iron priority',
-  cloudConfigSchema.safeParse({ ...full, gathering: { ...full.gathering, ironPriority: 150 } }).success === false
+  cloudConfigSchema.safeParse({
+    ...full,
+    gathering: { ...full.gathering, gather_group: { ...full.gathering.gather_group, gather_iron: 150 } },
+  }).success === false
+);
+
+const champBad = JSON.parse(JSON.stringify(full));
+champBad.alliance_systems.alliance_championship.champ_inf = 60;
+champBad.alliance_systems.alliance_championship.champ_cav = 10;
+champBad.alliance_systems.alliance_championship.champ_rng = 10;
+check(
+  'championship split != 100 flagged by cloudConfigIssues',
+  cloudConfigIssues(champBad).some((m) => m.includes('100%'))
+);
+
+const towerBad = JSON.parse(JSON.stringify(full));
+towerBad.towers_arena.climb_tower.col_inf = 60;
+towerBad.towers_arena.climb_tower.col_cav = 10;
+towerBad.towers_arena.climb_tower.col_arch = 10;
+towerBad.towers_arena.climb_tower.mf_inf = 40;
+towerBad.towers_arena.climb_tower.mf_cav = 40;
+towerBad.towers_arena.climb_tower.mf_arch = 40;
+check(
+  'climb tower ratio splits != 100 flagged by cloudConfigIssues',
+  cloudConfigIssues(towerBad).filter((m) => m.includes('100%')).length === 2
 );
 
 const compiled = compileCloudConfig(full, { discordUsername: 'Tester', discordId: 'DISC-123' });
@@ -167,10 +188,8 @@ check('DM compile includes discord name + id', compiled.includes('Tester') && co
 check(
   'DM compile includes key fields',
   compiled.includes('Iron priority') &&
-    compiled.includes('80%') &&
-    compiled.includes('4h') &&
-    compiled.includes('Auto-buy') &&
-    compiled.includes('March slots') &&
+    compiled.includes('**80**') &&
+    compiled.includes('March Slots') &&
     compiled.includes('daily in-game reset')
 );
 

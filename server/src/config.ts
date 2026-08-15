@@ -6,7 +6,12 @@ export const config = {
   apiUrl: process.env.API_URL || `http://localhost:${process.env.PORT || 4000}`,
   jwtSecret: process.env.JWT_SECRET || 'dev-secret-change-me',
   cookieName: 'su8l_session',
-  dbPath: process.env.DB_PATH || './data/su8l.db',
+  databaseUrl: process.env.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/su8l',
+  // Comma-separated list of additional allowed CORS origins (e.g. the Vercel URL).
+  corsOrigins: (process.env.CORS_ORIGINS || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean),
   isProd: process.env.NODE_ENV === 'production',
 
   discord: {

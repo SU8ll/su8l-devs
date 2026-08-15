@@ -35,9 +35,9 @@ export async function dispatchToBot(payload: Record<string, unknown>): Promise<D
  * by the Cloud Configurator DM so the owner can map a config to the buyer, and
  * by the role-grant wiring so the right member is promoted.
  */
-export function getDiscordIdentity(userId: string): { discordId: string; discordUsername: string } | null {
-  const acc = getAccounts(userId).find((a) => a.provider === 'discord');
+export async function getDiscordIdentity(userId: string): Promise<{ discordId: string; discordUsername: string } | null> {
+  const acc = (await getAccounts(userId)).find((a) => a.provider === 'discord');
   if (!acc) return null;
-  const u = getUser(userId);
+  const u = await getUser(userId);
   return { discordId: acc.provider_id, discordUsername: u?.username || acc.provider_id };
 }

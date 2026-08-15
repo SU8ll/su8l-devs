@@ -20,9 +20,9 @@ async function pingTarget(): Promise<{ ok: boolean; latencyMs: number | null }> 
 
 export async function runProbe(): Promise<UptimeCheck> {
   const { ok, latencyMs } = await pingTarget();
-  recordUptime(ok, latencyMs);
-  pruneUptime(60 * 24 * 60 * 60 * 1000); // keep 60 days
-  return latestUptime()!;
+  await recordUptime(ok, latencyMs);
+  await pruneUptime(60 * 24 * 60 * 60 * 1000); // keep 60 days
+  return (await latestUptime())!;
 }
 
 export function startUptimeChecker(): void {
@@ -33,11 +33,13 @@ export function startUptimeChecker(): void {
   timer.unref();
 }
 
-export function getStatusSummary() {
-  const latest = latestUptime();
-  const h24 = uptimeSince(24 * 60 * 60 * 1000);
-  const h7 = uptimeSince(7 * 24 * 60 * 60 * 1000);
-  const d30 = uptimeSince(30 * 24 * 60 * 60 * 1000);
+export async function getStatusSummary() {
+  const latest = await latestUptime();
+  const [h24, h7, d30] = await Promise.all([
+    uptimeSince(24 * 60 * 60 * 1000),
+    uptimeSince(7 * 24 * 60 * 60 * 1000),
+    uptimeSince(30 * 24 * 60 * 60 * 1000),
+  ]);
   const pct = (s: { checks: number; ok: number }) => (s.checks === 0 ? 100 : Math.round((s.ok / s.checks) * 1000) / 10);
   return {
     target: config.uptimeTarget,

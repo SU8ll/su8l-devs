@@ -42,26 +42,30 @@ export function readSessionToken(req: Request): string | null {
   return null;
 }
 
-export function getSessionUser(req: Request): User | undefined {
+export async function getSessionUser(req: Request): Promise<User | undefined> {
   const token = readSessionToken(req);
   if (!token) return undefined;
   try {
     const payload = jwt.verify(token, config.jwtSecret) as { sub?: string };
     if (!payload.sub) return undefined;
-    return getUser(payload.sub);
+    return await getUser(payload.sub);
   } catch {
     return undefined;
   }
 }
 
-export function requireAuth(req: Request, res: Response, next: NextFunction): void {
-  const user = getSessionUser(req);
-  if (!user) {
-    res.status(401).json({ error: 'authentication required' });
-    return;
+export async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const user = await getSessionUser(req);
+    if (!user) {
+      res.status(401).json({ error: 'authentication required' });
+      return;
+    }
+    (req as Request & { user: User }).user = user;
+    next();
+  } catch {
+    res.status(500).json({ error: 'internal server error' });
   }
-  (req as Request & { user: User }).user = user;
-  next();
 }
 
 export type AuthedRequest = Request;

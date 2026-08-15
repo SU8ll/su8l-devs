@@ -51,7 +51,7 @@ router.post('/create', requireAuth, async (req: AuthedRequest, res) => {
   let finalPlanName: string | null = null;
 
   if (extraSlot) {
-    if (!hasActiveBaseSubscription(req.user.id)) {
+    if (!(await hasActiveBaseSubscription(req.user.id))) {
       return res.status(403).json({ error: 'extra slot requires an active base subscription' });
     }
     amount = EXTRA_SLOT_PRICE;
@@ -70,7 +70,7 @@ router.post('/create', requireAuth, async (req: AuthedRequest, res) => {
       if (!plan.isHighestTier) {
         return res.status(400).json({ error: 'promo codes apply only to the Elite (highest tier) plan' });
       }
-      if (!promoIsUnused(normalized)) {
+      if (!(await promoIsUnused(normalized))) {
         return res.status(400).json({ error: 'invalid or already used promo code' });
       }
       appliedPromo = normalized;
@@ -94,7 +94,7 @@ router.post('/create', requireAuth, async (req: AuthedRequest, res) => {
       cancelUrl: `${config.appUrl}/checkout/cancel`,
     });
 
-    insertOrder({
+    await insertOrder({
       id: orderId,
       user_id: req.user.id,
       plan_key: finalPlanKey,
@@ -128,7 +128,7 @@ router.post('/capture', requireAuth, async (req: AuthedRequest, res) => {
   if (!parsed.success) return res.status(400).json({ error: 'invalid request' });
   const { paypalOrderId } = parsed.data;
 
-  const order = getOrderByPaypalId(paypalOrderId);
+  const order = await getOrderByPaypalId(paypalOrderId);
   if (!order) return res.status(404).json({ error: 'order not found' });
   if (order.user_id !== req.user.id) return res.status(403).json({ error: 'forbidden' });
 
@@ -139,15 +139,15 @@ router.post('/capture', requireAuth, async (req: AuthedRequest, res) => {
   try {
     const cap = await capturePayPalOrder(paypalOrderId);
     if (cap.captureStatus === 'COMPLETED') {
-      fulfillOrder(order.id, cap.captureId);
-      const updated = getOrder(order.id)!;
+      await fulfillOrder(order.id, cap.captureId);
+      const updated = (await getOrder(order.id))!;
       return res.json({
         orderId: order.id,
         status: updated.status === 'completed' ? 'completed' : cap.status,
         conflict: updated.promo_conflict === 1,
       });
     }
-    markOrderDenied(order.id);
+    await markOrderDenied(order.id);
     return res.status(402).json({ error: 'payment not completed', paypalStatus: cap.captureStatus ?? cap.status });
   } catch (err) {
     console.error('[checkout:capture]', err);
@@ -156,11 +156,11 @@ router.post('/capture', requireAuth, async (req: AuthedRequest, res) => {
 });
 
 // POST /api/checkout/validate-promo — live promo check for the checkout UI
-router.post('/validate-promo', requireAuth, (req, res) => {
+router.post('/validate-promo', requireAuth, async (req: AuthedRequest, res) => {
   const parsed = promoValidateSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: 'invalid request' });
   const code = parsed.data.promoCode.trim();
-  const promo = getPromoByCode(code);
+  const promo = await getPromoByCode(code);
   if (!promo || promo.status !== 'unused') {
     return res.json({ valid: false, message: 'Invalid or already used promo code.' });
   }
@@ -174,10 +174,10 @@ router.post('/validate-promo', requireAuth, (req, res) => {
 });
 
 // GET /api/checkout/orders/:id — public order summary for the Success screen
-router.get('/orders/:id', (req, res) => {
-  const order = getOrder(req.params.id);
+router.get('/orders/:id', async (req, res) => {
+  const order = await getOrder(req.params.id);
   if (!order) return res.status(404).json({ error: 'order not found' });
-  const u = getUser(order.user_id);
+  const u = await getUser(order.user_id);
   return res.json({
     id: order.id,
     status: order.status,

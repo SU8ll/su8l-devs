@@ -15,8 +15,8 @@ import { config } from '../config.js';
 
 const router = Router();
 
-function isStaff(userId: string): boolean {
-  const discordIds = getAccounts(userId).filter((a) => a.provider === 'discord').map((a) => a.provider_id);
+async function isStaff(userId: string): Promise<boolean> {
+  const discordIds = (await getAccounts(userId)).filter((a) => a.provider === 'discord').map((a) => a.provider_id);
   return discordIds.some((id) => config.staffDiscordIds.includes(id));
 }
 
@@ -30,15 +30,15 @@ const messageSchema = z.object({ body: z.string().trim().min(1).max(4000) });
 const statusSchema = z.object({ status: z.enum(['open', 'closed']) });
 
 // GET /api/tickets — my tickets
-router.get('/', requireAuth, (req: AuthedRequest, res) => {
-  res.json({ tickets: listTickets(req.user.id) });
+router.get('/', requireAuth, async (req: AuthedRequest, res) => {
+  res.json({ tickets: await listTickets(req.user.id) });
 });
 
 // POST /api/tickets — open a ticket
-router.post('/', requireAuth, (req: AuthedRequest, res) => {
+router.post('/', requireAuth, async (req: AuthedRequest, res) => {
   const parsed = createSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: 'invalid request', detail: parsed.error.flatten() });
-  const ticket = createTicket({
+  const ticket = await createTicket({
     userId: req.user.id,
     subject: parsed.data.subject,
     body: parsed.data.body,
@@ -48,41 +48,41 @@ router.post('/', requireAuth, (req: AuthedRequest, res) => {
 });
 
 // GET /api/tickets/:id — ticket + messages (owner or staff)
-router.get('/:id(\\d+)', requireAuth, (req: AuthedRequest, res) => {
-  const ticket = getTicket(Number(req.params.id));
+router.get('/:id(\\d+)', requireAuth, async (req: AuthedRequest, res) => {
+  const ticket = await getTicket(Number(req.params.id));
   if (!ticket) return res.status(404).json({ error: 'ticket not found' });
-  if (ticket.user_id !== req.user.id && !isStaff(req.user.id)) return res.status(403).json({ error: 'forbidden' });
-  res.json({ ticket, messages: listTicketMessages(ticket.id), staff: isStaff(req.user.id) });
+  if (ticket.user_id !== req.user.id && !(await isStaff(req.user.id))) return res.status(403).json({ error: 'forbidden' });
+  res.json({ ticket, messages: await listTicketMessages(ticket.id), staff: await isStaff(req.user.id) });
 });
 
 // POST /api/tickets/:id/messages — reply (owner or staff)
-router.post('/:id(\\d+)/messages', requireAuth, (req: AuthedRequest, res) => {
+router.post('/:id(\\d+)/messages', requireAuth, async (req: AuthedRequest, res) => {
   const parsed = messageSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: 'invalid request' });
-  const ticket = getTicket(Number(req.params.id));
+  const ticket = await getTicket(Number(req.params.id));
   if (!ticket) return res.status(404).json({ error: 'ticket not found' });
   if (ticket.status === 'closed') return res.status(400).json({ error: 'ticket is closed' });
-  if (ticket.user_id !== req.user.id && !isStaff(req.user.id)) return res.status(403).json({ error: 'forbidden' });
-  const author = isStaff(req.user.id) ? 'staff' : 'user';
-  const message = addTicketMessage(ticket.id, author, parsed.data.body);
+  if (ticket.user_id !== req.user.id && !(await isStaff(req.user.id))) return res.status(403).json({ error: 'forbidden' });
+  const author = (await isStaff(req.user.id)) ? 'staff' : 'user';
+  const message = await addTicketMessage(ticket.id, author, parsed.data.body);
   res.status(201).json({ message });
 });
 
 // POST /api/tickets/:id/status — close / reopen (owner or staff)
-router.post('/:id(\\d+)/status', requireAuth, (req: AuthedRequest, res) => {
+router.post('/:id(\\d+)/status', requireAuth, async (req: AuthedRequest, res) => {
   const parsed = statusSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: 'invalid request' });
-  const ticket = getTicket(Number(req.params.id));
+  const ticket = await getTicket(Number(req.params.id));
   if (!ticket) return res.status(404).json({ error: 'ticket not found' });
-  if (ticket.user_id !== req.user.id && !isStaff(req.user.id)) return res.status(403).json({ error: 'forbidden' });
-  setTicketStatus(ticket.id, parsed.data.status);
+  if (ticket.user_id !== req.user.id && !(await isStaff(req.user.id))) return res.status(403).json({ error: 'forbidden' });
+  await setTicketStatus(ticket.id, parsed.data.status);
   res.json({ ok: true, status: parsed.data.status });
 });
 
 // Staff-only: GET /api/tickets/all
-router.get('/all', requireAuth, (req: AuthedRequest, res) => {
-  if (!isStaff(req.user.id)) return res.status(403).json({ error: 'staff only' });
-  res.json({ tickets: listAllTickets() });
+router.get('/all', requireAuth, async (req: AuthedRequest, res) => {
+  if (!(await isStaff(req.user.id))) return res.status(403).json({ error: 'staff only' });
+  res.json({ tickets: await listAllTickets() });
 });
 
 export default router;

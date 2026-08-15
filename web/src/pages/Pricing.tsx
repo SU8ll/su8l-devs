@@ -97,9 +97,10 @@ export default function Pricing() {
                   <span className="font-display text-5xl font-black">${price}</span>
                   <span className="mb-1.5 text-sm text-muted">{per}</span>
                 </div>
-                {isElite && (
-                  <div className="mt-3 inline-flex w-fit items-center gap-1.5 rounded-full border border-glow/40 bg-glow/10 px-3 py-1 text-xs font-semibold text-glow">
-                    ⚡ {t('pricing.promo')}
+                {cycle === 'yearly' && (
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <span className="text-sm text-muted line-through">${p.monthly * 12}</span>
+                    <Badge tone="green">{t('pricing.save')}</Badge>
                   </div>
                 )}
                 <ul className="mt-6 flex-1 space-y-3 text-sm">

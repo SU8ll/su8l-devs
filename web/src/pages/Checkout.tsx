@@ -15,7 +15,7 @@ import { Link } from 'react-router-dom';
 type PromoState = 'idle' | 'applying' | 'valid' | 'invalid' | 'forbidden';
 
 const PROMO_MONTHLY = 25;
-const PROMO_YEARLY = PROMO_MONTHLY * 12;
+const PROMO_YEARLY = Math.round(PROMO_MONTHLY * 12 * 0.8);
 
 export default function Checkout() {
   const { t } = useI18n();
@@ -50,8 +50,11 @@ export default function Checkout() {
   const promoApplied = promoState === 'valid';
   const elite = plan?.isHighestTier;
 
+  const extraSlotPrice = dashboard?.extraSlotPrice ?? 15;
+
   const basePrice = (() => {
-    if (extra || !plan) return 0;
+    if (extra) return extraSlotPrice;
+    if (!plan) return 0;
     return cycle === 'yearly' ? plan.yearly : plan.monthly;
   })();
 
@@ -124,7 +127,7 @@ export default function Checkout() {
 
           {extra ? (
             <div className="mt-6 space-y-4">
-              <Row label={t('pricing.extraTitle')} value={`$${dashboard?.extraSlotPrice ?? 15}`} />
+              <Row label={t('pricing.extraTitle')} value={`$${extraSlotPrice}`} />
               <Row label={t('checkout.cycle')} value={t('pricing.monthly')} />
               <div className="rounded-xl border border-glow/25 bg-glow/5 p-4 text-sm text-muted">
                 {t('checkout.extraNote')}
@@ -181,7 +184,6 @@ export default function Checkout() {
                   )}
                   {promoState === 'invalid' && <span className="text-red-300">{t('checkout.promoInvalid')}</span>}
                   {promoState === 'forbidden' && <span className="text-amber-300">{t('checkout.promoForbidden')}</span>}
-                  {promoState === 'idle' && elite && <span className="text-muted">⚡ {t('pricing.promo')}</span>}
                 </div>
               </div>
             </div>
@@ -193,6 +195,9 @@ export default function Checkout() {
               <div className="text-end">
                 {promoApplied && (
                   <div className="text-sm text-muted line-through">${basePrice}</div>
+                )}
+                {cycle === 'yearly' && !promoApplied && plan && (
+                  <div className="text-sm text-muted line-through">${plan.monthly * 12}</div>
                 )}
                 <div className="font-display text-3xl font-black text-gradient">
                   ${effectivePrice}

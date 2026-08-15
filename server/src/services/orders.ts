@@ -15,33 +15,32 @@ import { dispatchToBot, getDiscordIdentity } from './dispatch.js';
  * webhook handler and the /checkout/capture route.
  *
  * Promo-code consumption and subscription/extra-slot activation happen inside
- * ONE `BEGIN IMMEDIATE` transaction. SQLite's single-writer lock serializes
- * concurrent transactions, so a promo code can never be consumed twice even
- * if two captures race.
+ * ONE `BEGIN`/`COMMIT` transaction on a single pooled Postgres connection, so
+ * a promo code can never be consumed twice even if two captures race.
  */
-export function fulfillOrder(orderId: string, captureId: string | null): boolean {
-  const order = getOrder(orderId);
+export async function fulfillOrder(orderId: string, captureId: string | null): Promise<boolean> {
+  const order = await getOrder(orderId);
   if (!order) return false;
   if (order.status === 'completed') return true;
 
-  const completed = withTransaction(() => {
-    const fresh = getOrder(orderId);
+  const completed = await withTransaction(async () => {
+    const fresh = await getOrder(orderId);
     if (!fresh || fresh.status === 'completed') return true;
 
     if (fresh.promo_code) {
-      const promo = getPromoByCode(fresh.promo_code);
+      const promo = await getPromoByCode(fresh.promo_code);
       if (promo && promo.status === 'unused') {
-        markPromoUsed(fresh.promo_code, fresh.user_id);
+        await markPromoUsed(fresh.promo_code, fresh.user_id);
       } else {
-        markOrderPromoConflict(fresh.id);
+        await markOrderPromoConflict(fresh.id);
       }
     }
 
     if (fresh.extra_slot) {
-      insertExtraSlot(fresh.user_id, fresh.id, fresh.amount);
+      await insertExtraSlot(fresh.user_id, fresh.id, fresh.amount);
     } else if (fresh.plan_key && fresh.cycle) {
       const plan = { key: fresh.plan_key, name: fresh.plan_name ?? fresh.plan_key };
-      activateSubscription({
+      await activateSubscription({
         userId: fresh.user_id,
         plan: plan as Parameters<typeof activateSubscription>[0]['plan'],
         cycle: fresh.cycle,
@@ -49,14 +48,14 @@ export function fulfillOrder(orderId: string, captureId: string | null): boolean
       });
     }
 
-    markOrderCompleted(fresh.id, captureId);
+    await markOrderCompleted(fresh.id, captureId);
     return true;
   });
 
   if (completed) {
     // Best-effort Discord role grant for the paying customer. Fire-and-forget:
     // fulfillment must never fail because the bot is momentarily unreachable.
-    const identity = getDiscordIdentity(order.user_id);
+    const identity = await getDiscordIdentity(order.user_id);
     if (identity) {
       void dispatchToBot({
         type: 'grant_role',
@@ -71,8 +70,8 @@ export function fulfillOrder(orderId: string, captureId: string | null): boolean
   return completed;
 }
 
-export function promoConflictDetected(orderId: string): boolean {
-  const order = getOrder(orderId);
+export async function promoConflictDetected(orderId: string): Promise<boolean> {
+  const order = await getOrder(orderId);
   if (!order || !order.promo_code) return false;
   // After fulfillment the promo row is 'used'; conflict means it was ALREADY
   // used by someone else (or by this user) before this order consumed it.

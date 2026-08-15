@@ -33,15 +33,15 @@ router.post('/paypal', express.raw({ type: 'application/json' }), async (req, re
       case 'PAYMENT.CAPTURE.COMPLETED': {
         const customId = event.resource?.custom_id;
         const captureId = event.resource?.id ?? null;
-        if (customId) fulfillOrder(customId, captureId);
+        if (customId) await fulfillOrder(customId, captureId);
         break;
       }
       case 'PAYMENT.CAPTURE.DENIED':
       case 'CHECKOUT.ORDER.DENIED': {
         const customId = event.resource?.custom_id;
         if (customId) {
-          const order = getOrder(customId);
-          if (order) markOrderDenied(order.id);
+          const order = await getOrder(customId);
+          if (order) await markOrderDenied(order.id);
         }
         break;
       }

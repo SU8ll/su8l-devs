@@ -15,9 +15,16 @@ const app = express();
 
 app.set('trust proxy', 1);
 
+const allowedOrigins = new Set<string>([config.appUrl, ...config.corsOrigins].map((o) => o.replace(/\/$/, '')));
+
 app.use(
   cors({
-    origin: config.appUrl,
+    origin(origin, callback) {
+      // Non-browser clients (PayPal webhooks, curl, uptime probes) send no Origin.
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.has(origin.replace(/\/$/, ''))) return callback(null, true);
+      return callback(new Error('CORS not allowed for this origin'));
+    },
     credentials: true,
   })
 );

@@ -269,6 +269,33 @@ body[dir='rtl'] .section-kicker {
     0 0 18px rgba(168, 85, 247, 0.25);
 }
 
+/* Compact inline input for the Climb Tower troop-ratio grid table */
+.neon-ratio {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.35rem 0.25rem;
+  text-align: center;
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 600;
+  outline: none;
+  transition:
+    border 0.2s,
+    box-shadow 0.2s;
+}
+.neon-ratio:focus {
+  border-color: var(--border-strong);
+  box-shadow:
+    0 0 0 3px rgba(168, 85, 247, 0.18),
+    0 0 14px rgba(168, 85, 247, 0.22);
+}
+.neon-ratio:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* ── Nav / misc ───────────────────────────────────────────────────────────── */
 .nav-link {
   color: var(--muted);

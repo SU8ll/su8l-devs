@@ -10,15 +10,16 @@ export interface Plan {
   isHighestTier?: boolean;
 }
 
-// Exactly two plans. Yearly is always monthly × 12 (no random values).
+// Exactly two plans. Yearly is monthly × 12 × 0.80 (20% annual discount).
 // Feature copy is the canonical source (localized in the web layer by index).
+const YEARLY_DISCOUNT = 0.8;
 export const PLANS: Plan[] = [
   {
     key: 'starter',
     name: 'Starter',
     tagline: 'The foundation of your fleet',
     monthly: 35,
-    yearly: 35 * 12, // $420
+    yearly: Math.round(35 * 12 * YEARLY_DISCOUNT), // $336
     slots: 1,
     features: [
       '10 commands unlocked',
@@ -33,7 +34,7 @@ export const PLANS: Plan[] = [
     name: 'Elite',
     tagline: 'Maximum power. 35+ commands.',
     monthly: 45,
-    yearly: 45 * 12, // $540
+    yearly: Math.round(45 * 12 * YEARLY_DISCOUNT), // $432
     slots: 6,
     badge: 'TOP TIER',
     isHighestTier: true,
@@ -48,7 +49,7 @@ export const PLANS: Plan[] = [
 ];
 
 export const PROMO_FORCED_MONTHLY_PRICE = 25;
-export const PROMO_FORCED_YEARLY_PRICE = PROMO_FORCED_MONTHLY_PRICE * 12;
+export const PROMO_FORCED_YEARLY_PRICE = Math.round(PROMO_FORCED_MONTHLY_PRICE * 12 * YEARLY_DISCOUNT);
 export const EXTRA_SLOT_PRICE = 15;
 export const CURRENCY = 'USD';
 

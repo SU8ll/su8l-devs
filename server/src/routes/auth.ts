@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import { randomUUID } from 'node:crypto';
 import axios from 'axios';
 import { config } from '../config.js';
-import { clearSessionCookie, setSessionCookie, signSession, getSessionUser } from '../lib/auth.js';
+import { clearSessionCookie, setSessionCookie, signSession, requireAuth, type AuthedRequest } from '../lib/auth.js';
 import { discordAvatarUrl, upsertOAuthUser } from '../services/auth.js';
 import { getEffectiveSlots, getSubscriptions, getExtraSlotCount } from '../db.js';
 
@@ -70,7 +70,7 @@ router.get('/discord/callback', async (req, res) => {
       avatar?: string;
       locale?: string;
     };
-    const user = upsertOAuthUser({
+    const user = await upsertOAuthUser({
       provider: 'discord',
       providerId: d.id,
       email: d.email ?? null,
@@ -124,7 +124,7 @@ router.get('/google/callback', async (req, res) => {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     const g = me.data as { id: string; name?: string; email?: string; picture?: string };
-    const user = upsertOAuthUser({
+    const user = await upsertOAuthUser({
       provider: 'google',
       providerId: g.id,
       email: g.email ?? null,
@@ -172,7 +172,7 @@ router.get('/facebook/callback', async (req, res) => {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     const f = me.data as { id: string; name?: string; email?: string; picture?: { data?: { url?: string } } };
-    const user = upsertOAuthUser({
+    const user = await upsertOAuthUser({
       provider: 'facebook',
       providerId: f.id,
       email: f.email ?? null,
@@ -190,9 +190,9 @@ router.get('/facebook/callback', async (req, res) => {
 
 // ── Dev-only login (disabled in production) ─────────────────────────────────
 
-router.get('/dev-login', (_req, res) => {
+router.get('/dev-login', async (_req, res) => {
   if (config.isProd) return res.status(404).json({ error: 'not found' });
-  const user = upsertOAuthUser({
+  const user = await upsertOAuthUser({
     provider: 'dev',
     providerId: 'dev',
     email: 'dev@su8l.test',
@@ -211,19 +211,17 @@ router.post('/logout', (_req, res) => {
   res.json({ ok: true });
 });
 
-router.get('/me', (req, res) => {
-  const user = getSessionUser(req);
-  if (!user) return res.status(401).json({ error: 'authentication required' });
-  const slots = getEffectiveSlots(user.id);
+router.get('/me', requireAuth, async (req: AuthedRequest, res) => {
+  const slots = await getEffectiveSlots(req.user.id);
   res.json({
-    id: user.id,
-    username: user.username,
-    avatar: user.avatar,
-    email: user.email,
-    locale: user.locale,
+    id: req.user.id,
+    username: req.user.username,
+    avatar: req.user.avatar,
+    email: req.user.email,
+    locale: req.user.locale,
     slots,
-    subscriptions: getSubscriptions(user.id).length,
-    extraSlots: getExtraSlotCount(user.id),
+    subscriptions: (await getSubscriptions(req.user.id)).length,
+    extraSlots: await getExtraSlotCount(req.user.id),
   });
 });
 

@@ -1,18 +1,33 @@
-import { DatabaseSync } from 'node:sqlite';
-import { mkdirSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { Pool, types } from 'pg';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { config } from './config.js';
 import { getPlan, planCycleMonths, type Plan } from './plans.js';
 
-mkdirSync(dirname(config.dbPath), { recursive: true });
+// Postgres returns BIGINT columns (ids, epoch ms) as strings by default.
+// Parse them back to JS numbers so the rest of the code sees numbers.
+types.setTypeParser(20, (v) => Number(v));
+types.setTypeParser(1700, (v) => Number(v));
 
-const db = new DatabaseSync(config.dbPath);
+export const pool = new Pool({
+  connectionString: config.databaseUrl,
+  max: 10,
+  idleTimeoutMillis: 30_000,
+  connectionTimeoutMillis: 10_000,
+});
 
-db.exec('PRAGMA journal_mode = WAL;');
-db.exec('PRAGMA foreign_keys = ON;');
-db.exec('PRAGMA busy_timeout = 5000;');
+// ── Transaction context ────────────────────────────────────────────────────────
+// `withTransaction` borrows ONE client from the pool and runs its callback inside
+// `BEGIN`/`COMMIT` on that client. The query helpers read the ALS store so every
+// query issued inside the callback participates in the same transaction — this
+// is what lets a promo code be consumed exactly once under racing webhooks.
 
-db.exec(`
+interface TxnStore {
+  client: import('pg').PoolClient;
+}
+const txnStore = new AsyncLocalStorage<TxnStore>();
+
+export async function initDb(): Promise<void> {
+  await pool.query(`
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
   email TEXT,
@@ -30,7 +45,7 @@ CREATE TABLE IF NOT EXISTS accounts (
   provider_id TEXT NOT NULL,
   access_token TEXT,
   refresh_token TEXT,
-  expires_at INTEGER,
+  expires_at BIGINT,
   created_at TEXT NOT NULL,
   UNIQUE(provider, provider_id)
 );
@@ -43,9 +58,9 @@ CREATE TABLE IF NOT EXISTS subscriptions (
   plan_key TEXT NOT NULL,
   plan_name TEXT NOT NULL,
   cycle TEXT NOT NULL,
-  amount REAL NOT NULL,
+  amount DOUBLE PRECISION NOT NULL,
   status TEXT NOT NULL DEFAULT 'active',
-  current_period_end INTEGER,
+  current_period_end BIGINT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
@@ -58,7 +73,7 @@ CREATE TABLE IF NOT EXISTS orders (
   plan_key TEXT,
   plan_name TEXT,
   cycle TEXT,
-  amount REAL NOT NULL,
+  amount DOUBLE PRECISION NOT NULL,
   currency TEXT NOT NULL DEFAULT 'USD',
   promo_code TEXT,
   promo_conflict INTEGER NOT NULL DEFAULT 0,
@@ -73,7 +88,7 @@ CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id);
 CREATE INDEX IF NOT EXISTS idx_orders_paypal ON orders(paypal_order_id);
 
 CREATE TABLE IF NOT EXISTS promo_codes (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  id SERIAL PRIMARY KEY,
   code TEXT NOT NULL UNIQUE,
   status TEXT NOT NULL DEFAULT 'unused',
   used_by TEXT,
@@ -84,16 +99,19 @@ CREATE TABLE IF NOT EXISTS promo_codes (
 CREATE INDEX IF NOT EXISTS idx_promo_status ON promo_codes(status);
 
 CREATE TABLE IF NOT EXISTS extra_slots (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  id SERIAL PRIMARY KEY,
   user_id TEXT NOT NULL,
   order_id TEXT,
-  amount REAL NOT NULL,
+  amount DOUBLE PRECISION NOT NULL,
   created_at TEXT NOT NULL
 );
+-- The UNIQUE partial index is the hard invariant: one paid order can NEVER
+-- grant more than a single extra slot, even if a capture + webhook race.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_extra_slots_order ON extra_slots(order_id) WHERE order_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_extra_user ON extra_slots(user_id);
 
 CREATE TABLE IF NOT EXISTS tickets (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  id SERIAL PRIMARY KEY,
   user_id TEXT NOT NULL,
   subject TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'open',
@@ -104,7 +122,7 @@ CREATE TABLE IF NOT EXISTS tickets (
 CREATE INDEX IF NOT EXISTS idx_tickets_user ON tickets(user_id);
 
 CREATE TABLE IF NOT EXISTS ticket_messages (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  id SERIAL PRIMARY KEY,
   ticket_id INTEGER NOT NULL,
   author TEXT NOT NULL,
   body TEXT NOT NULL,
@@ -113,7 +131,7 @@ CREATE TABLE IF NOT EXISTS ticket_messages (
 CREATE INDEX IF NOT EXISTS idx_tmsg_ticket ON ticket_messages(ticket_id);
 
 CREATE TABLE IF NOT EXISTS uptime_checks (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  id SERIAL PRIMARY KEY,
   ok INTEGER NOT NULL,
   latency_ms INTEGER,
   checked_at TEXT NOT NULL
@@ -125,31 +143,59 @@ CREATE TABLE IF NOT EXISTS user_settings (
   bot_config TEXT NOT NULL DEFAULT '{}',
   updated_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS bot_slots (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  bot_config TEXT NOT NULL DEFAULT '{}',
+  sort INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_bot_slots_user ON bot_slots(user_id);
 `);
-
-export type SqlValue = string | number | bigint | null | Uint8Array;
-
-export function run(sql: string, ...params: SqlValue[]): { changes: number; lastInsertRowid: number | bigint } {
-  return db.prepare(sql).run(...params) as { changes: number; lastInsertRowid: number | bigint };
 }
 
-export function get<T>(sql: string, ...params: SqlValue[]): T | undefined {
-  return db.prepare(sql).get(...params) as T | undefined;
+export type SqlValue = string | number | bigint | boolean | null | Uint8Array;
+
+// pg uses $1..$n placeholders; convert the SQLite-style ? markers per query.
+function toPg(sql: string): string {
+  let i = 0;
+  return sql.replace(/\?/g, () => `$${++i}`);
 }
 
-export function all<T>(sql: string, ...params: SqlValue[]): T[] {
-  return db.prepare(sql).all(...params) as T[];
+function pickConn() {
+  return txnStore.getStore()?.client ?? pool;
 }
 
-export function withTransaction<T>(fn: () => T): T {
-  db.exec('BEGIN IMMEDIATE');
+export async function run(sql: string, ...params: SqlValue[]): Promise<{ changes: number }> {
+  const r = await pickConn().query(toPg(sql), params);
+  return { changes: r.rowCount ?? 0 };
+}
+
+export async function get<T>(sql: string, ...params: SqlValue[]): Promise<T | undefined> {
+  const r = await pickConn().query(toPg(sql), params);
+  return r.rows[0] as T | undefined;
+}
+
+export async function all<T>(sql: string, ...params: SqlValue[]): Promise<T[]> {
+  const r = await pickConn().query(toPg(sql), params);
+  return r.rows as T[];
+}
+
+export async function withTransaction<T>(fn: () => Promise<T>): Promise<T> {
+  const client = await pool.connect();
   try {
-    const out = fn();
-    db.exec('COMMIT');
+    await client.query('BEGIN');
+    const out = await txnStore.run({ client }, () => fn());
+    await client.query('COMMIT');
     return out;
   } catch (err) {
-    db.exec('ROLLBACK');
+    await client.query('ROLLBACK').catch(() => {});
     throw err;
+  } finally {
+    client.release();
   }
 }
 
@@ -178,33 +224,33 @@ export interface Account {
   expires_at: number | null;
 }
 
-export function getUser(id: string): User | undefined {
+export function getUser(id: string): Promise<User | undefined> {
   return get<User>('SELECT * FROM users WHERE id = ?', id);
 }
 
-export function findUserByAccount(provider: string, providerId: string): User | undefined {
-  const acc = get<Account>('SELECT * FROM accounts WHERE provider = ? AND provider_id = ?', provider, providerId);
+export async function findUserByAccount(provider: string, providerId: string): Promise<User | undefined> {
+  const acc = await get<Account>('SELECT * FROM accounts WHERE provider = ? AND provider_id = ?', provider, providerId);
   return acc ? getUser(acc.user_id) : undefined;
 }
 
-export function getAccounts(userId: string): Account[] {
+export function getAccounts(userId: string): Promise<Account[]> {
   return all<Account>('SELECT * FROM accounts WHERE user_id = ?', userId);
 }
 
-export function findUserByEmail(email: string): User | undefined {
+export async function findUserByEmail(email: string): Promise<User | undefined> {
   if (!email) return undefined;
-  return get<User>('SELECT * FROM users WHERE email = ? COLLATE NOCASE', email);
+  return get<User>('SELECT * FROM users WHERE LOWER(email) = LOWER(?)', email);
 }
 
-export function createUser(data: {
+export async function createUser(data: {
   id: string;
   email?: string | null;
   username: string;
   avatar?: string | null;
   locale?: string;
-}): User {
+}): Promise<User> {
   const ts = nowIso();
-  run(
+  await run(
     'INSERT INTO users (id, email, username, avatar, locale, created_at, updated_at) VALUES (?,?,?,?,?,?,?)',
     data.id,
     data.email ?? null,
@@ -214,13 +260,13 @@ export function createUser(data: {
     ts,
     ts
   );
-  return getUser(data.id)!;
+  return (await getUser(data.id))!;
 }
 
-export function updateUser(id: string, patch: { email?: string | null; username?: string; avatar?: string | null; locale?: string }): void {
-  const u = getUser(id);
+export async function updateUser(id: string, patch: { email?: string | null; username?: string; avatar?: string | null; locale?: string }): Promise<void> {
+  const u = await getUser(id);
   if (!u) return;
-  run(
+  await run(
     'UPDATE users SET email = ?, username = ?, avatar = ?, locale = ?, updated_at = ? WHERE id = ?',
     patch.email !== undefined ? patch.email : u.email,
     patch.username ?? u.username,
@@ -231,10 +277,10 @@ export function updateUser(id: string, patch: { email?: string | null; username?
   );
 }
 
-export function addAccount(data: Omit<Account, 'id'>): Account {
+export async function addAccount(data: Omit<Account, 'id'>): Promise<Account> {
   const id = `acc_${crypto.randomUUID().replace(/-/g, '').slice(0, 20)}`;
-  run(
-    'INSERT OR IGNORE INTO accounts (id, user_id, provider, provider_id, access_token, refresh_token, expires_at, created_at) VALUES (?,?,?,?,?,?,?,?)',
+  await run(
+    'INSERT INTO accounts (id, user_id, provider, provider_id, access_token, refresh_token, expires_at, created_at) VALUES (?,?,?,?,?,?,?,?) ON CONFLICT DO NOTHING',
     id,
     data.user_id,
     data.provider,
@@ -244,7 +290,10 @@ export function addAccount(data: Omit<Account, 'id'>): Account {
     data.expires_at ?? null,
     nowIso()
   );
-  return get<Account>('SELECT * FROM accounts WHERE id = ?', id)!;
+  const acc =
+    (await get<Account>('SELECT * FROM accounts WHERE id = ?', id)) ??
+    (await get<Account>('SELECT * FROM accounts WHERE provider = ? AND provider_id = ?', data.provider, data.provider_id));
+  return acc!;
 }
 
 // ── Subscriptions ───────────────────────────────────────────────────────────
@@ -262,11 +311,11 @@ export interface Subscription {
   updated_at: string;
 }
 
-export function getSubscriptions(userId: string): Subscription[] {
+export function getSubscriptions(userId: string): Promise<Subscription[]> {
   return all<Subscription>('SELECT * FROM subscriptions WHERE user_id = ? ORDER BY created_at DESC', userId);
 }
 
-export function getActiveSubscriptions(userId: string): Subscription[] {
+export async function getActiveSubscriptions(userId: string): Promise<Subscription[]> {
   const now = nowEpoch();
   return all<Subscription>(
     `SELECT * FROM subscriptions WHERE user_id = ? AND status = 'active' AND (current_period_end IS NULL OR current_period_end > ?) ORDER BY created_at DESC`,
@@ -275,34 +324,34 @@ export function getActiveSubscriptions(userId: string): Subscription[] {
   );
 }
 
-export function hasActiveBaseSubscription(userId: string): boolean {
-  return getActiveSubscriptions(userId).length > 0;
+export async function hasActiveBaseSubscription(userId: string): Promise<boolean> {
+  return (await getActiveSubscriptions(userId)).length > 0;
 }
 
-export function activateSubscription(data: {
+export async function activateSubscription(data: {
   userId: string;
   plan: Plan;
   cycle: 'monthly' | 'yearly';
   amount: number;
-}): Subscription {
+}): Promise<Subscription> {
   // Caller must wrap in `withTransaction` (fulfillOrder does). No nested BEGIN.
-  const existing = getActiveSubscriptions(data.userId).find((s) => s.plan_key === data.plan.key);
+  const existing = (await getActiveSubscriptions(data.userId)).find((s) => s.plan_key === data.plan.key);
   if (existing) {
     const base = Math.max(existing.current_period_end ?? nowEpoch(), nowEpoch());
     const end = base + planCycleMonths(data.cycle) * 30 * 24 * 60 * 60 * 1000;
-    run(
+    await run(
       `UPDATE subscriptions SET amount = ?, current_period_end = ?, status = 'active', updated_at = ? WHERE id = ?`,
       data.amount,
       end,
       nowIso(),
       existing.id
     );
-    return get<Subscription>('SELECT * FROM subscriptions WHERE id = ?', existing.id)!;
+    return (await get<Subscription>('SELECT * FROM subscriptions WHERE id = ?', existing.id))!;
   }
   const id = `sub_${crypto.randomUUID().replace(/-/g, '').slice(0, 20)}`;
   const end = nowEpoch() + planCycleMonths(data.cycle) * 30 * 24 * 60 * 60 * 1000;
   const ts = nowIso();
-  run(
+  await run(
     `INSERT INTO subscriptions (id, user_id, plan_key, plan_name, cycle, amount, status, current_period_end, created_at, updated_at)
      VALUES (?,?,?,?,?,?,?,?,?,?)`,
     id,
@@ -316,17 +365,17 @@ export function activateSubscription(data: {
     ts,
     ts
   );
-  return get<Subscription>('SELECT * FROM subscriptions WHERE id = ?', id)!;
+  return (await get<Subscription>('SELECT * FROM subscriptions WHERE id = ?', id))!;
 }
 
-export function getEffectiveSlots(userId: string): { base: number; extra: number; total: number; active: boolean } {
-  const active = getActiveSubscriptions(userId);
+export async function getEffectiveSlots(userId: string): Promise<{ base: number; extra: number; total: number; active: boolean }> {
+  const active = await getActiveSubscriptions(userId);
   let planSlots = 0;
   for (const s of active) {
     const plan = getPlan(s.plan_key);
     if (plan && plan.slots > planSlots) planSlots = plan.slots;
   }
-  const extra = getExtraSlotCount(userId);
+  const extra = await getExtraSlotCount(userId);
   return {
     base: planSlots,
     extra,
@@ -355,11 +404,11 @@ export interface Order {
   updated_at: string;
 }
 
-export function insertOrder(
+export async function insertOrder(
   o: Omit<Order, 'status' | 'promo_conflict' | 'paypal_capture_id' | 'created_at' | 'updated_at'>
-): Order {
+): Promise<Order> {
   const ts = nowIso();
-  run(
+  await run(
     `INSERT INTO orders (id, user_id, plan_key, plan_name, cycle, amount, currency, promo_code, extra_slot, status, paypal_order_id, created_at, updated_at)
      VALUES (?,?,?,?,?,?,?,?,?,'created',?,?,?)`,
     o.id,
@@ -375,31 +424,31 @@ export function insertOrder(
     ts,
     ts
   );
-  return get<Order>('SELECT * FROM orders WHERE id = ?', o.id)!;
+  return (await get<Order>('SELECT * FROM orders WHERE id = ?', o.id))!;
 }
 
-export function getOrder(id: string): Order | undefined {
+export function getOrder(id: string): Promise<Order | undefined> {
   return get<Order>('SELECT * FROM orders WHERE id = ?', id);
 }
 
-export function getOrderByPaypalId(paypalOrderId: string): Order | undefined {
+export function getOrderByPaypalId(paypalOrderId: string): Promise<Order | undefined> {
   return get<Order>('SELECT * FROM orders WHERE paypal_order_id = ?', paypalOrderId);
 }
 
-export function setOrderPaypalId(id: string, paypalOrderId: string): void {
-  run(`UPDATE orders SET paypal_order_id = ?, updated_at = ? WHERE id = ?`, paypalOrderId, nowIso(), id);
+export async function setOrderPaypalId(id: string, paypalOrderId: string): Promise<void> {
+  await run(`UPDATE orders SET paypal_order_id = ?, updated_at = ? WHERE id = ?`, paypalOrderId, nowIso(), id);
 }
 
-export function markOrderCompleted(id: string, captureId: string | null): void {
-  run(`UPDATE orders SET status = 'completed', paypal_capture_id = ?, updated_at = ? WHERE id = ?`, captureId, nowIso(), id);
+export async function markOrderCompleted(id: string, captureId: string | null): Promise<void> {
+  await run(`UPDATE orders SET status = 'completed', paypal_capture_id = ?, updated_at = ? WHERE id = ?`, captureId, nowIso(), id);
 }
 
-export function markOrderDenied(id: string): void {
-  run(`UPDATE orders SET status = 'denied', updated_at = ? WHERE id = ?`, nowIso(), id);
+export async function markOrderDenied(id: string): Promise<void> {
+  await run(`UPDATE orders SET status = 'denied', updated_at = ? WHERE id = ?`, nowIso(), id);
 }
 
-export function markOrderPromoConflict(id: string): void {
-  run(`UPDATE orders SET promo_conflict = 1, updated_at = ? WHERE id = ?`, nowIso(), id);
+export async function markOrderPromoConflict(id: string): Promise<void> {
+  await run(`UPDATE orders SET promo_conflict = 1, updated_at = ? WHERE id = ?`, nowIso(), id);
 }
 
 // ── Promo Codes ─────────────────────────────────────────────────────────────
@@ -414,35 +463,35 @@ export interface PromoCode {
   created_at: string;
 }
 
-export function insertPromoCode(code: string, createdBy: string): PromoCode {
+export async function insertPromoCode(code: string, createdBy: string): Promise<PromoCode> {
   const ts = nowIso();
-  run('INSERT INTO promo_codes (code, status, used_by, used_at, created_by, created_at) VALUES (?,?,?,?,?,?)',
+  await run('INSERT INTO promo_codes (code, status, used_by, used_at, created_by, created_at) VALUES (?,?,?,?,?,?)',
     code, 'unused', null, null, createdBy, ts);
-  return get<PromoCode>('SELECT * FROM promo_codes WHERE code = ?', code)!;
+  return (await get<PromoCode>('SELECT * FROM promo_codes WHERE code = ?', code))!;
 }
 
-export function getPromoByCode(code: string): PromoCode | undefined {
-  // COLLATE NOCASE so the literal "DEVs" suffix matches any casing a user types.
-  return get<PromoCode>('SELECT * FROM promo_codes WHERE code = ? COLLATE NOCASE', code.trim());
+export function getPromoByCode(code: string): Promise<PromoCode | undefined> {
+  // Case-insensitive exact match so the literal "DEVs" suffix matches any casing.
+  return get<PromoCode>('SELECT * FROM promo_codes WHERE LOWER(code) = LOWER(?)', code.trim());
 }
 
-export function promoIsUnused(code: string): boolean {
-  const p = getPromoByCode(code);
+export async function promoIsUnused(code: string): Promise<boolean> {
+  const p = await getPromoByCode(code);
   return !!p && p.status === 'unused';
 }
 
 /**
  * Mutates a promo code to 'used' INSIDE the caller's transaction.
- * Must only be called from within `withTransaction` (BEGIN IMMEDIATE), which
- * serializes concurrent writers so the code can never be double-consumed.
+ * Must only be called from within `withTransaction`, which serializes the
+ * mutation on a single pooled connection so the code can never be consumed twice.
  */
-export function markPromoUsed(code: string, userId: string): void {
-  run(`UPDATE promo_codes SET status = 'used', used_by = ?, used_at = ? WHERE code = ? COLLATE NOCASE AND status = 'unused'`,
+export async function markPromoUsed(code: string, userId: string): Promise<void> {
+  await run(`UPDATE promo_codes SET status = 'used', used_by = ?, used_at = ? WHERE LOWER(code) = LOWER(?) AND status = 'unused'`,
     userId, nowIso(), code.trim());
 }
 
-export function promoWasConsumedInTxn(code: string, userId: string): boolean {
-  const p = getPromoByCode(code);
+export async function promoWasConsumedInTxn(code: string, userId: string): Promise<boolean> {
+  const p = await getPromoByCode(code);
   return !!p && p.status === 'used' && p.used_by === userId;
 }
 
@@ -456,18 +505,20 @@ export interface ExtraSlot {
   created_at: string;
 }
 
-export function insertExtraSlot(userId: string, orderId: string | null, amount: number): void {
-  run('INSERT INTO extra_slots (user_id, order_id, amount, created_at) VALUES (?,?,?,?)',
+export async function insertExtraSlot(userId: string, orderId: string | null, amount: number): Promise<void> {
+  // ON CONFLICT DO NOTHING + the UNIQUE(order_id) partial index guarantees this
+  // grants AT MOST +1 slot per order, even on duplicate fulfillments.
+  await run('INSERT INTO extra_slots (user_id, order_id, amount, created_at) VALUES (?,?,?,?) ON CONFLICT DO NOTHING',
     userId, orderId, amount, nowIso());
 }
 
-export function getExtraSlotCount(userId: string): number {
-  const r = get<{ n: number }>('SELECT COUNT(*) AS n FROM extra_slots WHERE user_id = ?', userId);
+export async function getExtraSlotCount(userId: string): Promise<number> {
+  const r = await get<{ n: number }>('SELECT COUNT(*) AS n FROM extra_slots WHERE user_id = ?', userId);
   return r ? Number(r.n) : 0;
 }
 
-export function ownsExtraSlot(userId: string): boolean {
-  return getExtraSlotCount(userId) > 0;
+export async function ownsExtraSlot(userId: string): Promise<boolean> {
+  return (await getExtraSlotCount(userId)) > 0;
 }
 
 // ── Tickets ─────────────────────────────────────────────────────────────────
@@ -490,42 +541,43 @@ export interface TicketMessage {
   created_at: string;
 }
 
-export function listTickets(userId: string): Ticket[] {
+export function listTickets(userId: string): Promise<Ticket[]> {
   return all<Ticket>('SELECT * FROM tickets WHERE user_id = ? ORDER BY updated_at DESC', userId);
 }
 
-export function getTicket(id: number): Ticket | undefined {
+export function getTicket(id: number): Promise<Ticket | undefined> {
   return get<Ticket>('SELECT * FROM tickets WHERE id = ?', id);
 }
 
-export function createTicket(data: { userId: string; subject: string; body: string; priority: string }): Ticket {
+export async function createTicket(data: { userId: string; subject: string; body: string; priority: string }): Promise<Ticket> {
   const ts = nowIso();
-  const r = run(
-    `INSERT INTO tickets (user_id, subject, status, priority, created_at, updated_at) VALUES (?,?,?,?,?,?)`,
+  const inserted = await get<{ id: number }>(
+    `INSERT INTO tickets (user_id, subject, status, priority, created_at, updated_at) VALUES (?,?,?,?,?,?) RETURNING id`,
     data.userId, data.subject, 'open', data.priority, ts, ts
   );
-  run('INSERT INTO ticket_messages (ticket_id, author, body, created_at) VALUES (?,?,?,?)',
-    Number(r.lastInsertRowid), 'user', data.body, ts);
-  return getTicket(Number(r.lastInsertRowid))!;
+  const ticketId = inserted!.id;
+  await run('INSERT INTO ticket_messages (ticket_id, author, body, created_at) VALUES (?,?,?,?)',
+    ticketId, 'user', data.body, ts);
+  return (await getTicket(ticketId))!;
 }
 
-export function listTicketMessages(ticketId: number): TicketMessage[] {
+export function listTicketMessages(ticketId: number): Promise<TicketMessage[]> {
   return all<TicketMessage>('SELECT * FROM ticket_messages WHERE ticket_id = ? ORDER BY created_at ASC', ticketId);
 }
 
-export function addTicketMessage(ticketId: number, author: 'user' | 'staff', body: string): TicketMessage {
+export async function addTicketMessage(ticketId: number, author: 'user' | 'staff', body: string): Promise<TicketMessage> {
   const ts = nowIso();
-  run('INSERT INTO ticket_messages (ticket_id, author, body, created_at) VALUES (?,?,?,?)', ticketId, author, body, ts);
-  run(`UPDATE tickets SET updated_at = ?, status = CASE WHEN ? = 'user' AND status = 'closed' THEN 'open' ELSE status END WHERE id = ?`,
+  await run('INSERT INTO ticket_messages (ticket_id, author, body, created_at) VALUES (?,?,?,?)', ticketId, author, body, ts);
+  await run(`UPDATE tickets SET updated_at = ?, status = CASE WHEN ? = 'user' AND status = 'closed' THEN 'open' ELSE status END WHERE id = ?`,
     ts, author, ticketId);
-  return all<TicketMessage>('SELECT * FROM ticket_messages WHERE ticket_id = ? ORDER BY created_at DESC LIMIT 1', ticketId)[0]!;
+  return (await all<TicketMessage>('SELECT * FROM ticket_messages WHERE ticket_id = ? ORDER BY created_at DESC LIMIT 1', ticketId))[0]!;
 }
 
-export function setTicketStatus(ticketId: number, status: 'open' | 'closed'): void {
-  run(`UPDATE tickets SET status = ?, updated_at = ? WHERE id = ?`, status, nowIso(), ticketId);
+export async function setTicketStatus(ticketId: number, status: 'open' | 'closed'): Promise<void> {
+  await run(`UPDATE tickets SET status = ?, updated_at = ? WHERE id = ?`, status, nowIso(), ticketId);
 }
 
-export function listAllTickets(limit = 100): Ticket[] {
+export async function listAllTickets(limit = 100): Promise<Ticket[]> {
   return all<Ticket>('SELECT * FROM tickets ORDER BY updated_at DESC LIMIT ?', limit);
 }
 
@@ -538,24 +590,24 @@ export interface UptimeCheck {
   checked_at: string;
 }
 
-export function recordUptime(ok: boolean, latencyMs: number | null): void {
-  run('INSERT INTO uptime_checks (ok, latency_ms, checked_at) VALUES (?,?,?)',
+export async function recordUptime(ok: boolean, latencyMs: number | null): Promise<void> {
+  await run('INSERT INTO uptime_checks (ok, latency_ms, checked_at) VALUES (?,?,?)',
     ok ? 1 : 0, latencyMs, nowIso());
 }
 
-export function latestUptime(): UptimeCheck | undefined {
+export async function latestUptime(): Promise<UptimeCheck | undefined> {
   return get<UptimeCheck>('SELECT * FROM uptime_checks ORDER BY checked_at DESC LIMIT 1');
 }
 
-export function uptimeSince(msAgo: number): { checks: number; ok: number; samples: UptimeCheck[] } {
+export async function uptimeSince(msAgo: number): Promise<{ checks: number; ok: number; samples: UptimeCheck[] }> {
   const since = new Date(Date.now() - msAgo).toISOString();
-  const rows = all<UptimeCheck>('SELECT * FROM uptime_checks WHERE checked_at >= ? ORDER BY checked_at ASC', since);
+  const rows = await all<UptimeCheck>('SELECT * FROM uptime_checks WHERE checked_at >= ? ORDER BY checked_at ASC', since);
   const ok = rows.filter((r) => r.ok === 1).length;
   return { checks: rows.length, ok, samples: rows };
 }
 
-export function uptimeDaily(days = 30): { day: string; ok: number; total: number; latency: number | null }[] {
-  const rows = uptimeSince(days * 24 * 60 * 60 * 1000).samples;
+export async function uptimeDaily(days = 30): Promise<{ day: string; ok: number; total: number; latency: number | null }[]> {
+  const rows = (await uptimeSince(days * 24 * 60 * 60 * 1000)).samples;
   const map = new Map<string, { ok: number; total: number; latSum: number; latN: number }>();
   for (const r of rows) {
     const day = r.checked_at.slice(0, 10);
@@ -582,14 +634,14 @@ export function uptimeDaily(days = 30): { day: string; ok: number; total: number
   return out;
 }
 
-export function pruneUptime(beforeMs: number): void {
-  run('DELETE FROM uptime_checks WHERE checked_at < ?', new Date(Date.now() - beforeMs).toISOString());
+export async function pruneUptime(beforeMs: number): Promise<void> {
+  await run('DELETE FROM uptime_checks WHERE checked_at < ?', new Date(Date.now() - beforeMs).toISOString());
 }
 
 // ── User settings (bot panel config) ────────────────────────────────────────
 
-export function getBotConfig(userId: string): Record<string, unknown> {
-  const r = get<{ bot_config: string }>('SELECT bot_config FROM user_settings WHERE user_id = ?', userId);
+export async function getBotConfig(userId: string): Promise<Record<string, unknown>> {
+  const r = await get<{ bot_config: string }>('SELECT bot_config FROM user_settings WHERE user_id = ?', userId);
   try {
     return r ? (JSON.parse(r.bot_config) as Record<string, unknown>) : {};
   } catch {
@@ -597,12 +649,81 @@ export function getBotConfig(userId: string): Record<string, unknown> {
   }
 }
 
-export function setBotConfig(userId: string, cfg: Record<string, unknown>): void {
-  run(
+export async function setBotConfig(userId: string, cfg: Record<string, unknown>): Promise<void> {
+  await run(
     `INSERT INTO user_settings (user_id, bot_config, updated_at) VALUES (?,?,?)
      ON CONFLICT(user_id) DO UPDATE SET bot_config = excluded.bot_config, updated_at = excluded.updated_at`,
     userId,
     JSON.stringify(cfg),
     nowIso()
   );
+}
+
+// ── Bot slots (multi-account config contexts) ───────────────────────────────
+
+export interface BotSlot {
+  id: string;
+  user_id: string;
+  name: string;
+  bot_config: string;
+  sort: number;
+  created_at: string;
+  updated_at: string;
+}
+
+function makeSlotId(): string {
+  return `slot_${crypto.randomUUID().replace(/-/g, '').slice(0, 20)}`;
+}
+
+export function listBotSlots(userId: string): Promise<BotSlot[]> {
+  return all<BotSlot>('SELECT * FROM bot_slots WHERE user_id = ? ORDER BY sort ASC, created_at ASC', userId);
+}
+
+export function getBotSlot(slotId: string, userId: string): Promise<BotSlot | undefined> {
+  return get<BotSlot>('SELECT * FROM bot_slots WHERE id = ? AND user_id = ?', slotId, userId);
+}
+
+/**
+ * Guarantees the user has exactly `count` slots. The first slot inherits the
+ * legacy single-config stored in `user_settings.bot_config`, so existing users
+ * keep their settings after the multi-slot migration. Missing slots are
+ * created with default names.
+ */
+export async function ensureBotSlots(userId: string, count: number): Promise<BotSlot[]> {
+  let existing = await listBotSlots(userId);
+  if (existing.length === 0) {
+    const legacy = await getBotConfig(userId);
+    const ts = nowIso();
+    await run(
+      'INSERT INTO bot_slots (id, user_id, name, bot_config, sort, created_at, updated_at) VALUES (?,?,?,?,?,?,?)',
+      makeSlotId(), userId, 'Slot 1', JSON.stringify(legacy), 0, ts, ts
+    );
+  }
+  let slots = await listBotSlots(userId);
+  while (slots.length < count) {
+    const ts = nowIso();
+    await run(
+      'INSERT INTO bot_slots (id, user_id, name, bot_config, sort, created_at, updated_at) VALUES (?,?,?,?,?,?,?)',
+      makeSlotId(), userId, `Slot ${slots.length + 1}`, '{}', slots.length, ts, ts
+    );
+    slots = await listBotSlots(userId);
+  }
+  return slots;
+}
+
+export async function renameBotSlot(slotId: string, userId: string, name: string): Promise<void> {
+  await run('UPDATE bot_slots SET name = ?, updated_at = ? WHERE id = ? AND user_id = ?', name, nowIso(), slotId, userId);
+}
+
+export async function getBotSlotConfig(slotId: string): Promise<Record<string, unknown>> {
+  const r = await get<{ bot_config: string }>('SELECT bot_config FROM bot_slots WHERE id = ?', slotId);
+  try {
+    return r ? (JSON.parse(r.bot_config) as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
+}
+
+export async function setBotSlotConfig(slotId: string, cfg: Record<string, unknown>): Promise<void> {
+  await run('UPDATE bot_slots SET bot_config = ?, updated_at = ? WHERE id = ?', JSON.stringify(cfg), nowIso(), slotId);
 }

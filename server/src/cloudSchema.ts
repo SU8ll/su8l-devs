@@ -12,9 +12,13 @@ import { z } from 'zod';
  * To add a new tunable: add a field (or an entire category/group) here. Nothing
  * else in the stack needs to change — the UI, the validator, defaults and the
  * DM summary all adapt automatically.
+ *
+ * This is the FINAL AUTHORITATIVE, NON-TRUNCATED, UNMERGED ULTIMATE SCHEMA
+ * (11 categories, Connection first). Every key, group and field below must
+ * render as its own distinct UI card.
  */
 
-export type CloudFieldType = 'boolean' | 'number' | 'string' | 'select' | 'radio';
+export type CloudFieldType = 'boolean' | 'number' | 'string' | 'select' | 'radio' | 'slider';
 
 export interface CloudFieldSchema {
   key: string;
@@ -24,327 +28,795 @@ export interface CloudFieldSchema {
   default: boolean | number | string;
   /** select / radio only */
   options?: string[];
-  /** number only */
+  /** number / slider only */
   min?: number;
   max?: number;
   step?: number;
   unit?: string;
-  /** render a range slider instead of a plain number input */
-  slider?: boolean;
   /** string only */
   placeholder?: string;
   maxLength?: number;
   /** string only — require non-empty value */
   required?: boolean;
+  /** string / select / radio only — when present the UI must NOT auto-fill defaults */
+  preserve_empty?: boolean;
 }
 
 export interface CloudCategorySchema {
-  /** config key for this category/group */
   id: string;
   title: string;
-  /** UI-only metadata (not part of the config payload) */
   icon?: string;
   description?: string;
-  /** top-level categories may be pure containers (fields live in groups) */
   fields?: CloudFieldSchema[];
-  /** nested sub-modules (rendered as sub-section cards) */
+  /** root only — top-level categories */
+  categories?: CloudCategorySchema[];
   groups?: CloudCategorySchema[];
 }
 
-export interface CloudSchema {
-  version: number;
-  categories: CloudCategorySchema[];
+/** Ids of groups that are 100%-ratio triplets (Inf/Cav/Arch). */
+const RATIO_GROUP_IDS = new Set(['alliance_championship', 'climb_tower']);
+
+/**
+ * Describes a single 100%-constrained triple. `ratioGroupFor(path)` maps the
+ * innermost path segment back to the owning group for hard-clamping.
+ */
+export interface RatioGroup {
+  name: string;
+  categoryId: string;
+  groupId: string;
+  keys: string[];
 }
 
-export const MASTER_SCHEMA: CloudSchema = {
-  version: 3,
-  categories: [
+export const RATIO_GROUPS: RatioGroup[] = [
+  { name: 'Championship', categoryId: 'alliance_systems', groupId: 'alliance_championship', keys: ['champ_inf', 'champ_cav', 'champ_rng'] },
+  { name: 'Coliseum', categoryId: 'towers_arena', groupId: 'climb_tower', keys: ['col_inf', 'col_cav', 'col_arch'] },
+  { name: 'Forest of Life', categoryId: 'towers_arena', groupId: 'climb_tower', keys: ['fol_inf', 'fol_cav', 'fol_arch'] },
+  { name: 'Crystal Cave', categoryId: 'towers_arena', groupId: 'climb_tower', keys: ['cc_inf', 'cc_cav', 'cc_arch'] },
+  { name: 'Knowledge Nexus', categoryId: 'towers_arena', groupId: 'climb_tower', keys: ['kn_inf', 'kn_cav', 'kn_arch'] },
+  { name: 'Molten Fort', categoryId: 'towers_arena', groupId: 'climb_tower', keys: ['mf_inf', 'mf_cav', 'mf_arch'] },
+  { name: 'Radiant Spire', categoryId: 'towers_arena', groupId: 'climb_tower', keys: ['rs_inf', 'rs_cav', 'rs_arch'] },
+];
+
+export function ratioGroupFor(path: string[]): RatioGroup | undefined {
+  if (path.length < 3) return undefined;
+  const key = path[path.length - 1] ?? '';
+  return RATIO_GROUPS.find((r) => r.categoryId === path[0] && r.keys.includes(key));
+}
+
+/** Builds the zod validator for a single field. */
+export function fieldSchema(f: CloudFieldSchema): z.ZodType<unknown> {
+  switch (f.type) {
+    case 'boolean':
+      return z.boolean();
+    case 'number':
+    case 'slider': {
+      let s = z.number();
+      if (f.min !== undefined) s = s.min(f.min);
+      if (f.max !== undefined) s = s.max(f.max);
+      return s;
+    }
+    case 'string': {
+      let s = z.string();
+      if (f.maxLength !== undefined) s = s.max(f.maxLength);
+      if (f.required && !f.preserve_empty) s = s.min(1, `${f.label} is required`);
+      return s;
+    }
+    case 'select':
+    case 'radio': {
+      const s = z.string();
+      return f.options && f.options.length > 0 ? s.refine((v) => f.options!.includes(v)) : s;
+    }
+  }
+}
+
+/** Recursively walks a category, flattening every field (groups included). */
+function walk(fields: CloudFieldSchema[], c: CloudCategorySchema, prefix: string[]): void {
+  for (const f of c.fields ?? []) fields.push({ ...f, key: [...prefix, f.key].join('.') });
+  for (const sub of [...(c.categories ?? []), ...(c.groups ?? [])]) {
+    walk(fields, sub, [...prefix, sub.id]);
+  }
+}
+
+/** Returns a flat `key -> schema` map (group ids joined with `.`). */
+export function flattenedSchema(root: CloudCategorySchema): Record<string, CloudFieldSchema> {
+  const out: Record<string, CloudFieldSchema> = {};
+  const fields: CloudFieldSchema[] = [];
+  walk(fields, root, []);
+  for (const f of fields) out[f.key] = f;
+  return out;
+}
+
+function schemaForCategory(c: CloudCategorySchema): z.ZodObject<Record<string, z.ZodTypeAny>> {
+  const shape: Record<string, z.ZodTypeAny> = {};
+  for (const f of c.fields ?? []) shape[f.key] = fieldSchema(f);
+  for (const g of c.groups ?? []) shape[g.id] = schemaForCategory(g);
+  return z.object(shape);
+}
+
+/** Full zod validator for a whole config payload (for `POST /api/cloud/config`). */
+export function configSchema(root: CloudCategorySchema): z.ZodObject<Record<string, z.ZodTypeAny>> {
+  const shape: Record<string, z.ZodTypeAny> = {};
+  for (const sub of [...(root.categories ?? []), ...(root.groups ?? [])]) {
+    shape[sub.id] = schemaForCategory(sub);
+  }
+  return z.object(shape);
+}
+
+function bool(def: boolean): CloudFieldSchema {
+  return { key: '', label: '', type: 'boolean', default: def };
+}
+
+function num(label: string, def: number, min?: number, max?: number, step?: number, unit?: string): CloudFieldSchema {
+  return { key: '', label, type: 'number', default: def, min, max, step, unit };
+}
+
+function slider(label: string, def: number, min: number, max: number, step?: number, unit?: string): CloudFieldSchema {
+  return { key: '', label, type: 'slider', default: def, min, max, step, unit };
+}
+
+function str(label: string, def: string, opts?: { placeholder?: string; maxLength?: number; required?: boolean }): CloudFieldSchema {
+  return { key: '', label, type: 'string', default: def, ...opts };
+}
+
+function sel(label: string, def: string, options: string[]): CloudFieldSchema {
+  return { key: '', label, type: 'select', default: def, options };
+}
+
+function radio(label: string, def: string, options: string[]): CloudFieldSchema {
+  return { key: '', label, type: 'radio', default: def, options };
+}
+
+export const EDICT_OPTIONS = [
+  'Immediate',
+  'OnBuildingStart',
+  'OnResearchStart',
+  'OnBuildingOrResearch',
+  'WhenProductivityActive',
+];
+
+export const SPEEDUP_OPTIONS = ['5 min (300s)', '15 min (900s)', '30 min (1800s)', '1 h (3600s)'];
+
+const SPEEDUP_MODES = ['Disabled', 'TypeOnly', 'TypeAndGeneral'];
+
+const CONNECTION_CATEGORY: CloudCategorySchema = {
+  id: 'connection',
+  title: 'Connection',
+  icon: '🔌',
+  groups: [
     {
-      id: 'law_edicts',
-      title: 'Law (Edicts)',
-      icon: '📜',
-      description: 'Auto-enact laws and manage edict timing.',
-      groups: [
-        {
-          id: 'laws',
-          title: 'Auto Enact Laws',
-          fields: [
-            { key: 'auto_enact_laws', label: 'Enable Auto Enact', type: 'boolean', default: true },
-            { key: 'urgent_mobilization', label: 'Urgent Mobilization', type: 'select', default: 'Immediate', options: ['Immediate', 'OnBuildingStart', 'OnResearchStart', 'OnBuildingOrResearch', 'WhenProductivityActive'] },
-            { key: 'rush_job', label: 'Rush Job', type: 'select', default: 'Immediate', options: ['Immediate', 'OnBuildingStart', 'OnResearchStart', 'OnBuildingOrResearch', 'WhenProductivityActive'] },
-            { key: 'comprehensive_care', label: 'Comprehensive Care', type: 'select', default: 'Immediate', options: ['Immediate', 'OnBuildingStart', 'OnResearchStart', 'OnBuildingOrResearch', 'WhenProductivityActive'] },
-            { key: 'productivity_day', label: 'Productivity Day', type: 'select', default: 'Immediate', options: ['Immediate', 'OnBuildingStart', 'OnResearchStart', 'OnBuildingOrResearch', 'WhenProductivityActive'] },
-            { key: 'double_time', label: 'Double Time', type: 'select', default: 'Immediate', options: ['Immediate', 'OnBuildingStart', 'OnResearchStart', 'OnBuildingOrResearch', 'WhenProductivityActive'] },
-            { key: 'festivities', label: 'Festivities', type: 'select', default: 'Immediate', options: ['Immediate', 'OnBuildingStart', 'OnResearchStart', 'OnBuildingOrResearch', 'WhenProductivityActive'] },
-          ],
-        },
-      ],
-    },
-    {
-      id: 'vip_bank',
-      title: 'VIP & Bank',
-      icon: '👑',
-      description: 'VIP progression and bank thresholds.',
-      groups: [
-        {
-          id: 'vip_config',
-          title: 'VIP Configuration',
-          fields: [
-            { key: 'auto_use_vip_time', label: 'Auto-use VIP time items', type: 'boolean', default: true },
-            { key: 'auto_buy_vip_30d', label: 'Auto-buy VIP 30d', type: 'boolean', default: false },
-            { key: 'min_gems_balance', label: 'Min gems balance', type: 'number', default: 12000 },
-            { key: 'renew_days_left', label: 'Renew when <= N days left', type: 'number', default: 3 },
-            { key: 'auto_use_vip_xp', label: 'Auto-use VIP XP items', type: 'boolean', default: true },
-            { key: 'max_vip_target', label: 'Max VIP level target', type: 'number', default: 12, min: 1, max: 12 },
-            { key: 'buy_xp_diamonds', label: 'Buy XP with Diamonds (0=off)', type: 'number', default: 0 },
-          ],
-        },
-        {
-          id: 'bank_config',
-          title: 'Bank Configuration',
-          fields: [
-            { key: 'auto_withdraw_bank', label: 'Auto-withdraw deposit', type: 'boolean', default: true },
-            { key: 'auto_deposit_gems', label: 'Auto-deposit gems', type: 'boolean', default: true },
-            { key: 'bank_locker', label: 'Locker', type: 'select', default: 'Auto (first available)', options: ['Auto (first available)', 'Locker 1', 'Locker 2', 'Locker 3', 'Locker 4'] },
-            { key: 'bank_use_max_gems', label: 'Use maximum gems', type: 'boolean', default: true },
-            { key: 'bank_amount', label: 'Amount (Max 6,500)', type: 'number', default: 0 },
-          ],
-        },
-      ],
-    },
-    {
-      id: 'alliance_systems',
-      title: 'Alliance Systems',
-      icon: '🤝',
-      description: 'Help, shop, rally and championship.',
-      groups: [
-        {
-          id: 'alliance_basics',
-          title: 'Alliance & Development',
-          fields: [
-            { key: 'alliance_auto_help', label: 'Auto Help', type: 'boolean', default: true },
-            { key: 'collect_alliance_chest', label: 'Collect Alliance Chest', type: 'boolean', default: true },
-            { key: 'alliance_auto_donate', label: 'Auto Donate', type: 'boolean', default: true },
-            { key: 'alliance_donate_use_bag', label: 'Use bag resources for donation', type: 'boolean', default: false },
-            { key: 'claim_alliance_dev_daily', label: 'Claim Dev Daily', type: 'boolean', default: true },
-            { key: 'claim_alliance_dev_weekly', label: 'Claim Dev Weekly', type: 'boolean', default: true },
-          ],
-        },
-        {
-          id: 'alliance_shop',
-          title: 'Alliance Shop',
-          fields: [
-            { key: 'shop_enable_auto_buy', label: 'Enable Auto-Buy', type: 'boolean', default: true },
-            { key: 'shop_daily_min_discount', label: 'Daily: Min discount %', type: 'number', default: 0 },
-            { key: 'shop_daily_max_spend', label: 'Daily: Max spend', type: 'number', default: 0 },
-            { key: 'shop_weekly_min_discount', label: 'Weekly: Min discount %', type: 'number', default: 0 },
-            { key: 'shop_weekly_max_spend', label: 'Weekly: Max spend', type: 'number', default: 0 },
-          ],
-        },
-        {
-          id: 'alliance_auto_join',
-          title: 'Alliance Auto-Join',
-          fields: [
-            { key: 'autojoin_enable', label: 'Enable Auto-Join Rally', type: 'boolean', default: true },
-            { key: 'autojoin_join_faster', label: 'Join Faster', type: 'boolean', default: true },
-            { key: 'autojoin_skip_unreachable', label: 'Skip unreachable rallies', type: 'boolean', default: true },
-            { key: 'autojoin_troops', label: 'Troops', type: 'radio', default: 'Full Formation', options: ['1 Soldier', 'Full Formation'] },
-            { key: 'autojoin_reactivate', label: 'Reactivate before expiry (s)', type: 'number', default: 600 },
-          ],
-        },
-        {
-          id: 'alliance_championship',
-          title: 'Alliance Championship',
-          fields: [
-            { key: 'champ_auto_enroll', label: 'Auto-enroll', type: 'boolean', default: true },
-            { key: 'champ_lane', label: 'Lane', type: 'select', default: 'Center', options: ['Left', 'Center', 'Right'] },
-            { key: 'champ_infantry', label: 'Infantry %', type: 'number', default: 50, slider: true },
-            { key: 'champ_cavalry', label: 'Cavalry %', type: 'number', default: 20, slider: true },
-            { key: 'champ_ranged', label: 'Ranged %', type: 'number', default: 30, slider: true },
-          ],
-        },
-      ],
-    },
-    {
-      id: 'combat_events',
-      title: 'Combat & Traps',
-      icon: '⚔️',
-      description: 'Bear trap, beast hunting and terror rallies.',
-      groups: [
-        {
-          id: 'bear_trap',
-          title: 'Bear Trap',
-          fields: [
-            { key: 'bear_enable_autojoin', label: 'Enable Bear Trap Auto-Join', type: 'boolean', default: true },
-            { key: 'bear_join_trap_1', label: 'Join Trap 1', type: 'boolean', default: true },
-            { key: 'bear_join_open_rallies', label: 'Join all open rallies', type: 'boolean', default: true },
-            { key: 'bear_auto_launch_own', label: 'Auto-launch own rally', type: 'boolean', default: true },
-            { key: 'bear_max_marches', label: 'Max marches per trap', type: 'number', default: 150000 },
-            { key: 'bear_fill_capacity', label: 'Fill march to capacity', type: 'boolean', default: true },
-            { key: 'bear_max_troops', label: 'Max troops per march', type: 'number', default: 150000 },
-            { key: 'bear_auto_donate_arrows', label: 'Auto-donate Hunting Arrows', type: 'boolean', default: true },
-          ],
-        },
-        {
-          id: 'beast',
-          title: 'Beast',
-          fields: [
-            { key: 'beast_enable', label: 'Enable Beast Auto-Attack', type: 'boolean', default: false },
-            { key: 'beast_lvl_min', label: 'Level range (min)', type: 'number', default: 30 },
-            { key: 'beast_lvl_max', label: 'Level range (max)', type: 'number', default: 30 },
-            { key: 'beast_retry', label: 'Retry interval (s)', type: 'number', default: 60 },
-            { key: 'beast_best_heroes', label: 'Always use best heroes', type: 'boolean', default: true },
-            { key: 'beast_prefer_diana', label: 'Prefer Diana', type: 'boolean', default: true },
-            { key: 'beast_prefer_fahd', label: 'Prefer Fahd', type: 'boolean', default: true },
-            { key: 'beast_use_stamina_packs', label: 'Auto-use stamina packs', type: 'boolean', default: true },
-          ],
-        },
-        {
-          id: 'terror_rally',
-          title: 'Terror (Rally)',
-          fields: [
-            { key: 'terror_enable', label: 'Enable Terror Rally Auto-Launch', type: 'boolean', default: true },
-            { key: 'terror_lvl_min', label: 'Level min', type: 'number', default: 8, min: 1, max: 50 },
-            { key: 'terror_lvl_max', label: 'Level max', type: 'number', default: 8, min: 1, max: 50 },
-            { key: 'terror_max_rallies', label: 'Max rallies per day', type: 'number', default: 10 },
-            { key: 'terror_prepare_time', label: 'Prepare time', type: 'select', default: '5 min (300s)', options: ['5 min (300s)', '15 min (900s)', '30 min (1800s)', '1 h (3600s)'] },
-          ],
-        },
-      ],
-    },
-    {
-      id: 'development',
-      title: 'Development',
-      icon: '🏗️',
-      description: 'Training queues and hospital healing.',
-      groups: [
-        {
-          id: 'training',
-          title: 'Training',
-          fields: [
-            { key: 'train_enable', label: 'Enable Training', type: 'boolean', default: true },
-            { key: 'train_mode', label: 'Mode', type: 'radio', default: 'Train new', options: ['Train new', 'Promote', 'Promote, then Train'] },
-            { key: 'train_tier', label: 'Preferred Tier', type: 'number', default: 9, min: 1, max: 11 },
-            { key: 'train_speedup', label: 'Speed-up', type: 'select', default: 'Disabled', options: ['Disabled', 'TypeOnly', 'TypeAndGeneral'] },
-          ],
-        },
-        {
-          id: 'hospital',
-          title: 'Hospital',
-          fields: [
-            { key: 'hosp_auto_heal', label: 'Auto Heal Wounded Troops', type: 'boolean', default: true },
-            { key: 'hosp_batch_size', label: 'Heal Batch Size', type: 'number', default: 100 },
-            { key: 'hosp_speedup', label: 'Speed-up', type: 'select', default: 'Disabled', options: ['Disabled', 'TypeOnly', 'TypeAndGeneral'] },
-            { key: 'hosp_wait_help', label: 'Help wait timeout (s)', type: 'number', default: 30 },
-          ],
-        },
-      ],
-    },
-    {
-      id: 'gathering_island',
-      title: 'Gathering & Island',
-      icon: '🌾',
-      description: 'Resource gathering and homeland upgrades.',
-      groups: [
-        {
-          id: 'gathering',
-          title: 'Gathering',
-          fields: [
-            { key: 'gather_enable', label: 'Enable Gather Resources', type: 'boolean', default: true },
-            { key: 'gather_march_slots', label: 'March Slots', type: 'number', default: 3, min: 1, max: 5 },
-            { key: 'gather_tile_min', label: 'Tile Level Min', type: 'number', default: 8, min: 1, max: 8 },
-            { key: 'gather_formation', label: 'Formation', type: 'select', default: 'Balanced', options: ['Default', 'InfantryFocus', 'CavalryFocus', 'ArcherFocus', 'Balanced'] },
-            { key: 'gather_strategy', label: 'Strategy', type: 'select', default: 'DeficitWeighted', options: ['DeficitWeighted', 'RoundRobin'] },
-            { key: 'gather_iron_priority', label: 'Iron priority %', type: 'number', default: 100, slider: true },
-            { key: 'gather_boost', label: 'Activate boost item before gather', type: 'boolean', default: false },
-          ],
-        },
-        {
-          id: 'island',
-          title: 'Homeland (Island)',
-          fields: [
-            { key: 'island_life_tree', label: 'Auto-upgrade Life Tree', type: 'boolean', default: true },
-            { key: 'island_logging_camps', label: 'Auto-upgrade Logging Camps', type: 'boolean', default: true },
-            { key: 'island_auto_like', label: 'Auto-like alliance homelands', type: 'boolean', default: true },
-          ],
-        },
-      ],
-    },
-    {
-      id: 'daily_collection',
-      title: 'Collection & Pets',
-      icon: '🎁',
-      description: 'Reward collection and pet adventures.',
-      groups: [
-        {
-          id: 'collection',
-          title: 'Collection',
-          fields: [
-            { key: 'col_mails', label: 'Collect Mails', type: 'boolean', default: true },
-            { key: 'col_quests', label: 'Collect Quests', type: 'boolean', default: true },
-            { key: 'col_rewards', label: 'Collect Rewards (Sign-in/Daily)', type: 'boolean', default: true },
-            { key: 'col_achievements', label: 'Collect Achievements', type: 'boolean', default: true },
-            { key: 'col_gifts', label: 'Collect Gifts', type: 'boolean', default: true },
-            { key: 'col_alliance_red_packets', label: 'Auto-claim Red Packets', type: 'boolean', default: true },
-          ],
-        },
-        {
-          id: 'pet_adventure',
-          title: 'Pet Adventure',
-          fields: [
-            { key: 'pet_dispatch', label: 'Auto Dispatch (4x/day)', type: 'boolean', default: true },
-            { key: 'pet_claim_explore', label: 'Auto Claim Explore Rewards', type: 'boolean', default: true },
-            { key: 'pet_claim_alliance', label: 'Auto Claim Alliance Rewards', type: 'boolean', default: true },
-          ],
-        },
+      id: 'conn_group',
+      title: 'Connection',
+      icon: '🔌',
+      fields: [
+        { ...bool(true), key: 'conn_auto_recon', label: 'Auto Reconnect on disconnect' },
+        { ...num('Reconnect Delay (s)', 30), key: 'conn_recon_delay' },
+        { ...num('Reconnect Delay after other-device login (s)', 600), key: 'conn_other_login' },
+        { ...num('Action delay (ms)', 2000), key: 'conn_action_delay' },
       ],
     },
   ],
 };
 
-const fieldSchema = (f: CloudFieldSchema): z.ZodTypeAny => {
-  switch (f.type) {
-    case 'boolean':
-      return z.boolean();
-    case 'number':
-      return z
-        .number()
-        .int()
-        .min(f.min ?? Number.MIN_SAFE_INTEGER)
-        .max(f.max ?? Number.MAX_SAFE_INTEGER);
-    case 'string': {
-      let s = z.string().trim().max(f.maxLength ?? 200);
-      if (f.required) s = s.min(1, 'required');
-      return s;
-    }
-    case 'select':
-    case 'radio': {
-      const opts = f.options ?? [];
-      return opts.length > 0 ? z.enum(opts as [string, ...string[]]) : z.string();
-    }
-  }
+const COLLECTION_CATEGORY: CloudCategorySchema = {
+  id: 'collection',
+  title: 'Collection & Rewards',
+  icon: '🎁',
+  groups: [
+    {
+      id: 'col_main',
+      title: 'Collection',
+      icon: '🎁',
+      fields: [
+        { ...bool(true), key: 'collect_mails', label: 'Collect Mails' },
+        { ...bool(true), key: 'collect_quests', label: 'Collect Quests' },
+        { ...bool(true), key: 'collect_rewards', label: 'Collect Rewards' },
+        { ...bool(true), key: 'sign_in_7d', label: '7-Day Sign-in' },
+        { ...bool(true), key: 'sign_in_14d', label: '14-Day Sign-in' },
+        { ...bool(true), key: 'home_sign_in', label: 'Home Sign-in' },
+        { ...bool(true), key: 'sign_in_draw', label: 'Sign-in Draw' },
+        { ...bool(true), key: 'month_card', label: 'Month Card' },
+        { ...bool(true), key: 'super_vip_daily', label: 'Super VIP Daily' },
+        { ...bool(true), key: 'vip_daily_gift', label: 'VIP Daily Gift' },
+        { ...bool(true), key: 'vip_daily_exp', label: 'VIP Daily EXP' },
+        { ...bool(true), key: 'online_reward', label: 'Online Reward' },
+        { ...bool(true), key: 'recharge_reward', label: 'Recharge Reward' },
+        { ...bool(true), key: 'daily_task_rewards', label: 'Daily Task Rewards' },
+        { ...bool(true), key: 'homeland_life_tree', label: 'Homeland Life Tree' },
+        { ...bool(true), key: 'common_7d_sign_in', label: 'Common 7-Day Sign-in' },
+        { ...bool(true), key: 'festival_7d_quests', label: 'Festival 7-Day Quests' },
+        { ...bool(true), key: 'collect_achievements', label: 'Collect Achievements' },
+        { ...bool(true), key: 'collect_gifts', label: 'Collect Gifts' },
+        { ...bool(true), key: 'free_customize_box', label: 'Free Customize Box' },
+        { ...bool(true), key: 'free_choice_pack', label: 'Free Multiple Choice Pack' },
+        { ...bool(true), key: 'auto_claim_snow_fund', label: 'Auto-claim Snow Fund rewards' },
+        { ...bool(false), key: 'snow_fund_free_only', label: 'Free tier only (skip paid)' },
+        { ...bool(true), key: 'auto_claim_red_packets', label: 'Auto-claim Red Packets (Alliance)' },
+        { ...bool(true), key: 'server_sprint', label: 'Auto-claim New Server Sprint Rewards' },
+        { ...bool(false), key: 'auto_upgrade_lords', label: 'Auto-upgrade Lords Equipment' },
+        { ...bool(true), key: 'back_festival_quest', label: 'Back Festival: Quest Rewards' },
+        { ...bool(true), key: 'back_festival_boxes', label: 'Back Festival: Integral Boxes' },
+        { ...bool(false), key: 'delete_mails', label: 'Delete Mails after collecting' },
+      ],
+    },
+  ],
 };
 
-const categorySchema = (c: CloudCategorySchema): z.ZodTypeAny => {
-  const shape: Record<string, z.ZodTypeAny> = {};
-  for (const f of c.fields ?? []) shape[f.key] = fieldSchema(f);
-  for (const g of c.groups ?? []) shape[g.id] = categorySchema(g);
-  return z.object(shape);
+const LAW_EDICTS_CATEGORY: CloudCategorySchema = {
+  id: 'law_edicts',
+  title: 'Law (Edicts)',
+  icon: '📜',
+  groups: [
+    {
+      id: 'laws',
+      title: 'Auto Enact Laws',
+      icon: '📜',
+      fields: [
+        { ...bool(true), key: 'auto_enact', label: 'Auto Enact Laws' },
+        { ...sel('Urgent Mobilization', 'Immediate', EDICT_OPTIONS), key: 'urgent_mob' },
+        { ...sel('Rush Job', 'Immediate', EDICT_OPTIONS), key: 'rush_job' },
+        { ...sel('Comprehensive Care', 'Immediate', EDICT_OPTIONS), key: 'comp_care' },
+        { ...sel('Productivity Day', 'Immediate', EDICT_OPTIONS), key: 'prod_day' },
+        { ...sel('Double Time', 'Immediate', EDICT_OPTIONS), key: 'double_time' },
+        { ...sel('Festivities', 'Immediate', EDICT_OPTIONS), key: 'festivities' },
+      ],
+    },
+  ],
 };
 
-export const cloudConfigSchema = z.object(
-  Object.fromEntries(MASTER_SCHEMA.categories.map((c) => [c.id, categorySchema(c)]))
-);
+const VIP_BANK_CATEGORY: CloudCategorySchema = {
+  id: 'vip_bank',
+  title: 'VIP & Bank',
+  icon: '💎',
+  groups: [
+    {
+      id: 'vip',
+      title: 'VIP',
+      icon: '💎',
+      fields: [
+        { ...bool(true), key: 'vip_auto_time', label: 'Auto-use VIP time items' },
+        { ...bool(false), key: 'vip_auto_buy_30d', label: 'Auto-buy VIP 30d' },
+        { ...num('Min gems balance', 12000), key: 'vip_min_gems' },
+        { ...num('Renew when <= N days left', 3), key: 'vip_renew_days' },
+        { ...bool(true), key: 'vip_auto_xp', label: 'Auto-use VIP XP items' },
+        { ...num('Max VIP level target', 12, 1, 12), key: 'vip_max_lvl' },
+        { ...num('Buy XP with Diamonds (0=off)', 0), key: 'vip_buy_xp' },
+      ],
+    },
+    {
+      id: 'bank',
+      title: 'Bank',
+      icon: '🏦',
+      fields: [
+        { ...bool(true), key: 'bank_withdraw', label: 'Auto-withdraw bank deposit' },
+        { ...bool(true), key: 'bank_deposit', label: 'Auto-deposit gems' },
+        {
+          ...sel('Locker', 'Auto (first available)', [
+            'Auto (first available)',
+            'Locker 1',
+            'Locker 2',
+            'Locker 3',
+            'Locker 4',
+          ]),
+          key: 'bank_locker',
+        },
+        { ...bool(true), key: 'bank_use_max', label: 'Use maximum gems' },
+        { ...num('Amount (Max 6,500)', 0), key: 'bank_amount' },
+      ],
+    },
+  ],
+};
 
-export type CloudConfig = z.infer<typeof cloudConfigSchema>;
+const ALLIANCE_SYSTEMS_CATEGORY: CloudCategorySchema = {
+  id: 'alliance_systems',
+  title: 'Alliance Systems',
+  icon: '🤝',
+  groups: [
+    {
+      id: 'alliance_base',
+      title: 'Alliance',
+      icon: '🤝',
+      fields: [
+        { ...bool(true), key: 'alliance_help', label: 'Auto Help' },
+        { ...bool(true), key: 'alliance_chest', label: 'Collect Alliance Chest' },
+        { ...bool(true), key: 'alliance_donate', label: 'Auto Donate' },
+        { ...bool(false), key: 'alliance_donate_bag', label: 'Use bag resources' },
+        { ...bool(false), key: 'alliance_build', label: 'Auto Send Troops to Build' },
+      ],
+    },
+    {
+      id: 'alliance_development',
+      title: 'Alliance Development',
+      icon: '📊',
+      fields: [
+        { ...bool(true), key: 'dev_daily', label: 'Claim Alliance Dev Daily' },
+        { ...bool(true), key: 'dev_weekly', label: 'Claim Alliance Dev Weekly' },
+      ],
+    },
+    {
+      id: 'alliance_shop',
+      title: 'Alliance Shop',
+      icon: '🛒',
+      fields: [
+        { ...bool(true), key: 'shop_auto', label: 'Enable Auto-Buy' },
+        { ...bool(true), key: 'shop_daily', label: 'Daily Shop' },
+        { ...num('Min discount %', 0), key: 'shop_daily_disc' },
+        { ...num('Max spend', 0), key: 'shop_daily_spend' },
+        { ...bool(true), key: 'shop_weekly', label: 'Weekly Shop' },
+        { ...num('Min discount %', 0), key: 'shop_weekly_disc' },
+        { ...num('Max spend', 0), key: 'shop_weekly_spend' },
+        { ...bool(true), key: 'filter_5m_const', label: '5m Construction' },
+        { ...bool(true), key: 'filter_1h_const', label: '1h Construction' },
+        { ...bool(true), key: 'filter_5m_train', label: '5m Training' },
+        { ...bool(true), key: 'filter_1h_train', label: '1h Training' },
+        { ...bool(true), key: 'filter_5m_res', label: '5m Research' },
+        { ...bool(true), key: 'filter_1h_res', label: '1h Research' },
+        { ...bool(false), key: 'filter_5m_heal', label: '5m Healing' },
+        { ...bool(false), key: 'filter_1h_heal', label: '1h Healing' },
+        { ...bool(true), key: 'filter_10xp', label: '10 VIP XP' },
+        { ...bool(true), key: 'filter_100xp', label: '100 VIP XP' },
+        { ...bool(false), key: 'filter_rename', label: 'Gov Rename Card' },
+        { ...bool(false), key: 'filter_tp_random', label: 'Random Teleporter' },
+        { ...bool(false), key: 'filter_tp_alliance', label: 'Alliance Teleporter' },
+        { ...bool(false), key: 'filter_tp_terr', label: 'Territory Teleporter' },
+        { ...bool(false), key: 'filter_tp_adv', label: 'Advanced Teleporter' },
+        { ...bool(false), key: 'filter_exp', label: 'Expedition' },
+        { ...bool(false), key: 'filter_2h_shield', label: '2h Shield' },
+        { ...bool(false), key: 'filter_8h_shield', label: '8h Shield' },
+        { ...bool(false), key: 'filter_quinn', label: 'Quinn Shard' },
+      ],
+    },
+    {
+      id: 'alliance_autojoin',
+      title: 'Alliance Auto-Join',
+      icon: '🚀',
+      fields: [
+        { ...bool(true), key: 'aj_enable', label: 'Enable Auto-Join' },
+        { ...bool(true), key: 'aj_faster', label: 'Join Faster' },
+        { ...bool(true), key: 'aj_skip', label: 'Skip unreachable rallies' },
+        { ...radio('Troops', 'Full Formation', ['1 Soldier', 'Full Formation']), key: 'aj_troops' },
+        { ...num('Reactivate before expiry (s)', 600), key: 'aj_reactivate' },
+      ],
+    },
+    {
+      id: 'alliance_championship',
+      title: 'Alliance Championship',
+      icon: '🏆',
+      fields: [
+        { ...bool(true), key: 'champ_enable', label: 'Auto-enroll in Championship' },
+        { ...sel('Lane', 'Center', ['Left', 'Center', 'Right']), key: 'champ_lane' },
+        { ...slider('Infantry %', 50, 0, 100), key: 'champ_inf' },
+        { ...slider('Cavalry %', 20, 0, 100), key: 'champ_cav' },
+        { ...slider('Ranged %', 30, 0, 100), key: 'champ_rng' },
+      ],
+    },
+  ],
+};
 
-export const categoryDefault = (c: CloudCategorySchema): Record<string, unknown> => {
+const COMBAT_TRAPS_CATEGORY: CloudCategorySchema = {
+  id: 'combat_traps',
+  title: 'Combat & Traps',
+  icon: '⚔️',
+  groups: [
+    {
+      id: 'alliance_trap',
+      title: 'Alliance Trap',
+      icon: '🕳️',
+      fields: [
+        { ...bool(true), key: 'trap_rewards', label: 'Alliance Trap Rewards' },
+        { ...bool(true), key: 'trap_claim', label: 'Claim Trap Score Rewards' },
+        { ...bool(true), key: 'trap_reserve', label: 'Auto-Reserve Trap' },
+      ],
+    },
+    {
+      id: 'mine_war',
+      title: 'Mine War',
+      icon: '⛏️',
+      fields: [
+        { ...bool(true), key: 'minewar_enable', label: 'Enable Mine War Module' },
+        { ...bool(true), key: 'minewar_apply', label: 'Auto Apply / Sign Up' },
+        { ...bool(true), key: 'minewar_claim', label: 'Auto Claim Gather Rewards' },
+        { ...bool(true), key: 'minewar_battle', label: 'Auto Battle' },
+      ],
+    },
+    {
+      id: 'viking_vengeance',
+      title: 'Viking Vengeance',
+      icon: '🛡️',
+      fields: [
+        { ...bool(true), key: 'viking_enable', label: 'Enable Viking defense (auto-reinforce)' },
+        { ...num('Heroes kept in city', 3), key: 'viking_heroes' },
+        { ...num('Recall buffer (seconds)', 5), key: 'viking_buffer' },
+        { ...num('Max recall lead (seconds)', 1800), key: 'viking_lead' },
+        { ...bool(true), key: 'viking_announce', label: 'Announce reinforcement in alliance chat' },
+      ],
+    },
+    {
+      id: 'bear_group',
+      title: 'Bear Trap',
+      icon: '🐻',
+      fields: [
+        { ...bool(true), key: 'bear_enable', label: 'Enable Bear Trap Auto-Join' },
+        { ...bool(true), key: 'bear_t1', label: 'Join Trap 1' },
+        { ...bool(false), key: 'bear_t2', label: 'Join Trap 2' },
+        { ...bool(true), key: 'bear_open', label: 'Join all open rallies' },
+        { ...bool(true), key: 'bear_launch', label: 'Auto-launch own rally' },
+        { ...num('Wait after rally created (s)', 0), key: 'bear_wait' },
+        { ...num('Max marches per trap', 150000), key: 'bear_max_marches' },
+        { ...bool(true), key: 'bear_fill', label: 'Fill march to capacity' },
+        { ...num('Max troops per march', 150000), key: 'bear_max_troops' },
+        { ...bool(true), key: 'bear_donate', label: 'Auto-donate Hunting Arrows' },
+        { ...num('Arrows per donation', 100), key: 'bear_arr_donate' },
+        { ...num('Keep arrows in reserve', 0), key: 'bear_arr_reserve' },
+        { ...bool(false), key: 'bear_arr_maxed', label: 'Keep donating when trap maxed' },
+      ],
+    },
+    {
+      id: 'beast_group',
+      title: 'Beast',
+      icon: '🐉',
+      fields: [
+        { ...bool(false), key: 'beast_enable', label: 'Enable Beast Auto-Attack' },
+        { ...num('Level range (min)', 30, 1, 50), key: 'beast_min' },
+        { ...num('Level range (max)', 30, 1, 50), key: 'beast_max' },
+        { ...num('Retry interval (s)', 60), key: 'beast_retry' },
+        { ...bool(true), key: 'beast_best', label: 'Always use best heroes' },
+        { ...bool(true), key: 'beast_diana', label: 'Prefer Diana' },
+        { ...bool(true), key: 'beast_fahd', label: 'Prefer Fahd' },
+        { ...num('Minimum stamina', 20), key: 'beast_min_stam' },
+        { ...bool(true), key: 'beast_stam_packs', label: 'Auto-use stamina packs' },
+        { ...num('Min packs reserve', 20), key: 'beast_pack_res' },
+        { ...bool(false), key: 'beast_yield', label: 'Yield stamina to priority events' },
+      ],
+    },
+    {
+      id: 'terror_group',
+      title: 'Terror (Rally)',
+      icon: '💀',
+      fields: [
+        { ...bool(true), key: 'terror_enable', label: 'Enable Terror Rally Auto-Launch' },
+        { ...num('Level range (min)', 8, 1, 50), key: 'terror_min' },
+        { ...num('Level range (max)', 8, 1, 50), key: 'terror_max' },
+        { ...num('Max rallies per day', 10), key: 'terror_rallies' },
+        { ...sel('Prepare time', '5 min (300s)', SPEEDUP_OPTIONS), key: 'terror_prep' },
+        { ...num('Retry interval (s)', 0), key: 'terror_retry' },
+        { ...bool(false), key: 'terror_stam_packs', label: 'Auto-use stamina packs' },
+        { ...num('Min packs reserve', 20), key: 'terror_pack_res' },
+        { ...bool(true), key: 'terror_diana', label: 'Prefer Diana' },
+        { ...bool(true), key: 'terror_fahd', label: 'Prefer Fahd' },
+      ],
+    },
+  ],
+};
+
+const PROTECTION_CATEGORY: CloudCategorySchema = {
+  id: 'protection',
+  title: 'Protection',
+  icon: '🛡️',
+  groups: [
+    {
+      id: 'shield_group',
+      title: 'Shield (City Attack)',
+      icon: '🛡️',
+      fields: [
+        { ...bool(false), key: 'shield_auto_target', label: 'Auto-activate shield when city is targeted' },
+        { ...bool(true), key: 'shield_buy_gems', label: 'Buy shield with gems if no free shield available' },
+        { ...sel('Buy duration', 'H8', ['H2', 'H8', 'H24', 'H72']), key: 'shield_duration' },
+        { ...bool(true), key: 'shield_recall_march', label: 'Recall outgoing attack marches to shield' },
+      ],
+    },
+    {
+      id: 'recall_attack_group',
+      title: 'Recall on Attack',
+      icon: '↩️',
+      fields: [
+        { ...bool(false), key: 'recall_gathering_attack', label: 'Auto-recall gathering marches when their tile is attacked' },
+        { ...num('Seconds before impact', 2), key: 'recall_seconds_before' },
+      ],
+    },
+  ],
+};
+
+const DEVELOPMENT_CATEGORY: CloudCategorySchema = {
+  id: 'development',
+  title: 'Development',
+  icon: '📈',
+  groups: [
+    {
+      id: 'training_group',
+      title: 'Training',
+      icon: '🏋️',
+      fields: [
+        { ...bool(true), key: 'train_enable', label: 'Enable Training' },
+        { ...radio('Mode', 'Train new', ['Train new', 'Promote', 'Promote, then Train']), key: 'train_mode' },
+        { ...num('Preferred Tier', 9, 1, 11), key: 'train_tier' },
+        { ...bool(true), key: 'train_inf', label: 'Infantry' },
+        { ...bool(true), key: 'train_cav', label: 'Cavalry' },
+        { ...bool(true), key: 'train_arch', label: 'Archers' },
+        { ...sel('Speed-up', 'Disabled', SPEEDUP_MODES), key: 'train_speedup' },
+        { ...bool(false), key: 'train_bag', label: 'Use Resource Bag' },
+        { ...bool(false), key: 'train_max', label: 'Fill to Max' },
+      ],
+    },
+    {
+      id: 'hospital_group',
+      title: 'Hospital',
+      icon: '🏥',
+      fields: [
+        { ...bool(true), key: 'hosp_enable', label: 'Auto Heal' },
+        { ...bool(false), key: 'hosp_all', label: 'Heal All' },
+        { ...num('Heal Batch Size', 100), key: 'hosp_batch' },
+        { ...sel('Speed-up', 'Disabled', SPEEDUP_MODES), key: 'hosp_speedup' },
+        { ...bool(false), key: 'hosp_bag', label: 'Use Resource Bag' },
+        { ...bool(false), key: 'hosp_wait', label: 'Wait for alliance helps' },
+        { ...num('Help wait timeout (s)', 30), key: 'hosp_timeout' },
+      ],
+    },
+    {
+      id: 'hero_recruit',
+      title: 'Hero Recruit',
+      icon: '🦸',
+      fields: [
+        { ...bool(true), key: 'hero_free', label: 'Auto free recruit' },
+        { ...bool(true), key: 'hero_adv_rec', label: 'Advanced recruit' },
+        { ...bool(true), key: 'hero_epic_rec', label: 'Epic recruit' },
+        { ...bool(false), key: 'hero_use_adv', label: 'Use Advanced Key (Gold Key)' },
+        { ...bool(false), key: 'hero_use_epic', label: 'Use Epic Key' },
+        { ...bool(false), key: 'hero_auto_frag', label: 'Auto-recruit from fragments' },
+      ],
+    },
+    {
+      id: 'research_tech',
+      title: 'Research & Truegold Tech',
+      icon: '🔬',
+      fields: [
+        { ...bool(true), key: 'research_enable', label: 'Auto Research' },
+        { ...bool(true), key: 'truegold_tech', label: 'Truegold Tech & War Academy' },
+      ],
+    },
+  ],
+};
+
+const TOWERS_ARENA_CATEGORY: CloudCategorySchema = {
+  id: 'towers_arena',
+  title: 'Towers & Arena',
+  icon: '🏰',
+  groups: [
+    {
+      id: 'arena_group',
+      title: 'Arena',
+      icon: '⚔️',
+      fields: [
+        { ...bool(true), key: 'arena_enable', label: 'Auto-challenge (daily free)' },
+        { ...radio('Defense team', 'Auto (best by power)', ['Auto (best by power)', 'Manual']), key: 'arena_def' },
+        { ...radio('Attack team', 'Auto (best by power)', ['Auto (best by power)', 'Manual']), key: 'arena_atk' },
+        { ...num('Min power advantage', 1), key: 'arena_min_power' },
+        { ...bool(false), key: 'arena_atk_allies', label: 'Attack alliance members' },
+        { ...num('Gem refreshes / day', 5), key: 'arena_refreshes' },
+        { ...str('Start time (HH:mm)', '23:59'), key: 'arena_start' },
+      ],
+    },
+    {
+      id: 'climb_tower',
+      title: 'Climb Tower',
+      icon: '🧗',
+      fields: [
+        { ...bool(true), key: 'climb_sweep', label: 'Enable Sweep' },
+        { ...bool(true), key: 'climb_quick', label: 'Enable Quick Challenge' },
+        { ...bool(true), key: 'climb_chest', label: 'Claim Chest Rewards' },
+        { ...bool(true), key: 'climb_t1', label: 'Tower 1' },
+        { ...bool(true), key: 'climb_t2', label: 'Tower 2' },
+        { ...bool(true), key: 'climb_t3', label: 'Tower 3' },
+        { ...bool(true), key: 'climb_t4', label: 'Tower 4' },
+        { ...bool(true), key: 'climb_t5', label: 'Tower 5' },
+        { ...bool(true), key: 'climb_t6', label: 'Tower 6' },
+        { ...num('Coliseum: Inf %', 50, 0, 100), key: 'col_inf' },
+        { ...num('Coliseum: Cav %', 10, 0, 100), key: 'col_cav' },
+        { ...num('Coliseum: Arch %', 40, 0, 100), key: 'col_arch' },
+        { ...num('Forest of Life: Inf %', 50, 0, 100), key: 'fol_inf' },
+        { ...num('Forest of Life: Cav %', 15, 0, 100), key: 'fol_cav' },
+        { ...num('Forest of Life: Arch %', 35, 0, 100), key: 'fol_arch' },
+        { ...num('Crystal Cave: Inf %', 60, 0, 100), key: 'cc_inf' },
+        { ...num('Crystal Cave: Cav %', 20, 0, 100), key: 'cc_cav' },
+        { ...num('Crystal Cave: Arch %', 20, 0, 100), key: 'cc_arch' },
+        { ...num('Knowledge Nexus: Inf %', 50, 0, 100), key: 'kn_inf' },
+        { ...num('Knowledge Nexus: Cav %', 20, 0, 100), key: 'kn_cav' },
+        { ...num('Knowledge Nexus: Arch %', 30, 0, 100), key: 'kn_arch' },
+        { ...num('Molten Fort: Inf %', 60, 0, 100), key: 'mf_inf' },
+        { ...num('Molten Fort: Cav %', 15, 0, 100), key: 'mf_cav' },
+        { ...num('Molten Fort: Arch %', 25, 0, 100), key: 'mf_arch' },
+        { ...num('Radiant Spire: Inf %', 50, 0, 100), key: 'rs_inf' },
+        { ...num('Radiant Spire: Cav %', 15, 0, 100), key: 'rs_cav' },
+        { ...num('Radiant Spire: Arch %', 35, 0, 100), key: 'rs_arch' },
+      ],
+    },
+    {
+      id: 'tower_defence',
+      title: 'Tower Defence',
+      icon: '🛡️',
+      fields: [
+        { ...bool(true), key: 'td_enable', label: 'Enable Tower Defence Automation' },
+        { ...bool(true), key: 'td_sweep', label: 'Enable Sweep' },
+        { ...bool(true), key: 'td_claim', label: 'Auto Claim Rewards' },
+        { ...bool(false), key: 'td_upgrade', label: 'Auto Upgrade Equipment' },
+        { ...num('Sweep Level', 0), key: 'td_lvl' },
+        { ...num('Sweep Times', 0), key: 'td_times' },
+      ],
+    },
+  ],
+};
+
+const GATHERING_CATEGORY: CloudCategorySchema = {
+  id: 'gathering',
+  title: 'Gathering',
+  icon: '⛏️',
+  groups: [
+    {
+      id: 'gather_group',
+      title: 'Gathering',
+      icon: '⛏️',
+      fields: [
+        { ...bool(true), key: 'gather_enable', label: 'Enable Gather Resources' },
+        { ...num('March Slots', 3, 1, 5), key: 'gather_slots' },
+        { ...num('Tile Level Min', 8, 1, 8), key: 'gather_lvl' },
+        {
+          ...sel('Formation', 'Balanced', ['Default', 'InfantryFocus', 'CavalryFocus', 'ArcherFocus', 'Balanced']),
+          key: 'gather_form',
+        },
+        { ...sel('Strategy', 'DeficitWeighted', ['DeficitWeighted', 'RoundRobin']), key: 'gather_strat' },
+        { ...slider('Iron priority %', 100, 0, 100), key: 'gather_iron' },
+        { ...bool(false), key: 'gather_tiles', label: 'Include alliance resource tiles' },
+        { ...bool(false), key: 'gather_hero', label: 'Gather without enhancement hero' },
+        { ...bool(false), key: 'gather_boost', label: 'Activate boost item before gather' },
+      ],
+    },
+  ],
+};
+
+const PETS_CATEGORY: CloudCategorySchema = {
+  id: 'pets',
+  title: 'Pets',
+  icon: '🐾',
+  groups: [
+    {
+      id: 'pet_adventure',
+      title: 'Pet Adventure',
+      icon: '🐾',
+      fields: [
+        { ...bool(true), key: 'pet_dispatch', label: 'Auto Dispatch (4x/day)' },
+        { ...bool(true), key: 'pet_explore', label: 'Auto Claim Explore Rewards' },
+        { ...bool(true), key: 'pet_share', label: 'Share alliance rewards' },
+        { ...bool(true), key: 'pet_alliance', label: 'Auto Claim Alliance Rewards' },
+        { ...bool(false), key: 'pet_stamina', label: 'Use stamina items' },
+      ],
+    },
+  ],
+};
+
+const EXPERT_CATEGORY: CloudCategorySchema = {
+  id: 'expert',
+  title: 'Expert',
+  icon: '🧠',
+  groups: [
+    {
+      id: 'exp_travel',
+      title: 'Travel',
+      icon: '🧭',
+      fields: [
+        {
+          ...sel('Travel mode', 'Normal optimized (manual)', [
+            'Off',
+            'AFK (auto on-hook)',
+            'Normal optimized (manual)',
+          ]),
+          key: 'exp_travel_mode',
+        },
+        { ...bool(true), key: 'exp_use_pan', label: 'Use expert skill for extra missions (Pan)' },
+      ],
+    },
+    {
+      id: 'exp_skills',
+      title: 'Skill automation',
+      icon: '✨',
+      fields: [
+        { ...bool(false), key: 'exp_learn', label: 'Learn skills' },
+        { ...bool(true), key: 'exp_send', label: 'Send gifts' },
+        { ...bool(false), key: 'exp_upg', label: 'Upgrade skills' },
+        { ...bool(true), key: 'exp_buy', label: 'Buy energy daily packs (gems)' },
+      ],
+    },
+  ],
+};
+
+const ISLAND_CATEGORY: CloudCategorySchema = {
+  id: 'island',
+  title: 'Island',
+  icon: '🏝️',
+  groups: [
+    {
+      id: 'garden_homeland',
+      title: 'Garden / Homeland',
+      icon: '🌿',
+      fields: [
+        { ...bool(true), key: 'island_garden_signin', label: 'Auto Claim Garden Sign-In' },
+        { ...bool(true), key: 'island_homestead_quests', label: 'Auto Claim Homestead Quests' },
+      ],
+    },
+    {
+      id: 'homeland_group',
+      title: 'Homeland',
+      icon: '🏡',
+      fields: [
+        { ...bool(true), key: 'island_upgrade_life_tree', label: 'Auto-upgrade Life Tree' },
+        { ...bool(true), key: 'island_upgrade_logging', label: 'Auto-upgrade Logging Camps' },
+        { ...bool(false), key: 'island_place_decorations', label: 'Auto-place decorations (prosper)' },
+        { ...bool(false), key: 'island_synthesize_decorations', label: 'Auto-synthesize decoration duplicates' },
+        { ...bool(false), key: 'island_buy_decorations', label: 'Auto-buy decorations with coins' },
+        { ...bool(false), key: 'island_move_logging', label: 'Auto-move Logging Camps closer to wood' },
+        { ...bool(true), key: 'island_like_homelands', label: "Auto-like alliance members' homelands" },
+      ],
+    },
+    {
+      id: 'expedition_group',
+      title: 'Expedition',
+      icon: '🗺️',
+      fields: [
+        { ...bool(true), key: 'island_expedition_enable', label: 'Enable Expedition Automation' },
+        { ...bool(true), key: 'island_expedition_dispatch', label: 'Auto Dispatch Teams' },
+        { ...bool(true), key: 'island_expedition_chests', label: 'Auto Collect Chests' },
+        { ...bool(true), key: 'island_expedition_milestone', label: 'Claim Milestone Rewards' },
+        { ...bool(true), key: 'island_expedition_daily', label: 'Claim Daily Reward' },
+      ],
+    },
+  ],
+};
+
+const CATEGORIES: CloudCategorySchema[] = [
+  CONNECTION_CATEGORY,
+  COLLECTION_CATEGORY,
+  LAW_EDICTS_CATEGORY,
+  VIP_BANK_CATEGORY,
+  ALLIANCE_SYSTEMS_CATEGORY,
+  COMBAT_TRAPS_CATEGORY,
+  PROTECTION_CATEGORY,
+  DEVELOPMENT_CATEGORY,
+  TOWERS_ARENA_CATEGORY,
+  GATHERING_CATEGORY,
+  PETS_CATEGORY,
+  ISLAND_CATEGORY,
+  EXPERT_CATEGORY,
+];
+
+export const MASTER_SCHEMA = {
+  id: 'root',
+  title: 'Cloud Config',
+  categories: CATEGORIES,
+} satisfies CloudCategorySchema;
+
+/** Bumped whenever the schema shape changes so the panel refreshes its defaults. */
+export const SCHEMA_VERSION = 15;
+
+export const FLAT_SCHEMA = flattenedSchema(MASTER_SCHEMA);
+
+/** Category ids that hold 100%-ratio groups (used to render a compact grid). */
+export function categoryHasRatioGroups(id: string): boolean {
+  return RATIO_GROUP_IDS.has(id);
+}
+
+export type CloudConfig = Record<string, Record<string, unknown>>;
+
+function categoryDefault(c: CloudCategorySchema): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const f of c.fields ?? []) out[f.key] = f.default;
-  for (const g of c.groups ?? []) out[g.id] = categoryDefault(g);
+  for (const sub of [...(c.categories ?? []), ...(c.groups ?? [])]) {
+    out[sub.id] = categoryDefault(sub);
+  }
   return out;
-};
+}
 
+/** Fresh config where every field holds its schema default. */
 export const DEFAULT_CLOUD_CONFIG: CloudConfig = Object.fromEntries(
-  MASTER_SCHEMA.categories.map((c) => [c.id, categoryDefault(c)])
-) as CloudConfig;
+  (MASTER_SCHEMA.categories ?? []).map((c) => [c.id, categoryDefault(c)])
+);
+
+/** Full zod validator for a whole config payload (for `POST /api/cloud/config`). */
+export const cloudConfigSchema = configSchema(MASTER_SCHEMA);

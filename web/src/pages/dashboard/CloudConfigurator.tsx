@@ -3,15 +3,59 @@ import { Link } from 'react-router-dom';
 import { useI18n } from '../../i18n';
 import {
   api,
+  renameAccount,
   type CloudCategorySchema,
   type CloudConfig,
   type CloudConfigDto,
   type CloudFieldSchema,
+  type CloudSlot,
   type SaveCloudConfigResponse,
 } from '../../api';
 import { Kicker, Spinner } from '../../components/ui';
 
 type JsonObject = Record<string, unknown>;
+
+/**
+ * Troop-ratio slider groups whose combined value is HARD-CONSTRAINED to exactly
+ * 100%. Mirrors RATIO_GROUPS in server/src/cloudSchema.ts. Any drag or typed
+ * input is clamped so a group can never overflow 100%, and save is blocked
+ * until every group totals exactly 100%.
+ *
+ * A Climb Tower group can also carry an `enable` key: that tower's toggle is
+ * embedded inside the grid row instead of being rendered as a standalone card.
+ */
+interface RatioGroupDef {
+  name: string;
+  categoryId: string;
+  groupId: string;
+  keys: string[];
+  enable?: string;
+}
+
+const RATIO_GROUPS: RatioGroupDef[] = [
+  { name: 'Championship', categoryId: 'alliance_systems', groupId: 'alliance_championship', keys: ['champ_inf', 'champ_cav', 'champ_rng'] },
+  { name: 'Coliseum', categoryId: 'towers_arena', groupId: 'climb_tower', enable: 'climb_t1', keys: ['col_inf', 'col_cav', 'col_arch'] },
+  { name: 'Forest of Life', categoryId: 'towers_arena', groupId: 'climb_tower', enable: 'climb_t2', keys: ['fol_inf', 'fol_cav', 'fol_arch'] },
+  { name: 'Crystal Cave', categoryId: 'towers_arena', groupId: 'climb_tower', enable: 'climb_t3', keys: ['cc_inf', 'cc_cav', 'cc_arch'] },
+  { name: 'Knowledge Nexus', categoryId: 'towers_arena', groupId: 'climb_tower', enable: 'climb_t4', keys: ['kn_inf', 'kn_cav', 'kn_arch'] },
+  { name: 'Molten Fort', categoryId: 'towers_arena', groupId: 'climb_tower', enable: 'climb_t5', keys: ['mf_inf', 'mf_cav', 'mf_arch'] },
+  { name: 'Radiant Spire', categoryId: 'towers_arena', groupId: 'climb_tower', enable: 'climb_t6', keys: ['rs_inf', 'rs_cav', 'rs_arch'] },
+];
+
+function ratioGroupFor(path: string[]): RatioGroupDef | null {
+  if (path.length !== 3) return null;
+  return RATIO_GROUPS.find((r) => r.categoryId === path[0] && r.groupId === path[1] && r.keys.includes(path[2])) ?? null;
+}
+
+function ratioGroupsIn(path: string[]): RatioGroupDef[] {
+  if (path.length !== 2) return [];
+  return RATIO_GROUPS.filter((r) => r.categoryId === path[0] && r.groupId === path[1]);
+}
+
+/** i18n accessor used by the schema-driven renderer. */
+function useLoc() {
+  return useI18n();
+}
 
 function getValue(root: unknown, path: string[]): unknown {
   let cur: unknown = root;
@@ -40,27 +84,64 @@ export default function CloudConfigurator() {
   const [cfg, setCfg] = useState<CloudConfig | null>(null);
   const [snapshot, setSnapshot] = useState('');
   const [activeKey, setActiveKey] = useState('');
+  const [activeSlotId, setActiveSlotId] = useState<string>('');
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [savedInfo, setSavedInfo] = useState<{ dispatched: boolean; reason?: string } | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [error, setError] = useState('');
   const dirty = cfg !== null && JSON.stringify(cfg) !== snapshot;
 
+  const ratioIssues = (() => {
+    if (!cfg) return [] as { name: string; sum: number }[];
+    const bad: { name: string; sum: number }[] = [];
+    for (const rg of RATIO_GROUPS) {
+      const sum = rg.keys.reduce(
+        (acc, k) => acc + (Number(getValue(cfg, [rg.categoryId, rg.groupId, k])) || 0),
+        0
+      );
+      if (sum !== 100) bad.push({ name: rg.name, sum });
+    }
+    return bad;
+  })();
+  const ratioValid = ratioIssues.length === 0;
+
+  const loadConfig = async (slotId?: string) => {
+    setError('');
+    try {
+      const q = slotId ? `?slotId=${encodeURIComponent(slotId)}` : '';
+      const d = await api<CloudConfigDto>(`/api/dashboard/cloud-config${q}`);
+      setData(d);
+      setCfg(d.config);
+      setSnapshot(JSON.stringify(d.config));
+      setActiveKey(d.schema.categories[0]?.id ?? '');
+      setActiveSlotId(d.activeSlotId ?? slotId ?? '');
+      setEditing(false);
+    } catch {
+      setError('Failed to load Cloud Configurator');
+    }
+  };
+
   useEffect(() => {
-    api<CloudConfigDto>('/api/dashboard/cloud-config')
-      .then((d) => {
-        setData(d);
-        setCfg(d.config);
-        setSnapshot(JSON.stringify(d.config));
-        setActiveKey(d.schema.categories[0]?.id ?? '');
-      })
-      .catch(() => setError('Failed to load Cloud Configurator'));
+    loadConfig();
   }, []);
 
   const update = (path: string[], value: unknown) => {
     if (!editing || !cfg) return;
-    setCfg((prev) => (prev ? setValue(prev, path, value) : prev));
+    setCfg((prev) => {
+      if (!prev) return prev;
+      // Hard lock: troop-ratio sliders (Championship + all Climb Tower towers
+      // and the other 100%-ratio groups) may never push their group's combined
+      // value past 100%.
+      const rg = ratioGroupFor(path);
+      if (rg && typeof value === 'number' && Number.isFinite(value)) {
+        const othersSum = rg.keys
+          .filter((k) => k !== path[2])
+          .reduce((acc, k) => acc + (Number(getValue(prev, path.slice(0, 2).concat(k))) || 0), 0);
+        const allowed = Math.max(0, 100 - othersSum);
+        value = Math.min(value, allowed);
+      }
+      return setValue(prev, path, value);
+    });
   };
 
   const exitEdit = () => {
@@ -77,15 +158,14 @@ export default function CloudConfigurator() {
   const save = async () => {
     if (!cfg) return;
     setSaving(true);
-    setSavedInfo(null);
     try {
       const res = await api<SaveCloudConfigResponse>('/api/dashboard/cloud-config', {
         method: 'PUT',
-        body: cfg,
+        body: { config: cfg, slotId: activeSlotId || undefined },
       });
       setSnapshot(JSON.stringify(res.config));
       setCfg(res.config);
-      setSavedInfo({ dispatched: res.dispatched, reason: res.dispatchReason });
+      setActiveSlotId(res.activeSlotId);
       setEditing(false);
       setModalOpen(true);
     } catch (e) {
@@ -95,13 +175,25 @@ export default function CloudConfigurator() {
     }
   };
 
+  const switchAccount = (id: string) => {
+    if (id === activeSlotId) return;
+    loadConfig(id);
+  };
+
+  const handleRename = async (id: string, newName: string) => {
+    await renameAccount(id, newName);
+    setData((prev) =>
+      prev ? { ...prev, slots: prev.slots.map((s) => (s.id === id ? { ...s, name: newName } : s)) } : prev
+    );
+  };
+
   if (error) return <div className="text-red-300">{error}</div>;
   if (!data || !cfg) return <div className="flex justify-center py-24"><Spinner size={36} /></div>;
 
   if (data.locked) {
     return (
       <div className="space-y-6">
-        <Header t={t} slotsAvailable={data.slotsAvailable} running={true} />
+        <Header t={t} running={true} />
         <div className="glass glow-border rounded-3xl p-12 text-center">
           <div className="text-4xl">🔒</div>
           <h3 className="mt-4 font-display text-lg font-bold">{t('cloud.lockedPlan')}</h3>
@@ -117,7 +209,14 @@ export default function CloudConfigurator() {
 
   return (
     <div className="space-y-6">
-      <Header t={t} slotsAvailable={data.slotsAvailable} running={true} />
+      <Header
+        t={t}
+        running={true}
+        slots={data.slots}
+        activeSlotId={activeSlotId}
+        onSwitch={switchAccount}
+        onRename={handleRename}
+      />
 
       {/* Command-deck lock banner */}
       {editing ? (
@@ -200,7 +299,7 @@ export default function CloudConfigurator() {
                     type="button"
                     className="btn-primary w-full px-10 py-3 text-base sm:w-auto"
                     onClick={save}
-                    disabled={saving || !dirty}
+                    disabled={saving || !dirty || !ratioValid}
                   >
                     {saving ? (
                       <span className="inline-flex items-center gap-2">
@@ -217,13 +316,9 @@ export default function CloudConfigurator() {
                       </>
                     )}
                   </button>
-                  <div className="mt-3 flex flex-col items-center gap-1 sm:items-start">
-                    <span className="text-xs text-muted">{t('cloud.dmNote')}</span>
-                    {data.discord && (
-                      <span className="text-xs text-glow/80">
-                        {t('cloud.dmAs')}: {data.discord.username} · {data.discord.id}
-                      </span>
-                    )}
+                  <div className="mt-3 flex items-center gap-1.5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-glow/70" />
+                    <span className="text-xs text-muted">{t('cloud.footerNote')}</span>
                   </div>
                 </div>
                 <button type="button" className="btn-ghost" onClick={exitEdit}>
@@ -237,7 +332,6 @@ export default function CloudConfigurator() {
 
       {modalOpen && (
         <SavedModal
-          dispatched={savedInfo?.dispatched ?? false}
           onClose={() => setModalOpen(false)}
           t={t}
         />
@@ -246,7 +340,22 @@ export default function CloudConfigurator() {
   );
 }
 
-function Header({ t, slotsAvailable, running }: { t: (k: string) => string; slotsAvailable: number; running: boolean }) {
+function Header({
+  t,
+  running,
+  slots,
+  activeSlotId,
+  onSwitch,
+  onRename,
+}: {
+  t: (k: string) => string;
+  running: boolean;
+  slots?: CloudSlot[];
+  activeSlotId?: string | null;
+  onSwitch?: (id: string) => void;
+  onRename?: (id: string, newName: string) => Promise<void>;
+}) {
+  const showSwitcher = !!slots && slots.length > 1 && !!onSwitch && !!onRename;
   return (
     <div>
       <Kicker>{t('dash.botPanel')}</Kicker>
@@ -257,11 +366,157 @@ function Header({ t, slotsAvailable, running }: { t: (k: string) => string; slot
         </span>
       </div>
       <p className="mt-1 text-sm text-muted">{t('cloud.subtitleLong')}</p>
-      <div className="mt-3 flex items-center gap-2">
+      <div className="mt-3 flex flex-wrap items-center gap-2">
         <span className={`h-2.5 w-2.5 rounded-full ${running ? 'pulse-dot' : 'bg-muted'}`} />
         <span className="text-sm font-semibold text-emerald-300">{t('botpanel.running')}</span>
-        <span className="text-xs text-muted">· {t('cloud.slots')}: {slotsAvailable}</span>
+        {showSwitcher && (
+          <AccountSwitcher
+            slots={slots!}
+            activeId={activeSlotId ?? slots![0].id}
+            onSwitch={onSwitch!}
+            onRename={onRename!}
+          />
+        )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * Drop-in dropdown to switch the active bot slot (account) without a full
+ * reload. Only rendered when the user owns more than one slot. A pencil button
+ * sits next to the active account name and opens the rename modal.
+ */
+function AccountSwitcher({
+  slots,
+  activeId,
+  onSwitch,
+  onRename,
+}: {
+  slots: CloudSlot[];
+  activeId: string;
+  onSwitch: (id: string) => void;
+  onRename: (id: string, newName: string) => Promise<void>;
+}) {
+  const { t } = useLoc();
+  const [open, setOpen] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [nameInput, setNameInput] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [renameErr, setRenameErr] = useState('');
+  const active = slots.find((s) => s.id === activeId) ?? slots[0];
+
+  const openRename = () => {
+    setNameInput(active?.name ?? '');
+    setRenameErr('');
+    setRenaming(true);
+    setOpen(false);
+  };
+
+  const saveRename = async () => {
+    if (!active) return;
+    const trimmed = nameInput.trim();
+    if (!trimmed) return;
+    setBusy(true);
+    setRenameErr('');
+    try {
+      await onRename(active.id, trimmed);
+      setRenaming(false);
+    } catch {
+      setRenameErr(t('cloud.renameError'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="relative ms-auto sm:ms-0">
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-white/10"
+        >
+          <span className="h-2 w-2 rounded-full bg-glow" />
+          <span className="max-w-40 truncate">{active?.name ?? t('cloud.switchAccount')}</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+        {active && (
+          <button
+            type="button"
+            onClick={openRename}
+            title={t('cloud.rename')}
+            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-muted transition-colors hover:bg-white/10 hover:text-white"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 20h9" />
+              <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+            </svg>
+          </button>
+        )}
+      </div>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
+          <div className="glass-strong glow-border absolute right-0 z-40 mt-2 w-56 overflow-hidden rounded-2xl p-1.5">
+            {slots.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => {
+                  onSwitch(s.id);
+                  setOpen(false);
+                }}
+                className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-start text-sm font-semibold transition-colors ${
+                  s.id === activeId
+                    ? 'bg-gradient-to-r from-primary/25 to-glow/25 text-white'
+                    : 'text-muted hover:bg-white/5 hover:text-white'
+                }`}
+              >
+                <span className="text-xs">{s.id === activeId ? '●' : '○'}</span>
+                <span className="truncate">{s.name}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      {renaming && active && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true" onClick={() => setRenaming(false)}>
+          <div className="modal-panel" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-display text-lg font-bold text-gradient">{t('cloud.renameTitle')}</h3>
+            <p className="mt-1 text-xs text-muted">{t('cloud.renameDesc')}</p>
+            <input
+              className="neon-input mt-4 w-full"
+              value={nameInput}
+              maxLength={60}
+              placeholder={t('cloud.renamePlaceholder')}
+              autoFocus
+              onChange={(e) => setNameInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void saveRename();
+              }}
+            />
+            {renameErr && <div className="mt-2 text-xs text-red-300">{renameErr}</div>}
+            <div className="mt-5 flex gap-2">
+              <button
+                type="button"
+                className="btn-primary flex-1"
+                onClick={saveRename}
+                disabled={busy || !nameInput.trim()}
+              >
+                {busy ? <Spinner size={16} /> : t('cloud.renameSave')}
+              </button>
+              <button type="button" className="btn-ghost flex-1" onClick={() => setRenaming(false)}>
+                {t('cloud.renameCancel')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -304,19 +559,33 @@ function CategoryPanel({
   cfg,
   disabled,
   onChange,
+  showTitle = true,
 }: {
   category: CloudCategorySchema;
   path: string[];
   cfg: CloudConfig;
   disabled: boolean;
   onChange: (path: string[], value: unknown) => void;
+  showTitle?: boolean;
 }) {
-  const booleans = (category.fields ?? []).filter((f) => f.type === 'boolean');
-  const others = (category.fields ?? []).filter((f) => f.type !== 'boolean');
+  const localRatioGroups = ratioGroupsIn(path);
+  // Groups holding several 100%-constrained triplets (e.g. the 3 Climb Tower
+  // troop ratios) render as a compact grid table instead of a slider stack.
+  const isRatioGrid = localRatioGroups.length > 1;
+  const gridRatioKeys = new Set(localRatioGroups.flatMap((r) => r.keys));
+  const gridEnableKeys = new Set(localRatioGroups.flatMap((r) => (r.enable ? [r.enable] : [])));
+  const booleans = (category.fields ?? []).filter(
+    (f) => f.type === 'boolean' && !gridEnableKeys.has(f.key)
+  );
+  const others = (category.fields ?? []).filter(
+    (f) => f.type !== 'boolean' && (!isRatioGrid || !gridRatioKeys.has(f.key))
+  );
 
   return (
     <div className="space-y-6">
-      <SectionTitle icon={category.icon} title={category.title} desc={category.description} />
+      {showTitle && (
+        <SectionTitle icon={category.icon} title={category.title} desc={category.description} />
+      )}
 
       {booleans.map((f) => (
         <BooleanRow
@@ -343,14 +612,160 @@ function CategoryPanel({
         </div>
       )}
 
+      {isRatioGrid && (
+        <RatioGrid groups={localRatioGroups} path={path} cfg={cfg} disabled={disabled} onChange={onChange} />
+      )}
+
       {category.groups?.map((g) => (
-        <div key={g.id} className="rounded-2xl border border-glow/20 bg-gradient-to-br from-glow/[0.06] to-transparent p-6">
+        <div
+          key={g.id}
+          className="rounded-2xl border border-glow/20 bg-gradient-to-br from-glow/[0.06] to-transparent p-6"
+        >
           <SectionTitle icon={g.icon} title={g.title} desc={g.description} />
           <div className="mt-5">
-            <CategoryPanel category={g} path={[...path, g.id]} cfg={cfg} disabled={disabled} onChange={onChange} />
+            <CategoryPanel
+              category={g}
+              path={[...path, g.id]}
+              cfg={cfg}
+              disabled={disabled}
+              onChange={onChange}
+              showTitle={false}
+            />
           </div>
+          <RatioSumBadges cfg={cfg} path={[...path, g.id]} />
         </div>
       ))}
+    </div>
+  );
+}
+
+/**
+ * Compact horizontal grid table for 100%-constrained troop-ratio groups. Each
+ * tower is a single row with an optional enable toggle, inline number inputs
+ * for Inf / Cav / Arch and a live `= 100%` validator. Every input is
+ * hard-clamped upstream in `update()`.
+ */
+function RatioGrid({
+  groups,
+  path,
+  cfg,
+  disabled,
+  onChange,
+}: {
+  groups: RatioGroupDef[];
+  path: string[];
+  cfg: CloudConfig;
+  disabled: boolean;
+  onChange: (path: string[], value: unknown) => void;
+}) {
+  const { t } = useLoc();
+  return (
+    <div className="mt-5">
+      <div className="grid grid-cols-[minmax(0,0.6fr)_minmax(0,1.4fr)_repeat(3,minmax(0,1fr))_auto] items-center gap-2 px-3 pb-1.5 text-[0.65rem] font-bold uppercase tracking-[0.15em] text-muted">
+        <span className="flex justify-center text-base normal-case" aria-hidden>
+          ⚡
+        </span>
+        <span>{t('cloud.ratioTower')}</span>
+        <span className="text-center">{t('cloud.ratioInf')}</span>
+        <span className="text-center">{t('cloud.ratioCav')}</span>
+        <span className="text-center">{t('cloud.ratioArch')}</span>
+        <span className="text-right">{t('cloud.ratioTotal')}</span>
+      </div>
+      <div className="space-y-2">
+        {groups.map((rg) => {
+          const vals = rg.keys.map((k) => Number(getValue(cfg, [...path, k])) || 0);
+          const sum = vals.reduce((a, b) => a + b, 0);
+          const ok = sum === 100;
+          const enabled = rg.enable ? Boolean(getValue(cfg, [...path, rg.enable])) : true;
+          return (
+            <div
+              key={rg.name}
+              className={`grid grid-cols-[minmax(0,0.6fr)_minmax(0,1.4fr)_repeat(3,minmax(0,1fr))_auto] items-center gap-2 rounded-xl border px-3 py-2 ${
+                ok ? 'border-white/10 bg-white/[0.03]' : 'border-amber-400/40 bg-amber-400/10'
+              }`}
+            >
+              <span className="flex justify-center">
+                {rg.enable && (
+                  <Toggle
+                    checked={enabled}
+                    disabled={disabled}
+                    onChange={(v) => onChange([...path, rg.enable!], v)}
+                  />
+                )}
+              </span>
+              <span className={`text-sm font-semibold transition-opacity ${enabled ? '' : 'opacity-40'}`}>
+                {rg.name}
+              </span>
+              {rg.keys.map((k, i) => (
+                <RatioInput
+                  key={k}
+                  value={vals[i]}
+                  disabled={disabled}
+                  onChange={(v) => onChange([...path, k], v)}
+                />
+              ))}
+              <span
+                className={`text-right text-xs font-bold transition-opacity ${
+                  enabled ? (ok ? 'text-emerald-300' : 'text-amber-300') : 'opacity-30'
+                }`}
+              >
+                {ok ? '= 100% ✓' : `= ${sum}%`}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      {groups.some((rg) => {
+        const sum = rg.keys.reduce((acc, k) => acc + (Number(getValue(cfg, [...path, k])) || 0), 0);
+        return sum !== 100;
+      }) && (
+        <div className="mt-3 rounded-lg border border-amber-400/40 bg-amber-400/10 px-3 py-2 text-xs font-semibold text-amber-300">
+          {t('cloud.ratioGridWarning')}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RatioInput({ value, disabled, onChange }: { value: number; disabled: boolean; onChange: (v: number) => void }) {
+  return (
+    <input
+      type="number"
+      className="neon-ratio"
+      min={0}
+      max={100}
+      step={1}
+      value={value}
+      disabled={disabled}
+      onChange={(e) => onChange(Number(e.target.value))}
+    />
+  );
+}
+
+function RatioSumBadges({ cfg, path }: { cfg: CloudConfig; path: string[] }) {
+  const { t } = useLoc();
+  const groups = ratioGroupsIn(path);
+  // Grid groups already show a per-row `= 100%` validator inside the table;
+  // only lone slider groups (Championship) need a summary badge.
+  if (groups.length === 0 || groups.length > 1) return null;
+  return (
+    <div className="mt-4 space-y-2">
+      {groups.map((rg) => {
+        const sum = rg.keys.reduce((acc, k) => acc + (Number(getValue(cfg, [...path, k])) || 0), 0);
+        const ok = sum === 100;
+        return (
+          <div
+            key={rg.name}
+            className={`rounded-lg border px-3 py-2 text-xs font-bold ${
+              ok
+                ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-300'
+                : 'border-amber-400/40 bg-amber-400/10 text-amber-300'
+            }`}
+          >
+            {rg.name}: {t('cloud.ratioSumLabel')} {sum}% — {ok ? t('cloud.ratioSumOk') : t('cloud.ratioSumInvalid')}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -418,10 +833,12 @@ function FieldInput({
 }) {
   switch (field.type) {
     case 'number':
-      return field.slider ? (
-        <Slider field={field} value={Number(value ?? 0)} disabled={disabled} onChange={(v) => onChange(v)} />
-      ) : (
+      return (
         <NumberInput field={field} value={Number(value ?? 0)} disabled={disabled} onChange={(v) => onChange(v)} />
+      );
+    case 'slider':
+      return (
+        <Slider field={field} value={Number(value ?? 0)} disabled={disabled} onChange={(v) => onChange(v)} />
       );
     case 'string':
       return (
@@ -498,7 +915,7 @@ function Slider({
   const max = field.max ?? 100;
   const pct = max > min ? Math.min(100, Math.max(0, Math.round(((value - min) / (max - min)) * 100))) : 0;
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex items-center gap-3">
       <input
         type="range"
         min={min}
@@ -510,9 +927,17 @@ function Slider({
         style={{ '--fill': `${pct}%` } as CSSProperties}
         onChange={(e) => onChange(Number(e.target.value))}
       />
-      <span className="w-24 shrink-0 rounded-lg border border-glow/30 bg-glow/10 px-2 py-1 text-center font-mono text-sm font-bold text-glow">
-        {value}{field.unit ? ` ${field.unit}` : ''}
-      </span>
+      <input
+        type="number"
+        className="neon-input w-20 text-center"
+        min={min}
+        max={max}
+        step={field.step ?? 1}
+        value={value}
+        disabled={disabled}
+        onChange={(e) => onChange(Number(e.target.value))}
+      />
+      {field.unit && <span className="shrink-0 text-xs font-semibold text-muted">{field.unit}</span>}
     </div>
   );
 }
@@ -575,23 +1000,29 @@ function Toggle({ checked, disabled, onChange }: { checked: boolean; disabled: b
   return (
     <button
       type="button"
+      role="switch"
+      aria-checked={checked}
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${checked ? 'bg-gradient-to-r from-primary to-glow shadow-glow' : 'bg-white/10'}`}
+      className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${
+        checked
+          ? 'bg-gradient-to-r from-primary to-glow shadow-glow'
+          : 'bg-gray-600 shadow-inner ring-2 ring-inset ring-gray-300/80'
+      }`}
     >
       <span
-        className={`absolute top-0.5 h-6 w-6 rounded-full bg-white transition-all ${checked ? 'left-[calc(100%-1.625rem)]' : 'left-0.5'}`}
+        className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow-md transition-all ${
+          checked ? 'left-[calc(100%-1.625rem)]' : 'left-0.5'
+        }`}
       />
     </button>
   );
 }
 
 function SavedModal({
-  dispatched,
   onClose,
   t,
 }: {
-  dispatched: boolean;
   onClose: () => void;
   t: (k: string) => string;
 }) {
@@ -615,18 +1046,7 @@ function SavedModal({
         </div>
 
         <h3 className="font-display text-xl font-extrabold text-gradient text-glow">{t('cloud.modalTitle')}</h3>
-        <p className="mt-3 text-sm leading-relaxed text-muted">{t('cloud.modalNote')}</p>
-
-        {dispatched ? (
-          <span className="mt-4 inline-flex items-center gap-2 rounded-full border border-emerald-400/40 bg-emerald-400/10 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-emerald-300">
-            <span className="pulse-dot" />
-            {t('cloud.modalDiscord')}
-          </span>
-        ) : (
-          <span className="mt-4 inline-flex items-center gap-2 rounded-full border border-amber-400/40 bg-amber-400/10 px-4 py-1.5 text-xs font-semibold text-amber-300">
-            {t('cloud.dmFailed')}
-          </span>
-        )}
+        <p className="mt-3 text-sm leading-relaxed text-muted">{t('cloud.footerNote')}</p>
 
         <button ref={closeRef} type="button" className="btn-primary mt-7 w-full" onClick={onClose}>
           {t('cloud.modalClose')}
