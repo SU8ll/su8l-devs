@@ -23,7 +23,9 @@ export function signSession(userId: string): string {
 export function setSessionCookie(res: Response, token: string): void {
   res.cookie(config.cookieName, token, {
     httpOnly: true,
-    sameSite: 'lax',
+    // Cross-site auth (frontend on Vercel, API on Render) requires SameSite=None.
+    // Dev is same-site, where None would be rejected, so only flip it in production.
+    sameSite: config.isProd ? 'none' : 'lax',
     secure: config.isProd,
     maxAge: COOKIE_MAX_AGE,
     path: '/',
