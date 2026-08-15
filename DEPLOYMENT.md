@@ -49,11 +49,11 @@ postgresql://postgres.<ref>:<password>@aws-0-region.pooler.supabase.com:6543/pos
 ## خطوة 3: انشر الـ API على Render
 
 1. سجّل في https://render.com ثم `New → Web Service`، واربط repo.
-2. الإعدادات:
-   - **Root Directory:** `server`
+2. الإعدادات (ملاحظة: المشروع npm workspace، فالـ root هو الجذر وأوامر البناء بفلاغ `-w`):
+   - **Root Directory:** `.` (جذر المشروع)
    - **Runtime:** Node
-   - **Build Command:** `npm ci && npm run build`
-   - **Start Command:** `npm start`
+   - **Build Command:** `npm ci --include=dev && npm run build -w @su8l/server`
+   - **Start Command:** `npm run start -w @su8l/server`
    - **Health Check Path:** `/health`
 3. أضف المتغيرات (كلها من `server/.env.example`) بقيم الإنتاج:
 

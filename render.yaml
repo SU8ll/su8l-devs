@@ -5,10 +5,10 @@ services:
   - type: web
     name: su8l-api
     runtime: node
-    rootDir: server
+    rootDir: .
     plan: free
-    buildCommand: npm ci && npm run build
-    startCommand: npm start
+    buildCommand: npm ci && npm run build -w @su8l/server
+    startCommand: npm run start -w @su8l/server
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
