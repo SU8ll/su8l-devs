@@ -85,6 +85,35 @@ router.post('/create', requireAuth, async (req: AuthedRequest, res) => {
 
   const orderId = generateOrderId();
   try {
+    // A 100%-off promo makes the amount $0. PayPal cannot create an order with
+    // value "0.00", so bypass PayPal entirely: record the order and fulfill it
+    // immediately (consumes the promo + activates the subscription).
+    if (amount <= 0) {
+      await insertOrder({
+        id: orderId,
+        user_id: req.user.id,
+        plan_key: finalPlanKey,
+        plan_name: finalPlanName,
+        cycle: finalCycle,
+        amount: 0,
+        currency: CURRENCY,
+        promo_code: appliedPromo,
+        extra_slot: extraSlot ? 1 : 0,
+        paypal_order_id: null,
+      });
+      await fulfillOrder(orderId, null);
+      return res.json({
+        orderId,
+        paypalOrderId: '',
+        approvalUrl: '',
+        amount: 0,
+        currency: CURRENCY,
+        extraSlot: !!extraSlot,
+        promoApplied: !!appliedPromo,
+        free: true,
+      });
+    }
+
     const pp = await createPayPalOrder({
       referenceId: `ref_${orderId}`,
       orderId,
@@ -171,6 +200,7 @@ router.post('/validate-promo', requireAuth, async (req: AuthedRequest, res) => {
     valid: true,
     plan: elite.name,
     discount,
+    maxMonths: promo.max_months,
     monthlyPrice: promoPrice(elite, 'monthly', discount),
     yearlyPrice: promoPrice(elite, 'yearly', discount),
     message: `Promo applied — ${elite.name} is now $${promoPrice(elite, 'monthly', discount)}/month (${discount}% off).`,

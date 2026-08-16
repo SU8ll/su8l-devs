@@ -18,6 +18,7 @@ interface PromoInfo {
   valid: boolean;
   plan: string;
   discount: number;
+  maxMonths?: number | null;
   monthlyPrice: number;
   yearlyPrice: number;
 }
@@ -96,7 +97,10 @@ export default function Checkout() {
           ? { extraSlot: true }
           : { planKey: plan!.key, cycle, promoCode: promoApplied ? promoInput.trim() : null },
       });
-      if (res.approvalUrl) {
+      if (res.free) {
+        // 100%-off promo: the order was already fulfilled server-side, no PayPal.
+        window.location.href = `/success?order=${encodeURIComponent(res.orderId)}`;
+      } else if (res.approvalUrl) {
         window.location.href = res.approvalUrl;
       } else {
         setError('The payment provider did not return a checkout link.');
@@ -186,9 +190,21 @@ export default function Checkout() {
                 </div>
                 <div className="mt-2 min-h-5 text-xs">
                   {promoState === 'valid' && promoInfo && (
-                    <span className="text-emerald-300">
-                      ✓ {t('checkout.applied')} — ${cycle === 'yearly' ? promoInfo.yearlyPrice : promoInfo.monthlyPrice} ({promoInfo.discount}% off)
-                    </span>
+                    <>
+                      <span className="text-emerald-300">
+                        ✓ {t('checkout.applied')} — ${cycle === 'yearly' ? promoInfo.yearlyPrice : promoInfo.monthlyPrice} ({promoInfo.discount}% off)
+                      </span>
+                      {promoInfo.maxMonths ? (
+                        <div className="mt-1 text-emerald-300/80">
+                          {t('checkout.promoFreeMonths')
+                            .replace('{n}', String(promoInfo.maxMonths))
+                            .replace('{s}', promoInfo.maxMonths > 1 ? 's' : '')
+                            .replace('{es}', promoInfo.maxMonths > 1 ? 'ين' : '')}
+                        </div>
+                      ) : promoInfo.discount >= 100 ? (
+                        <div className="mt-1 text-emerald-300/80">{t('checkout.promoFreeOnce')}</div>
+                      ) : null}
+                    </>
                   )}
                   {promoState === 'invalid' && <span className="text-red-300">{t('checkout.promoInvalid')}</span>}
                   {promoState === 'forbidden' && <span className="text-amber-300">{t('checkout.promoForbidden')}</span>}

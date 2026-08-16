@@ -233,16 +233,17 @@ export async function panelListPromos() {
   return res.rows;
 }
 
-export async function panelCreatePromos(count: number, discount = 20) {
+export async function panelCreatePromos(count: number, discount = 20, maxMonths: number | null = null) {
   const safeDiscount = Math.max(1, Math.min(100, Math.round(discount)));
+  const safeMonths = maxMonths === null || maxMonths === undefined ? null : Math.max(1, Math.min(24, Math.round(maxMonths)));
   const created = [];
   for (let i = 0; i < count; i++) {
     const code = generatePromoCode();
     const res = await pool.query(
-      `INSERT INTO promo_codes (code, status, discount, used_by, used_at, created_by, created_at)
-       VALUES ($1, 'unused', $2, NULL, NULL, 'admin', $3)
+      `INSERT INTO promo_codes (code, status, discount, max_months, used_by, used_at, created_by, created_at)
+       VALUES ($1, 'unused', $2, $3, NULL, NULL, 'admin', $4)
        RETURNING *`,
-      [code, safeDiscount, nowIso()]
+      [code, safeDiscount, safeMonths, nowIso()]
     );
     created.push(res.rows[0]);
   }

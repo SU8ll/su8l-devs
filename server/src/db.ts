@@ -100,14 +100,16 @@ CREATE TABLE IF NOT EXISTS promo_codes (
   code TEXT NOT NULL UNIQUE,
   status TEXT NOT NULL DEFAULT 'unused',
   discount INTEGER NOT NULL DEFAULT 20,
+  max_months INTEGER,
   used_by TEXT,
   used_at TEXT,
   created_by TEXT,
   created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_promo_status ON promo_codes(status);
--- Migration for tables created before the discount column existed.
+-- Migrations for tables created before these columns existed.
 ALTER TABLE promo_codes ADD COLUMN IF NOT EXISTS discount INTEGER NOT NULL DEFAULT 20;
+ALTER TABLE promo_codes ADD COLUMN IF NOT EXISTS max_months INTEGER;
 
 CREATE TABLE IF NOT EXISTS extra_slots (
   id SERIAL PRIMARY KEY,
@@ -359,16 +361,27 @@ export async function activateSubscription(data: {
   cycle: 'monthly' | 'yearly';
   amount: number;
   durationMs?: number;
+  maxMonths?: number;
 }): Promise<Subscription> {
   // Caller must wrap in `withTransaction` (fulfillOrder does). No nested BEGIN.
   const existing = (await getActiveSubscriptions(data.userId)).find((s) => s.plan_key === data.plan.key);
-  const end =
-    data.durationMs !== undefined
-      ? // Manual admin grant: set the exact remaining period from now.
-        nowEpoch() + data.durationMs
-      : // Automatic purchase/renewal: extend from the current period end.
-        Math.max(existing?.current_period_end ?? nowEpoch(), nowEpoch()) +
-          planCycleMonths(data.cycle) * 30 * 24 * 60 * 60 * 1000;
+  let end: number;
+  if (data.durationMs !== undefined) {
+    // Manual admin grant: set the exact remaining period from now.
+    end = nowEpoch() + data.durationMs;
+  } else {
+    // Automatic purchase/renewal: extend from the current period end.
+    end =
+      Math.max(existing?.current_period_end ?? nowEpoch(), nowEpoch()) +
+      planCycleMonths(data.cycle) * 30 * 24 * 60 * 60 * 1000;
+    // Promo-coded orders may cap how long the discount lasts (e.g. a 100%-off
+    // code grants at most `maxMonths` of the subscription, then full price
+    // resumes). Never shrink an already-paid period below the natural end.
+    if (data.maxMonths !== undefined) {
+      const cap = nowEpoch() + data.maxMonths * 30 * 24 * 60 * 60 * 1000;
+      end = Math.min(end, Math.max(cap, existing?.current_period_end ?? 0));
+    }
+  }
   if (existing) {
     await run(
       `UPDATE subscriptions SET amount = ?, current_period_end = ?, status = 'active', updated_at = ? WHERE id = ?`,
@@ -499,16 +512,17 @@ export interface PromoCode {
   code: string;
   status: 'unused' | 'used' | 'disabled';
   discount: number;
+  max_months: number | null;
   used_by: string | null;
   used_at: string | null;
   created_by: string | null;
   created_at: string;
 }
 
-export async function insertPromoCode(code: string, createdBy: string, discount = 20): Promise<PromoCode> {
+export async function insertPromoCode(code: string, createdBy: string, discount = 20, maxMonths: number | null = null): Promise<PromoCode> {
   const ts = nowIso();
-  await run('INSERT INTO promo_codes (code, status, discount, used_by, used_at, created_by, created_at) VALUES (?,?,?,?,?,?,?)',
-    code, 'unused', discount, null, null, createdBy, ts);
+  await run('INSERT INTO promo_codes (code, status, discount, max_months, used_by, used_at, created_by, created_at) VALUES (?,?,?,?,?,?,?,?)',
+    code, 'unused', discount, maxMonths, null, null, createdBy, ts);
   return (await get<PromoCode>('SELECT * FROM promo_codes WHERE code = ?', code))!;
 }
 

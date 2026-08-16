@@ -87,6 +87,7 @@ const I18N = {
     genPromosTitle: 'توليد أكواد خصم',
     countLabel: 'العدد',
     discountLabel: 'الخصم %',
+    monthsLabel: 'المدة (أشهر، اختياري)',
     generate: 'توليد',
     copiedOk: 'تم توليد {n} كود ✓',
     disablePromo: 'تعطيل',
@@ -96,6 +97,7 @@ const I18N = {
     usedAtCol: 'استُخدم',
     createdAtCol: 'أُنشئ',
     discountCol: 'الخصم',
+    monthsCol: 'المدة',
     noPromos: 'لا أكواد',
     status_open: 'مفتوحة',
     status_closed: 'مغلقة',
@@ -219,6 +221,7 @@ const I18N = {
     genPromosTitle: 'Generate promo codes',
     countLabel: 'Count',
     discountLabel: 'Discount %',
+    monthsLabel: 'Duration (months, optional)',
     generate: 'Generate',
     copiedOk: 'Generated {n} codes ✓',
     disablePromo: 'Disable',
@@ -228,6 +231,7 @@ const I18N = {
     usedAtCol: 'Used at',
     createdAtCol: 'Created',
     discountCol: 'Discount',
+    monthsCol: 'Duration',
     noPromos: 'No codes',
     status_open: 'Open',
     status_closed: 'Closed',
@@ -1055,6 +1059,7 @@ function renderPromos() {
     <tr>
       <td class="mono" dir="ltr">${escapeHtml(p.code)}</td>
       <td><span class="badge purple" dir="ltr">-${p.discount}%</span></td>
+      <td>${p.max_months ? '<span class="badge blue" dir="ltr">' + p.max_months + ' mo</span>' : '—'}</td>
       <td><span class="badge ${p.status === 'unused' ? 'green' : p.status === 'used' ? 'amber' : 'red'}">${st(p.status)}</span></td>
       <td class="mono">${p.used_by || '—'}</td>
       <td>${fmtDate(p.used_at)}</td>
@@ -1073,14 +1078,18 @@ function renderPromos() {
           <label>${t('discountLabel')}</label>
           <input id="promoDiscount" class="input" type="number" min="1" max="100" value="20" style="width:90px" />
         </div>
+        <div class="field">
+          <label>${t('monthsLabel')}</label>
+          <input id="promoMonths" class="input" type="number" min="1" max="24" placeholder="—" style="width:90px" />
+        </div>
         <button class="btn success" id="genPromoBtn">${t('generate')}</button>
       </div>
       <div class="row mt" id="promoResult"></div>
     </div>
     <div class="panel table-wrap">
       <table>
-        <thead><tr><th>${t('codeCol')}</th><th>${t('discountCol')}</th><th>${t('statusCol')}</th><th>${t('usedByCol')}</th><th>${t('usedAtCol')}</th><th>${t('createdAtCol')}</th><th></th></tr></thead>
-        <tbody>${rows || '<tr><td colspan="7" class="muted">' + t('noPromos') + '</td></tr>'}</tbody>
+        <thead><tr><th>${t('codeCol')}</th><th>${t('discountCol')}</th><th>${t('monthsCol')}</th><th>${t('statusCol')}</th><th>${t('usedByCol')}</th><th>${t('usedAtCol')}</th><th>${t('createdAtCol')}</th><th></th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="8" class="muted">' + t('noPromos') + '</td></tr>'}</tbody>
       </table>
     </div>`;
 }
@@ -1202,7 +1211,9 @@ async function doAction(name, id, extra, trigger) {
     else if (name === 'gen-promos') {
       const n = Math.max(1, Math.min(100, Number($('#promoCount').value || 1)));
       const d = Math.max(1, Math.min(100, Number($('#promoDiscount').value || 20)));
-      const res = await api('/promos', { method: 'POST', body: { count: n, discount: d } });
+      const monthsRaw = $('#promoMonths').value.trim();
+      const months = monthsRaw === '' ? null : Math.max(1, Math.min(24, Number(monthsRaw)));
+      const res = await api('/promos', { method: 'POST', body: { count: n, discount: d, months } });
       $('#promoResult').innerHTML = codeChips(res.codes);
       toast(t('copiedOk').replace('{n}', res.codes.length), 'ok');
       loadPromos();

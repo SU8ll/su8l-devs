@@ -178,13 +178,18 @@ router.get('/promos', async (_req, res) => {
 });
 
 router.post('/promos', async (req, res) => {
-  const { count, discount } = (req.body ?? {}) as { count?: number; discount?: number };
+  const { count, discount, months } = (req.body ?? {}) as { count?: number; discount?: number; months?: number | string };
   const n = Number(count ?? 1);
   if (!Number.isInteger(n) || n < 1 || n > 100) return bad(res, 'count must be 1..100');
   const d = discount === undefined ? 20 : Number(discount);
   if (!Number.isInteger(d) || d < 1 || d > 100) return bad(res, 'discount must be 1..100');
-  const created = await panelCreatePromos(n, d);
-  res.json({ ok: true, discount: d, codes: created.map((c) => c.code) });
+  let m: number | null = null;
+  if (months !== undefined && months !== null && months !== '') {
+    m = Number(months);
+    if (!Number.isInteger(m) || m < 1 || m > 24) return bad(res, 'months must be 1..24');
+  }
+  const created = await panelCreatePromos(n, d, m);
+  res.json({ ok: true, discount: d, months: m, codes: created.map((c) => c.code) });
 });
 
 router.delete('/promos/:id', async (req, res) => {

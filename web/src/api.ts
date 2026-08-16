@@ -150,6 +150,8 @@ export interface CreateCheckoutResponse {
   currency: string;
   extraSlot: boolean;
   promoApplied: boolean;
+  /** true when the promo made the price $0 and the order was fulfilled server-side (no PayPal). */
+  free?: boolean;
 }
 
 export type CloudFieldType = 'boolean' | 'number' | 'string' | 'select' | 'radio' | 'slider';

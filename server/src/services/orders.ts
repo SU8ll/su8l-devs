@@ -40,11 +40,19 @@ export async function fulfillOrder(orderId: string, captureId: string | null): P
       await insertExtraSlot(fresh.user_id, fresh.id, fresh.amount);
     } else if (fresh.plan_key && fresh.cycle) {
       const plan = { key: fresh.plan_key, name: fresh.plan_name ?? fresh.plan_key };
+      // If the promo caps the subscription length (max_months), pass it through
+      // so a 100%-off code grants at most that many months, then full price.
+      let maxMonths: number | undefined;
+      if (fresh.promo_code) {
+        const promo = await getPromoByCode(fresh.promo_code);
+        if (promo?.max_months) maxMonths = promo.max_months;
+      }
       await activateSubscription({
         userId: fresh.user_id,
         plan: plan as Parameters<typeof activateSubscription>[0]['plan'],
         cycle: fresh.cycle,
         amount: fresh.amount,
+        maxMonths,
       });
     }
 

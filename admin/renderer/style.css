@@ -158,6 +158,7 @@ tr.clickable:hover td { background: rgba(255,255,255,0.03); }
 .badge.slate { background: rgba(155,150,176,0.15); color: var(--muted); }
 .badge.purple { background: rgba(168,85,247,0.15); color: var(--glow); }
 .badge.amber { background: rgba(245,158,11,0.15); color: #fcd34d; }
+.badge.blue { background: rgba(59,130,246,0.15); color: #93c5fd; }
 
 .search-row { display: flex; gap: 10px; }
 .search-row .input { flex: 1; }
