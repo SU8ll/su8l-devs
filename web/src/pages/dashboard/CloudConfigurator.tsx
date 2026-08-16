@@ -192,7 +192,7 @@ export default function CloudConfigurator() {
 
   if (data.locked) {
     return (
-      <div className="space-y-6">
+      <div className="min-w-0 space-y-6">
         <Header t={t} running={true} />
         <div className="glass glow-border rounded-3xl p-12 text-center">
           <div className="text-4xl">🔒</div>
@@ -208,7 +208,7 @@ export default function CloudConfigurator() {
   const active = data.schema.categories.find((c) => c.id === activeKey) ?? data.schema.categories[0];
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6">
       <Header
         t={t}
         running={true}
@@ -261,7 +261,7 @@ export default function CloudConfigurator() {
         </div>
       )}
 
-      <div className="grid items-start gap-6 lg:grid-cols-[280px_1fr]">
+      <div className="grid min-w-0 items-start gap-6 lg:grid-cols-[280px_1fr]">
         {/* Sidebar — derived from the master schema */}
         <aside className="glass glow-border rounded-3xl p-2 lg:sticky lg:top-24">
           <div className="flex gap-1 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0">
@@ -277,7 +277,7 @@ export default function CloudConfigurator() {
         </aside>
 
         {/* Active category — rendered dynamically from the schema */}
-        <div className="glass-strong rounded-3xl p-5 sm:p-8">
+        <div className="min-w-0 glass-strong rounded-3xl p-5 sm:p-8">
           {active && (
             <div className={editing ? '' : 'pointer-events-none select-none opacity-50'}>
               <CategoryPanel

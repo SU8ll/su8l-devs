@@ -30,11 +30,10 @@ export default function DashboardLayout() {
   ];
 
   return (
-    <div className="mx-auto max-w-7xl px-3 pb-24 pt-14 sm:px-6 lg:pt-20">
-      {/* ── Mobile: compact top bar + horizontal nav ──────────────────────── */}
-      <div className="mb-5 lg:hidden">
-        {/* Profile row */}
-        <div className="glass-strong mb-3 flex items-center gap-3 rounded-2xl px-3 py-2.5">
+    <div className="mx-auto w-full max-w-7xl px-3 pb-24 pt-14 sm:px-6 lg:pt-20">
+      {/* ── Mobile: compact top bar + horizontal scrollable tabs ──────────── */}
+      <div className="mb-4 lg:hidden">
+        <div className="glass-strong mb-3 flex items-center gap-2.5 rounded-2xl px-3 py-2.5">
           <button
             type="button"
             onClick={() => setPickerOpen(true)}
@@ -73,7 +72,6 @@ export default function DashboardLayout() {
           </button>
         </div>
 
-        {/* Horizontal nav tabs */}
         <div className="scrollbar-none -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
           {links.map((l) => (
             <NavLink
@@ -100,9 +98,9 @@ export default function DashboardLayout() {
         </div>
       </div>
 
-      {/* ── Desktop: classic sidebar layout ───────────────────────────────── */}
-      <div className="grid gap-8 lg:grid-cols-[260px_1fr]">
-        <aside className="hidden lg:sticky lg:top-28 lg:block lg:self-start">
+      {/* ── Desktop: sidebar + content grid ───────────────────────────────── */}
+      <div className="flex w-full gap-8 lg:flex-row">
+        <aside className="hidden w-[260px] shrink-0 lg:block">
           <div className="glass-strong rounded-3xl p-5">
             <div className="mb-5 flex items-center gap-3 border-b border-white/10 pb-5">
               <button
@@ -178,8 +176,7 @@ export default function DashboardLayout() {
           </div>
         </aside>
 
-        {/* Content */}
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <Outlet context={{ openAvatarPicker: () => setPickerOpen(true) }} />
         </div>
       </div>
