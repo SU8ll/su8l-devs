@@ -1,6 +1,8 @@
 import { Router, type Request, type Response, type NextFunction } from 'express';
 import { config } from '../config.js';
 import { MASTER_SCHEMA, SCHEMA_VERSION } from '../cloudSchema.js';
+import { openSse } from '../lib/sse.js';
+import { emitTicketEvent, subscribeTickets } from '../lib/ticketBus.js';
 import {
   panelStats,
   panelSearchUsers,
@@ -115,6 +117,14 @@ router.get('/tickets', async (_req, res) => {
   res.json({ tickets: await panelListTickets() });
 });
 
+// GET /api/panel/tickets/stream — live events for ALL tickets (admin).
+// Must be declared before /tickets/:id so 'stream' is not captured as :id.
+router.get('/tickets/stream', (req, res) => {
+  const sse = openSse(req, res);
+  const unsubscribe = subscribeTickets((evt) => sse.send(evt));
+  res.on('close', unsubscribe);
+});
+
 router.get('/tickets/:id', async (req, res) => {
   const ticketId = Number(req.params.id);
   if (!Number.isInteger(ticketId)) return bad(res, 'invalid_ticket_id');
@@ -128,7 +138,16 @@ router.post('/tickets/:id/messages', async (req, res) => {
   const { body } = (req.body ?? {}) as { body?: string };
   if (!Number.isInteger(ticketId)) return bad(res, 'invalid_ticket_id');
   if (!body || !body.trim()) return bad(res, 'body is required');
+  const detail = await panelTicketDetail(ticketId);
+  if (!detail) return bad(res, 'ticket_not_found', 404);
   await panelReplyTicket(ticketId, body.trim());
+  emitTicketEvent({
+    type: 'message',
+    ticketId,
+    userId: detail.ticket.user_id,
+    author: 'staff',
+    subject: detail.ticket.subject,
+  });
   res.json({ ok: true });
 });
 
@@ -137,14 +156,20 @@ router.post('/tickets/:id/status', async (req, res) => {
   const { status } = (req.body ?? {}) as { status?: string };
   if (!Number.isInteger(ticketId)) return bad(res, 'invalid_ticket_id');
   if (status !== 'open' && status !== 'closed') return bad(res, 'status must be open or closed');
+  const detail = await panelTicketDetail(ticketId);
+  if (!detail) return bad(res, 'ticket_not_found', 404);
   await panelSetTicketStatus(ticketId, status);
+  emitTicketEvent({ type: 'status', ticketId, userId: detail.ticket.user_id, status });
   res.json({ ok: true });
 });
 
 router.delete('/tickets/:id', async (req, res) => {
   const ticketId = Number(req.params.id);
   if (!Number.isInteger(ticketId)) return bad(res, 'invalid_ticket_id');
+  const detail = await panelTicketDetail(ticketId);
+  if (!detail) return bad(res, 'ticket_not_found', 404);
   await panelDeleteTicket(ticketId);
+  emitTicketEvent({ type: 'deleted', ticketId, userId: detail.ticket.user_id });
   res.json({ ok: true });
 });
 

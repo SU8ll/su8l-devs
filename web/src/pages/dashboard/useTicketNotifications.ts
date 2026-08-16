@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { api } from '../../api';
+import { api, apiUrl } from '../../api';
 import { useI18n } from '../../i18n';
 
 interface TicketListItem {
@@ -7,6 +7,15 @@ interface TicketListItem {
   subject: string;
   messages_count?: number;
   last_message_author?: string | null;
+}
+
+interface TicketStreamEvent {
+  type: 'new' | 'message' | 'status' | 'deleted';
+  ticketId?: number;
+  userId?: string;
+  author?: 'user' | 'staff';
+  subject?: string;
+  status?: string;
 }
 
 let audioCtx: AudioContext | null = null;
@@ -167,12 +176,38 @@ export function useTicketNotifications(enabled = true): void {
       Notification.requestPermission().catch(() => {});
     }
 
+    // Live stream: the instant a message lands we re-poll (so the count-based
+    // notification fires right away instead of waiting for the 30s interval)
+    // and broadcast a change event so open pages refresh immediately.
+    let stream: EventSource | null = null;
+    const handleStreamEvent = (evt: TicketStreamEvent) => {
+      window.dispatchEvent(
+        new CustomEvent('su8l:tickets-changed', { detail: { ticketId: evt.ticketId } })
+      );
+      if (evt.ticketId != null) void poll();
+    };
+    try {
+      stream = new EventSource(apiUrl('/api/tickets/stream'), { withCredentials: true });
+      stream.onmessage = (msg) => {
+        try {
+          handleStreamEvent(JSON.parse(msg.data) as TicketStreamEvent);
+        } catch {
+          /* ignore malformed frame */
+        }
+      };
+      // EventSource reconnects automatically; also sync counts when we reconnect.
+      stream.onopen = () => void poll();
+    } catch {
+      // SSE unsupported — the 30s poll remains the fallback.
+    }
+
     void poll();
     timer = window.setInterval(() => void poll(), 30000);
 
     return () => {
       cancelled = true;
       if (timer !== undefined) window.clearInterval(timer);
+      stream?.close();
       document.removeEventListener('pointerdown', resume);
       document.removeEventListener('keydown', resume);
     };

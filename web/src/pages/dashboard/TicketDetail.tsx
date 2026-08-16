@@ -43,7 +43,15 @@ export default function TicketDetail() {
     const timer = window.setInterval(() => {
       if (!sendingRef.current) void load();
     }, 15000);
-    return () => window.clearInterval(timer);
+    const onChange = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { ticketId?: number } | undefined;
+      if (detail?.ticketId === Number(id)) void load();
+    };
+    window.addEventListener('su8l:tickets-changed', onChange);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('su8l:tickets-changed', onChange);
+    };
   }, [id]);
 
   if (error) return <div className="text-red-300">{error}</div>;

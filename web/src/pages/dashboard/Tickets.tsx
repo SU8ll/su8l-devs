@@ -35,6 +35,9 @@ export default function Tickets() {
       });
   useEffect(() => {
     void load();
+    const onChange = () => void load();
+    window.addEventListener('su8l:tickets-changed', onChange);
+    return () => window.removeEventListener('su8l:tickets-changed', onChange);
   }, []);
 
   const create = async () => {

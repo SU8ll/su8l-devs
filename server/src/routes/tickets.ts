@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { requireAuth, type AuthedRequest } from '../lib/auth.js';
+import { openSse } from '../lib/sse.js';
+import { emitTicketEvent, subscribeTickets } from '../lib/ticketBus.js';
 import {
   addTicketMessage,
   createTicket,
@@ -34,6 +36,15 @@ router.get('/', requireAuth, async (req: AuthedRequest, res) => {
   res.json({ tickets: await listTickets(req.user.id) });
 });
 
+// GET /api/tickets/stream — live events for the signed-in user's tickets
+router.get('/stream', requireAuth, (req: AuthedRequest, res) => {
+  const sse = openSse(req, res);
+  const unsubscribe = subscribeTickets((evt) => {
+    if (evt.userId === req.user.id) sse.send(evt);
+  });
+  res.on('close', unsubscribe);
+});
+
 // POST /api/tickets — open a ticket
 router.post('/', requireAuth, async (req: AuthedRequest, res) => {
   const parsed = createSchema.safeParse(req.body);
@@ -44,6 +55,7 @@ router.post('/', requireAuth, async (req: AuthedRequest, res) => {
     body: parsed.data.body,
     priority: parsed.data.priority,
   });
+  emitTicketEvent({ type: 'new', ticketId: ticket.id, userId: req.user.id, subject: ticket.subject });
   res.status(201).json({ ticket });
 });
 
@@ -65,6 +77,7 @@ router.post('/:id(\\d+)/messages', requireAuth, async (req: AuthedRequest, res) 
   if (ticket.user_id !== req.user.id && !(await isStaff(req.user.id))) return res.status(403).json({ error: 'forbidden' });
   const author = (await isStaff(req.user.id)) ? 'staff' : 'user';
   const message = await addTicketMessage(ticket.id, author, parsed.data.body);
+  emitTicketEvent({ type: 'message', ticketId: ticket.id, userId: ticket.user_id, author, subject: ticket.subject });
   res.status(201).json({ message });
 });
 
@@ -76,6 +89,7 @@ router.post('/:id(\\d+)/status', requireAuth, async (req: AuthedRequest, res) =>
   const ticket = await getTicket(Number(req.params.id));
   if (!ticket) return res.status(404).json({ error: 'ticket not found' });
   await setTicketStatus(ticket.id, parsed.data.status);
+  emitTicketEvent({ type: 'status', ticketId: ticket.id, userId: ticket.user_id, status: parsed.data.status });
   res.json({ ok: true, status: parsed.data.status });
 });
 
