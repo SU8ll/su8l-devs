@@ -42,14 +42,16 @@ router.get('/', requireAuth, async (req: AuthedRequest, res) => {
       avatar: resolveAvatarUrl(req.user.avatar),
       email: req.user.email,
     },
-    subscriptions: subscriptions.map((s) => ({
+    // The customer dashboard only lists live plans; cancelled/expired rows are
+    // kept in the DB for history but never rendered as a package.
+    subscriptions: active.map((s) => ({
       id: s.id,
       planKey: s.plan_key,
       planName: s.plan_name,
       cycle: s.cycle,
       amount: s.amount,
       status: subscriptionDisplayStatus(s),
-      active: isActiveSubscription(s),
+      active: true,
       currentPeriodEnd: s.current_period_end,
     })),
     activeSubscriptions: active.length,
