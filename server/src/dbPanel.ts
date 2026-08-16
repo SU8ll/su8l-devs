@@ -143,7 +143,7 @@ export async function panelUserDetail(userId: string) {
   };
 }
 
-export async function panelGrantSubscription(userId: string, planKey: string, cycle: 'monthly' | 'yearly') {
+export async function panelGrantSubscription(userId: string, planKey: string, cycle: 'monthly' | 'yearly', days?: number) {
   const plan = getPlan(planKey);
   if (!plan) throw new Error('unknown plan');
   return withTransaction(() =>
@@ -152,6 +152,7 @@ export async function panelGrantSubscription(userId: string, planKey: string, cy
       plan,
       cycle,
       amount: 0,
+      durationMs: days && Number.isFinite(days) && days > 0 ? days * 24 * 60 * 60 * 1000 : undefined,
     })
   );
 }

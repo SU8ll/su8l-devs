@@ -70,12 +70,19 @@ router.get('/users/:id', async (req, res) => {
 });
 
 router.post('/users/:id/subscriptions', async (req, res) => {
-  const { planKey, cycle } = (req.body ?? {}) as { planKey?: string; cycle?: string };
+  const { planKey, cycle, days } = (req.body ?? {}) as { planKey?: string; cycle?: string; days?: number };
   if (!planKey || (cycle !== 'monthly' && cycle !== 'yearly')) {
     return bad(res, 'planKey and cycle are required');
   }
+  let daysNum: number | undefined;
+  if (days !== undefined) {
+    daysNum = Number(days);
+    if (!Number.isInteger(daysNum) || daysNum < 1 || daysNum > 3650) {
+      return bad(res, 'days must be an integer 1..3650');
+    }
+  }
   try {
-    const sub = await panelGrantSubscription(req.params.id, planKey, cycle);
+    const sub = await panelGrantSubscription(req.params.id, planKey, cycle, daysNum);
     res.json({ ok: true, subscription: sub });
   } catch (e) {
     res.status(500).json({ error: e instanceof Error ? e.message : 'grant_failed' });

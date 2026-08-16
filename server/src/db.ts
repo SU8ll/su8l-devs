@@ -344,12 +344,18 @@ export async function activateSubscription(data: {
   plan: Plan;
   cycle: 'monthly' | 'yearly';
   amount: number;
+  durationMs?: number;
 }): Promise<Subscription> {
   // Caller must wrap in `withTransaction` (fulfillOrder does). No nested BEGIN.
   const existing = (await getActiveSubscriptions(data.userId)).find((s) => s.plan_key === data.plan.key);
+  const end =
+    data.durationMs !== undefined
+      ? // Manual admin grant: set the exact remaining period from now.
+        nowEpoch() + data.durationMs
+      : // Automatic purchase/renewal: extend from the current period end.
+        Math.max(existing?.current_period_end ?? nowEpoch(), nowEpoch()) +
+          planCycleMonths(data.cycle) * 30 * 24 * 60 * 60 * 1000;
   if (existing) {
-    const base = Math.max(existing.current_period_end ?? nowEpoch(), nowEpoch());
-    const end = base + planCycleMonths(data.cycle) * 30 * 24 * 60 * 60 * 1000;
     await run(
       `UPDATE subscriptions SET amount = ?, current_period_end = ?, status = 'active', updated_at = ? WHERE id = ?`,
       data.amount,
@@ -360,7 +366,6 @@ export async function activateSubscription(data: {
     return (await get<Subscription>('SELECT * FROM subscriptions WHERE id = ?', existing.id))!;
   }
   const id = `sub_${crypto.randomUUID().replace(/-/g, '').slice(0, 20)}`;
-  const end = nowEpoch() + planCycleMonths(data.cycle) * 30 * 24 * 60 * 60 * 1000;
   const ts = nowIso();
   await run(
     `INSERT INTO subscriptions (id, user_id, plan_key, plan_name, cycle, amount, status, current_period_end, created_at, updated_at)
