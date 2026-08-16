@@ -79,8 +79,9 @@ router.get('/discord/callback', async (req, res) => {
       accessToken,
       locale: d.locale,
     });
-    setSessionCookie(res, signSession(user.id));
-    return res.redirect(`${config.appUrl}/dashboard`);
+    const token = signSession(user.id);
+    setSessionCookie(res, token);
+    return res.redirect(`${config.appUrl}/auth/callback#token=${encodeURIComponent(token)}`);
   } catch (err) {
     console.error('[auth:discord]', err);
     return res.redirect(`${config.appUrl}/login?error=oauth_failed`);
@@ -131,8 +132,9 @@ router.get('/google/callback', async (req, res) => {
       username: g.name || g.email?.split('@')[0] || g.id,
       accessToken,
     });
-    setSessionCookie(res, signSession(user.id));
-    return res.redirect(`${config.appUrl}/dashboard`);
+    const token = signSession(user.id);
+    setSessionCookie(res, token);
+    return res.redirect(`${config.appUrl}/auth/callback#token=${encodeURIComponent(token)}`);
   } catch (err) {
     console.error('[auth:google]', err);
     return res.redirect(`${config.appUrl}/login?error=oauth_failed`);
@@ -178,8 +180,9 @@ router.get('/facebook/callback', async (req, res) => {
       username: f.name || f.email?.split('@')[0] || f.id,
       accessToken,
     });
-    setSessionCookie(res, signSession(user.id));
-    return res.redirect(`${config.appUrl}/dashboard`);
+    const token = signSession(user.id);
+    setSessionCookie(res, token);
+    return res.redirect(`${config.appUrl}/auth/callback#token=${encodeURIComponent(token)}`);
   } catch (err) {
     console.error('[auth:facebook]', err);
     return res.redirect(`${config.appUrl}/login?error=oauth_failed`);

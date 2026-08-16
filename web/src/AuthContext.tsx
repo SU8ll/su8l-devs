@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from 'react';
 import { api, apiUrl, type MeDto } from './api';
+import { clearStoredToken } from './pages/AuthCallback';
 
 interface AuthContextValue {
   user: MeDto | null;
@@ -50,6 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       /* ignore */
     }
+    clearStoredToken();
     setUser(null);
   }, []);
 
