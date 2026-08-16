@@ -39,26 +39,26 @@ export default function Navbar() {
 
   return (
     <header className="fixed top-0 inset-x-0 z-50">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6">
-        <div className="glass-strong mt-4 flex items-center justify-between rounded-2xl px-4 py-3 sm:px-6">
-          <Link to="/" className="flex items-center gap-3">
+      <div className="mx-auto max-w-7xl px-3 sm:px-6">
+        <div className="glass-strong mt-4 flex items-center justify-between gap-3 rounded-2xl px-3 py-3 sm:px-6">
+          <Link to="/" className="flex min-w-0 items-center gap-2.5 sm:gap-3">
             {logoFailed ? (
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-glow shadow-glow">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-glow shadow-glow">
                 <span className="font-display text-sm font-black tracking-tight text-white">SU</span>
               </div>
             ) : (
               <img
                 src="/logo.png"
                 alt={t('nav.brand')}
-                className="h-10 w-10 rounded-xl object-contain"
+                className="h-10 w-10 shrink-0 rounded-xl object-contain"
                 onError={() => setLogoFailed(true)}
               />
             )}
-            <div className="leading-tight">
-              <div className="font-display text-base font-extrabold tracking-wide text-gradient">
+            <div className="min-w-0 leading-tight">
+              <div className="truncate font-display text-base font-extrabold tracking-wide text-gradient">
                 {t('nav.brand')}
               </div>
-              <div className="text-[0.68rem] font-medium uppercase tracking-[0.25em] text-muted">
+              <div className="hidden text-[0.68rem] font-medium uppercase tracking-[0.25em] text-muted sm:block">
                 {t('nav.tagline')}
               </div>
             </div>
@@ -95,7 +95,7 @@ export default function Navbar() {
             )}
           </div>
 
-          <div className="flex items-center gap-3 lg:hidden">
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3 lg:hidden">
             <LangToggle />
             <button
               type="button"

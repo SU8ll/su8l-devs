@@ -220,7 +220,7 @@ export default function CloudConfigurator() {
 
       {/* Command-deck lock banner */}
       {editing ? (
-        <div className="lock-banner flex flex-col items-center justify-between gap-4 p-6 sm:flex-row">
+        <div className="lock-banner flex flex-col items-center justify-between gap-4 p-5 sm:flex-row sm:p-6">
           <div className="flex items-center gap-3">
             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-glow text-white shadow-glow">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -238,7 +238,7 @@ export default function CloudConfigurator() {
           </button>
         </div>
       ) : (
-        <div className="lock-banner flex flex-col items-center justify-between gap-4 p-6 sm:flex-row">
+        <div className="lock-banner flex flex-col items-center justify-between gap-4 p-5 sm:flex-row sm:p-6">
           <div className="flex items-center gap-3">
             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-glow">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -277,7 +277,7 @@ export default function CloudConfigurator() {
         </aside>
 
         {/* Active category — rendered dynamically from the schema */}
-        <div className="glass-strong rounded-3xl p-8">
+        <div className="glass-strong rounded-3xl p-5 sm:p-8">
           {active && (
             <div className={editing ? '' : 'pointer-events-none select-none opacity-50'}>
               <CategoryPanel
@@ -619,7 +619,7 @@ function CategoryPanel({
       {category.groups?.map((g) => (
         <div
           key={g.id}
-          className="rounded-2xl border border-glow/20 bg-gradient-to-br from-glow/[0.06] to-transparent p-6"
+          className="rounded-2xl border border-glow/20 bg-gradient-to-br from-glow/[0.06] to-transparent p-4 sm:p-6"
         >
           <SectionTitle icon={g.icon} title={g.title} desc={g.description} />
           <div className="mt-5">

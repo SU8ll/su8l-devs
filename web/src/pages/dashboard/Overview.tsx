@@ -140,7 +140,7 @@ export default function Overview() {
                 </div>
               </div>
             </div>
-            <div className="flex gap-6">
+            <div className="flex flex-wrap gap-4 sm:gap-6">
               <MiniStat label={t('status.uptime24')} value={`${data.status.uptime24h}%`} />
               <MiniStat label={t('status.uptime7')} value={`${data.status.uptime7d}%`} />
               <MiniStat label={t('status.uptime30')} value={`${data.status.uptime30d}%`} />

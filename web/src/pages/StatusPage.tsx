@@ -114,9 +114,9 @@ export default function StatusPage() {
 
 function UptimeStat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-6 text-center">
-      <div className="font-display text-3xl font-black text-glow">{value}%</div>
-      <div className="mt-1 text-[0.68rem] uppercase tracking-wider text-muted">{label}</div>
+    <div className="rounded-2xl border border-white/10 bg-white/[0.02] px-2 py-5 text-center sm:px-4 sm:py-6">
+      <div className="font-display text-2xl font-black text-glow sm:text-3xl">{value}%</div>
+      <div className="mt-1 text-[0.6rem] uppercase tracking-wider text-muted sm:text-[0.68rem]">{label}</div>
     </div>
   );
 }

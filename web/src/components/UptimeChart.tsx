@@ -82,7 +82,7 @@ export default function UptimeChart({
           );
         })}
       </svg>
-      <div className="mt-1 flex items-center gap-4 text-[0.68rem] text-muted">
+      <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-[0.68rem] text-muted">
         <span className="inline-flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-sm bg-glow" /> 100%
         </span>

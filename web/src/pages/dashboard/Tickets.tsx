@@ -129,7 +129,7 @@ export default function Tickets() {
             <Link
               key={tk.id}
               to={`/dashboard/tickets/${tk.id}`}
-              className="glass card-hover flex items-center justify-between gap-4 rounded-2xl px-6 py-5"
+              className="glass card-hover flex flex-col gap-3 rounded-2xl px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-6 sm:py-5"
             >
               <div className="min-w-0">
                 <div className="truncate font-semibold">#{tk.id} — {tk.subject}</div>

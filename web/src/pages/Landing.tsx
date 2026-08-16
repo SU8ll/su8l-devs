@@ -33,18 +33,18 @@ export default function Landing() {
           <LiveBadge />
         </div>
         <Kicker>{t('hero.kicker')}</Kicker>
-        <h1 className="max-w-4xl font-display text-4xl font-black leading-[1.05] tracking-tight sm:text-6xl lg:text-7xl">
+        <h1 className="max-w-4xl px-2 font-display text-[2rem] font-black leading-[1.12] tracking-tight sm:text-6xl lg:text-7xl">
           <span className="text-glow">{t('hero.title1')}</span>{' '}
           <span className="text-gradient">{t('hero.title2')}</span>
         </h1>
-        <p className="mt-6 max-w-2xl text-base leading-relaxed text-muted sm:text-lg">
+        <p className="mt-6 max-w-2xl px-2 text-base leading-relaxed text-muted sm:text-lg">
           {t('hero.subtitle')}
         </p>
-        <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row">
-          <Link to="/pricing" className="btn-primary w-64">
+        <div className="mt-10 flex w-full flex-col items-center gap-4 sm:w-auto sm:flex-row">
+          <Link to="/pricing" className="btn-primary w-full sm:w-64">
             {t('hero.cta1')}
           </Link>
-          <Link to="/status" className="btn-ghost w-64">
+          <Link to="/status" className="btn-ghost w-full sm:w-64">
             {t('hero.cta2')}
           </Link>
         </div>
@@ -59,11 +59,11 @@ export default function Landing() {
           ].map((s, i) => (
             <div
               key={i}
-              className="glass card-hover fade-up rounded-2xl px-4 py-6 text-center"
+              className="glass card-hover fade-up rounded-2xl px-3 py-6 text-center sm:px-4"
               style={{ animationDelay: `${i * 0.08}s` }}
             >
-              <div className="font-display text-2xl font-extrabold text-gradient">{s.v}</div>
-              <div className="mt-1 text-xs uppercase tracking-wider text-muted">{s.l}</div>
+              <div className="font-display text-xl font-extrabold text-gradient sm:text-2xl">{s.v}</div>
+              <div className="mt-1 text-[0.65rem] uppercase tracking-wider text-muted sm:text-xs">{s.l}</div>
             </div>
           ))}
         </div>
@@ -73,16 +73,16 @@ export default function Landing() {
       <FeaturesGrid />
 
       {/* CTA band */}
-      <section className="py-20">
-        <div className="glass-strong glow-border relative overflow-hidden rounded-3xl px-8 py-16 text-center">
+      <section className="py-16 sm:py-20">
+        <div className="glass-strong glow-border relative overflow-hidden rounded-3xl px-5 py-14 text-center sm:px-8 sm:py-16">
           <div className="orb orb-1 !opacity-30" />
           <Kicker>{t('pricing.title')}</Kicker>
           <p className="mx-auto mt-2 max-w-xl text-muted">{t('pricing.subtitle')}</p>
-          <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <Link to="/pricing" className="btn-primary">
+          <div className="mt-8 flex w-full flex-col items-center justify-center gap-4 sm:w-auto sm:flex-row">
+            <Link to="/pricing" className="btn-primary w-full sm:w-auto">
               {t('hero.cta1')}
             </Link>
-            <Link to="/login" className="btn-ghost">
+            <Link to="/login" className="btn-ghost w-full sm:w-auto">
               {t('nav.login')}
             </Link>
           </div>

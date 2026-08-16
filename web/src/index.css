@@ -628,3 +628,58 @@ body[dir='rtl'] .section-kicker {
     stroke-dashoffset: 0;
   }
 }
+
+/* ── Mobile responsiveness ─────────────────────────────────────────────────── */
+@media (max-width: 639px) {
+  /* Prevent iOS auto-zoom when focusing inputs under 16px */
+  .neon-input,
+  .neon-ratio,
+  .neon-select {
+    font-size: 16px;
+  }
+
+  /* Reduce glass padding so cards breathe on narrow screens */
+  .modal-panel {
+    padding: 1.75rem 1.25rem;
+  }
+
+  .glass,
+  .glass-strong {
+    border-radius: 18px;
+  }
+
+  /* Comfortable touch targets */
+  .btn-primary,
+  .btn-ghost {
+    min-height: 46px;
+  }
+
+  /* Tighter buttons so two-in-a-row fits on small phones */
+  .btn-primary,
+  .btn-ghost {
+    padding: 0.75rem 1.15rem;
+    font-size: 0.9rem;
+  }
+
+  /* Smaller hero/callout text to avoid wrapping into cramped lines */
+  .section-kicker {
+    letter-spacing: 0.18em;
+  }
+
+  /* Prevents the blurred background orbs from creating scrollbars */
+  .orb-1,
+  .orb-2 {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-panel {
+    padding: 1.5rem 1rem;
+  }
+
+  .btn-primary,
+  .btn-ghost {
+    padding: 0.7rem 0.9rem;
+  }
+}
