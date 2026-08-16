@@ -13,7 +13,7 @@ export default function Overview() {
 
   useEffect(() => {
     api<DashboardDto>('/api/dashboard').then(setData).catch(() => setError('Failed to load dashboard'));
-  }, []);
+  }, [user?.avatar]);
 
   if (error) return <div className="text-red-300">{error}</div>;
   if (!data) return <div className="flex justify-center py-24"><Spinner size={36} /></div>;
