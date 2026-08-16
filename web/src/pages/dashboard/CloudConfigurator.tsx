@@ -262,9 +262,25 @@ export default function CloudConfigurator() {
       )}
 
       <div className="grid min-w-0 items-start gap-6 lg:grid-cols-[280px_1fr]">
-        {/* Sidebar — derived from the master schema */}
+        {/* Sidebar — master schema categories */}
         <aside className="glass glow-border rounded-3xl p-2 lg:sticky lg:top-24">
-          <div className="flex gap-1 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0">
+          {/* Mobile: compact select dropdown */}
+          <select
+            className="neon-input neon-select w-full text-sm lg:hidden"
+            value={active?.id ?? ''}
+            onChange={(e) => {
+              const cat = data.schema.categories.find((c) => c.id === e.target.value);
+              if (cat) setActiveKey(cat.id);
+            }}
+          >
+            {data.schema.categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.icon ? `${c.icon} ` : ''}{c.title}
+              </option>
+            ))}
+          </select>
+          {/* Desktop: horizontal then vertical scroll */}
+          <div className="hidden gap-1 lg:flex lg:flex-col lg:gap-1">
             {data.schema.categories.map((c) => (
               <SidebarItem
                 key={c.id}
@@ -277,9 +293,9 @@ export default function CloudConfigurator() {
         </aside>
 
         {/* Active category — rendered dynamically from the schema */}
-        <div className="min-w-0 glass-strong rounded-3xl p-5 sm:p-8">
+        <div className="min-w-0 glass-strong rounded-3xl p-4 sm:p-8">
           {active && (
-            <div className={editing ? '' : 'pointer-events-none select-none opacity-50'}>
+            <div className={editing ? '' : 'pointer-events-none select-none opacity-60 sm:opacity-50'}>
               <CategoryPanel
                 category={active}
                 path={[active.id]}
