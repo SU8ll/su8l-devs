@@ -30,10 +30,79 @@ export default function DashboardLayout() {
   ];
 
   return (
-    <div className="mx-auto max-w-7xl px-4 pb-24 pt-16 sm:px-6 lg:pt-20">
+    <div className="mx-auto max-w-7xl px-3 pb-24 pt-14 sm:px-6 lg:pt-20">
+      {/* ── Mobile: compact top bar + horizontal nav ──────────────────────── */}
+      <div className="mb-5 lg:hidden">
+        {/* Profile row */}
+        <div className="glass-strong mb-3 flex items-center gap-3 rounded-2xl px-3 py-2.5">
+          <button
+            type="button"
+            onClick={() => setPickerOpen(true)}
+            className="relative shrink-0 rounded-full transition-opacity hover:opacity-80"
+            title={t('dash.changeAvatar')}
+          >
+            {user?.avatar ? (
+              <img src={user.avatar} alt="" className="avatar-glow h-9 w-9 object-cover" />
+            ) : (
+              <div className="avatar-glow flex h-9 w-9 items-center justify-center bg-gradient-to-br from-primary to-glow font-display text-xs font-black text-white">
+                {user?.username?.[0]?.toUpperCase() ?? '?'}
+              </div>
+            )}
+            <span className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-gradient-to-br from-primary to-glow text-[8px] text-white shadow">
+              ✎
+            </span>
+          </button>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-sm font-bold">{user?.username}</div>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] text-muted transition-colors hover:bg-white/5 hover:text-white"
+            title={t('nav.home')}
+          >
+            ⌂
+          </button>
+          <button
+            type="button"
+            onClick={async () => { await logout(); navigate('/'); }}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] text-muted transition-colors hover:bg-white/5 hover:text-red-300"
+            title={t('nav.logout')}
+          >
+            ⎋
+          </button>
+        </div>
+
+        {/* Horizontal nav tabs */}
+        <div className="scrollbar-none -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
+          {links.map((l) => (
+            <NavLink
+              key={l.to}
+              to={l.to}
+              end={l.end}
+              className={({ isActive }) =>
+                `relative flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl px-3.5 py-2 text-xs font-semibold transition-all ${
+                  isActive
+                    ? 'bg-gradient-to-r from-primary/40 to-glow/30 text-white shadow-glow'
+                    : 'border border-white/10 bg-white/[0.03] text-muted hover:bg-white/5 hover:text-white'
+                }`
+              }
+            >
+              <span className="text-[11px]">{l.icon}</span>
+              <span>{l.label}</span>
+              {l.to === '/dashboard/tickets' && unread > 0 && (
+                <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-glow px-1 text-[9px] font-bold text-black shadow-glow">
+                  {unread > 99 ? '99+' : unread}
+                </span>
+              )}
+            </NavLink>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Desktop: classic sidebar layout ───────────────────────────────── */}
       <div className="grid gap-8 lg:grid-cols-[260px_1fr]">
-        {/* Sidebar */}
-        <aside className="lg:sticky lg:top-28 lg:self-start">
+        <aside className="hidden lg:sticky lg:top-28 lg:block lg:self-start">
           <div className="glass-strong rounded-3xl p-5">
             <div className="mb-5 flex items-center gap-3 border-b border-white/10 pb-5">
               <button

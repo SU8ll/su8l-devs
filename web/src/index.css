@@ -629,6 +629,15 @@ body[dir='rtl'] .section-kicker {
   }
 }
 
+/* ── Hide scrollbar utility ─────────────────────────────────────────────────── */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 /* ── Mobile responsiveness ─────────────────────────────────────────────────── */
 @media (max-width: 639px) {
   /* Prevent iOS auto-zoom when focusing inputs under 16px */
