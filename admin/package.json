@@ -1,0 +1,40 @@
+{
+  "name": "su8l-admin",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SU8L DEVs - Admin Panel (desktop app)",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win portable"
+  },
+  "devDependencies": {
+    "electron": "^31.7.7",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "eu.su8ldevs.admin",
+    "productName": "SU8L Admin",
+    "files": [
+      "electron/**/*",
+      "renderer/**/*",
+      "build/icon.ico",
+      "package.json"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "portable": {
+      "artifactName": "SU8L-Admin-${version}.exe"
+    }
+  }
+}
