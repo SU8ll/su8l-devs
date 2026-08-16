@@ -12,6 +12,7 @@ import ticketRoutes from './routes/tickets.js';
 import statusRoutes from './routes/status.js';
 import planRoutes from './routes/plans.js';
 import botRoutes from './routes/bot.js';
+import panelRoutes from './routes/panel.js';
 
 const app = express();
 
@@ -61,6 +62,7 @@ app.use('/api/tickets', ticketRoutes);
 app.use('/api/status', statusRoutes);
 app.use('/api/plans', planRoutes);
 app.use('/api/bot', botRoutes);
+app.use('/api/panel', panelRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ error: 'not found' });

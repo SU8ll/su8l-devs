@@ -6,6 +6,8 @@ export const config = {
   apiUrl: process.env.API_URL || `http://localhost:${process.env.PORT || 4000}`,
   jwtSecret: process.env.JWT_SECRET || 'dev-secret-change-me',
   cookieName: 'su8l_session',
+  // Secret key that grants access to the desktop admin panel API (/api/panel).
+  adminKey: process.env.ADMIN_API_KEY || '',
   databaseUrl: process.env.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/su8l',
   // Comma-separated list of additional allowed CORS origins (e.g. the Vercel URL).
   corsOrigins: (process.env.CORS_ORIGINS || '')
