@@ -6,11 +6,11 @@ import { capturePayPalOrder, createPayPalOrder } from '../lib/paypal.js';
 import { generateOrderId } from '../lib/ids.js';
 import {
   CURRENCY,
+  DEFAULT_PROMO_DISCOUNT,
   EXTRA_SLOT_PRICE,
-  PROMO_FORCED_MONTHLY_PRICE,
-  PROMO_FORCED_YEARLY_PRICE,
   getHighestTier,
   getPlan,
+  promoPrice,
 } from '../plans.js';
 import {
   getOrder,
@@ -20,7 +20,6 @@ import {
   hasActiveBaseSubscription,
   insertOrder,
   markOrderDenied,
-  promoIsUnused,
 } from '../db.js';
 import { fulfillOrder } from '../services/orders.js';
 import { resolveAvatarUrl } from '../services/avatars.js';
@@ -71,12 +70,13 @@ router.post('/create', requireAuth, async (req: AuthedRequest, res) => {
       if (!plan.isHighestTier) {
         return res.status(400).json({ error: 'promo codes apply only to the Elite (highest tier) plan' });
       }
-      if (!(await promoIsUnused(normalized))) {
+      const promo = await getPromoByCode(normalized);
+      if (!promo || promo.status !== 'unused') {
         return res.status(400).json({ error: 'invalid or already used promo code' });
       }
       appliedPromo = normalized;
-      amount = cycle === 'yearly' ? PROMO_FORCED_YEARLY_PRICE : PROMO_FORCED_MONTHLY_PRICE;
-      description = `${plan.name} Cloud Bot Service (promo applied)`;
+      amount = promoPrice(plan, cycle, promo.discount ?? DEFAULT_PROMO_DISCOUNT);
+      description = `${plan.name} Cloud Bot Service (promo ${promo.discount ?? DEFAULT_PROMO_DISCOUNT}% applied)`;
     } else {
       amount = cycle === 'yearly' ? plan.yearly : plan.monthly;
       description = `${plan.name} Cloud Bot Service`;
@@ -166,11 +166,14 @@ router.post('/validate-promo', requireAuth, async (req: AuthedRequest, res) => {
     return res.json({ valid: false, message: 'Invalid or already used promo code.' });
   }
   const elite = getHighestTier();
+  const discount = promo.discount ?? DEFAULT_PROMO_DISCOUNT;
   return res.json({
     valid: true,
     plan: elite.name,
-    forcedPrice: PROMO_FORCED_MONTHLY_PRICE,
-    message: `Promo applied — ${elite.name} is now $${PROMO_FORCED_MONTHLY_PRICE}/month.`,
+    discount,
+    monthlyPrice: promoPrice(elite, 'monthly', discount),
+    yearlyPrice: promoPrice(elite, 'yearly', discount),
+    message: `Promo applied — ${elite.name} is now $${promoPrice(elite, 'monthly', discount)}/month (${discount}% off).`,
   });
 });
 

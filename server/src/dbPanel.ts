@@ -16,6 +16,37 @@ import {
   nowIso,
 } from './db.js';
 import { getPlan, planCycleMonths } from './plans.js';
+import { generatePromoCode } from './lib/ids.js';
+import { FLAT_SCHEMA } from './cloudSchema.js';
+
+/**
+ * Renders a stored bot_config JSON into a readable, schema-labelled list so the
+ * admin panel can show the customer's selections without knowing the schema.
+ */
+export function summarizeBotConfig(cfgInput: unknown): { group: string; label: string; value: string }[] {
+  let cfg: unknown = {};
+  if (typeof cfgInput === 'string') {
+    try { cfg = JSON.parse(cfgInput); } catch { cfg = {}; }
+  } else if (cfgInput !== null && typeof cfgInput === 'object') {
+    cfg = cfgInput;
+  }
+  const out: { group: string; label: string; value: string }[] = [];
+  const walk = (node: unknown, path: string[]): void => {
+    if (node === null || typeof node !== 'object' || Array.isArray(node)) {
+      const key = path.join('.');
+      const f = FLAT_SCHEMA[key];
+      out.push({
+        group: path.slice(0, -1).join(' / ') || '—',
+        label: f?.label ?? key,
+        value: typeof node === 'boolean' ? (node ? 'true' : 'false') : String(node ?? ''),
+      });
+      return;
+    }
+    for (const [k, v] of Object.entries(node as Record<string, unknown>)) walk(v, [...path, k]);
+  };
+  walk(cfg, []);
+  return out;
+}
 
 async function q1<T>(sql: string, ...params: unknown[]): Promise<T | undefined> {
   const res = await pool.query(sql, params);
@@ -99,7 +130,7 @@ export async function panelUserDetail(userId: string) {
   const slotConfigs = await Promise.all(
     botSlots.map(async (s) => {
       const cfg = await getBotSlotConfig(s.id);
-      return { ...s, cfg };
+      return { ...s, cfg, summary: summarizeBotConfig(cfg) };
     })
   );
   return {
@@ -192,22 +223,16 @@ export async function panelListPromos() {
   return res.rows;
 }
 
-function genCode() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let out = '';
-  for (let i = 0; i < 8; i++) out += chars[Math.floor(Math.random() * chars.length)];
-  return out;
-}
-
-export async function panelCreatePromos(count: number) {
+export async function panelCreatePromos(count: number, discount = 20) {
+  const safeDiscount = Math.max(1, Math.min(100, Math.round(discount)));
   const created = [];
   for (let i = 0; i < count; i++) {
-    const code = genCode();
+    const code = generatePromoCode();
     const res = await pool.query(
-      `INSERT INTO promo_codes (code, status, used_by, used_at, created_by, created_at)
-       VALUES ($1, 'unused', NULL, NULL, 'admin', $2)
+      `INSERT INTO promo_codes (code, status, discount, used_by, used_at, created_by, created_at)
+       VALUES ($1, 'unused', $2, NULL, NULL, 'admin', $3)
        RETURNING *`,
-      [code, nowIso()]
+      [code, safeDiscount, nowIso()]
     );
     created.push(res.rows[0]);
   }
@@ -228,7 +253,7 @@ export async function panelListConfigs(limit = 100) {
       LIMIT $1`,
     [limit]
   );
-  return res.rows;
+  return res.rows.map((r) => ({ ...r, summary: summarizeBotConfig(r.bot_config) }));
 }
 
 // Kept for parity with the tickets export list; used by the admin panel router.

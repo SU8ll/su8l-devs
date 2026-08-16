@@ -48,10 +48,16 @@ export const PLANS: Plan[] = [
   },
 ];
 
-export const PROMO_FORCED_MONTHLY_PRICE = 25;
-export const PROMO_FORCED_YEARLY_PRICE = Math.round(PROMO_FORCED_MONTHLY_PRICE * 12 * YEARLY_DISCOUNT);
 export const EXTRA_SLOT_PRICE = 15;
 export const CURRENCY = 'USD';
+export const DEFAULT_PROMO_DISCOUNT = 20;
+
+/** Final price after a percentage discount, rounded to whole dollars. */
+export function promoPrice(plan: Plan, cycle: 'monthly' | 'yearly', discountPct: number): number {
+  const base = cycle === 'yearly' ? plan.yearly : plan.monthly;
+  const safe = Math.max(0, Math.min(100, discountPct));
+  return Math.round((base * (100 - safe)) / 100);
+}
 
 export function getPlan(key: string | undefined | null): Plan | undefined {
   return PLANS.find((p) => p.key === key);

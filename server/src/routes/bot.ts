@@ -6,18 +6,23 @@ import { all, insertPromoCode } from '../db.js';
 const router = Router();
 
 // POST /api/bot/promo — generates a promo code. Guarded by the shared BOT_API_KEY.
-// Owner-locking lives in the Discord bot command itself (interaction.user.id check).
+// Optional body { discount } sets the percent discount (1-100, default 20).
 router.post('/promo', async (req, res) => {
   const key = req.headers['x-bot-key'] ?? req.headers['x-api-key'];
   if (!key || key !== config.botApiKey) {
     return res.status(401).json({ error: 'invalid bot key' });
   }
+  let discount = 20;
+  if (req.body && typeof req.body.discount === 'number') {
+    discount = Math.max(1, Math.min(100, Math.round(req.body.discount)));
+  }
   const code = generatePromoCode();
-  await insertPromoCode(code, 'bot');
+  await insertPromoCode(code, 'bot', discount);
   res.status(201).json({
     code,
+    discount,
     status: 'unused',
-    note: 'This code forces the Elite (highest tier) plan to $25/month. The $15 Extra Account Slot is never discounted.',
+    note: `This code gives ${discount}% off the Elite (highest tier) plan. The $15 Extra Account Slot is never discounted.`,
   });
 });
 

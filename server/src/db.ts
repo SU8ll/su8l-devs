@@ -99,12 +99,15 @@ CREATE TABLE IF NOT EXISTS promo_codes (
   id SERIAL PRIMARY KEY,
   code TEXT NOT NULL UNIQUE,
   status TEXT NOT NULL DEFAULT 'unused',
+  discount INTEGER NOT NULL DEFAULT 20,
   used_by TEXT,
   used_at TEXT,
   created_by TEXT,
   created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_promo_status ON promo_codes(status);
+-- Migration for tables created before the discount column existed.
+ALTER TABLE promo_codes ADD COLUMN IF NOT EXISTS discount INTEGER NOT NULL DEFAULT 20;
 
 CREATE TABLE IF NOT EXISTS extra_slots (
   id SERIAL PRIMARY KEY,
@@ -464,17 +467,18 @@ export async function markOrderPromoConflict(id: string): Promise<void> {
 export interface PromoCode {
   id: number;
   code: string;
-  status: 'unused' | 'used';
+  status: 'unused' | 'used' | 'disabled';
+  discount: number;
   used_by: string | null;
   used_at: string | null;
   created_by: string | null;
   created_at: string;
 }
 
-export async function insertPromoCode(code: string, createdBy: string): Promise<PromoCode> {
+export async function insertPromoCode(code: string, createdBy: string, discount = 20): Promise<PromoCode> {
   const ts = nowIso();
-  await run('INSERT INTO promo_codes (code, status, used_by, used_at, created_by, created_at) VALUES (?,?,?,?,?,?)',
-    code, 'unused', null, null, createdBy, ts);
+  await run('INSERT INTO promo_codes (code, status, discount, used_by, used_at, created_by, created_at) VALUES (?,?,?,?,?,?,?)',
+    code, 'unused', discount, null, null, createdBy, ts);
   return (await get<PromoCode>('SELECT * FROM promo_codes WHERE code = ?', code))!;
 }
 

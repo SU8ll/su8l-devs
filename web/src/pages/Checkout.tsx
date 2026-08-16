@@ -14,8 +14,13 @@ import { Link } from 'react-router-dom';
 
 type PromoState = 'idle' | 'applying' | 'valid' | 'invalid' | 'forbidden';
 
-const PROMO_MONTHLY = 25;
-const PROMO_YEARLY = Math.round(PROMO_MONTHLY * 12 * 0.8);
+interface PromoInfo {
+  valid: boolean;
+  plan: string;
+  discount: number;
+  monthlyPrice: number;
+  yearlyPrice: number;
+}
 
 export default function Checkout() {
   const { t } = useI18n();
@@ -32,6 +37,7 @@ export default function Checkout() {
 
   const [promoInput, setPromoInput] = useState('');
   const [promoState, setPromoState] = useState<PromoState>('idle');
+  const [promoInfo, setPromoInfo] = useState<PromoInfo | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -58,18 +64,19 @@ export default function Checkout() {
     return cycle === 'yearly' ? plan.yearly : plan.monthly;
   })();
 
-  const effectivePrice = promoApplied && elite ? (cycle === 'yearly' ? PROMO_YEARLY : PROMO_MONTHLY) : basePrice;
+  const effectivePrice = promoApplied && elite && promoInfo ? (cycle === 'yearly' ? promoInfo.yearlyPrice : promoInfo.monthlyPrice) : basePrice;
 
   const applyPromo = async () => {
     if (!promoInput.trim() || promoState === 'applying') return;
     setPromoState('applying');
     try {
       if (elite) {
-        const res = await api<{ valid: boolean }>('/api/checkout/validate-promo', {
+        const res = await api<PromoInfo>('/api/checkout/validate-promo', {
           method: 'POST',
           body: { promoCode: promoInput.trim() },
         });
         setPromoState(res.valid ? 'valid' : 'invalid');
+        if (res.valid) setPromoInfo(res);
       } else {
         setPromoState('forbidden');
       }
@@ -170,6 +177,7 @@ export default function Checkout() {
                     onChange={(e) => {
                       setPromoInput(e.target.value.toUpperCase());
                       if (promoState !== 'idle') setPromoState('idle');
+                      if (promoInfo) setPromoInfo(null);
                     }}
                   />
                   <button type="button" className="btn-ghost shrink-0" onClick={applyPromo} disabled={promoApplied || promoState === 'applying'}>
@@ -177,9 +185,9 @@ export default function Checkout() {
                   </button>
                 </div>
                 <div className="mt-2 min-h-5 text-xs">
-                  {promoState === 'valid' && (
+                  {promoState === 'valid' && promoInfo && (
                     <span className="text-emerald-300">
-                      ✓ {t('checkout.applied')} — ${elite ? (cycle === 'yearly' ? PROMO_YEARLY : PROMO_MONTHLY) : ''}
+                      ✓ {t('checkout.applied')} — ${cycle === 'yearly' ? promoInfo.yearlyPrice : promoInfo.monthlyPrice} ({promoInfo.discount}% off)
                     </span>
                   )}
                   {promoState === 'invalid' && <span className="text-red-300">{t('checkout.promoInvalid')}</span>}
