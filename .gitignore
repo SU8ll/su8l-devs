@@ -22,3 +22,5 @@ tsconfig.tsbuildinfo
 *.sln
 *.sw?
 .vs/
+
+.vercel

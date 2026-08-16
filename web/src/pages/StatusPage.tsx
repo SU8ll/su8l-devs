@@ -59,7 +59,7 @@ export default function StatusPage() {
       </div>
 
       {/* Current status */}
-      <div className="glass-strong glow-border mt-10 rounded-3xl p-8">
+      <div className="glass-strong glow-border mt-10 rounded-3xl p-6 sm:p-8">
         <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
           <div className="flex items-center gap-4">
             <span className={`h-4 w-4 rounded-full ${up ? 'pulse-dot' : 'bg-red-400'}`} />
@@ -96,7 +96,7 @@ export default function StatusPage() {
       </div>
 
       {/* 30-day history */}
-      <div className="glass mt-8 rounded-3xl p-8">
+      <div className="glass mt-8 rounded-3xl p-6 sm:p-8">
         <h2 className="font-display text-lg font-bold text-gradient">{t('status.history')}</h2>
         {history ? (
           <div className="mt-6">

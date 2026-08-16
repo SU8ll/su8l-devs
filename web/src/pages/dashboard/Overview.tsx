@@ -24,7 +24,7 @@ export default function Overview() {
   return (
     <div className="space-y-6">
       {/* Profile */}
-      <section className="glass glow-border relative overflow-hidden rounded-3xl p-8">
+      <section className="glass glow-border relative overflow-hidden rounded-3xl p-6 sm:p-8">
         <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-glow/10 blur-3xl" />
         <div className="relative flex flex-col items-start gap-6 sm:flex-row sm:items-center">
           <div className="shrink-0">

@@ -18,7 +18,7 @@ export default function DashboardLayout() {
   ];
 
   return (
-    <div className="mx-auto max-w-7xl px-4 pb-24 pt-28 sm:px-6">
+    <div className="mx-auto max-w-7xl px-4 pb-24 pt-16 sm:px-6 lg:pt-20">
       <div className="grid gap-8 lg:grid-cols-[260px_1fr]">
         {/* Sidebar */}
         <aside className="lg:sticky lg:top-28 lg:self-start">
@@ -46,6 +46,15 @@ export default function DashboardLayout() {
                 <div className="text-xs text-muted">{user?.email ?? 'operator'}</div>
               </div>
             </div>
+
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              className="mb-2 flex w-full items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-semibold text-muted transition-all hover:bg-white/5 hover:text-white"
+            >
+              <span className="text-glow">⌂</span>
+              {t('nav.home')}
+            </button>
 
             <nav className="flex flex-col gap-1">
               {links.map((l) => (

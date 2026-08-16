@@ -661,59 +661,63 @@ function RatioGrid({
   const { t } = useLoc();
   return (
     <div className="mt-5">
-      <div className="grid grid-cols-[minmax(0,0.6fr)_minmax(0,1.4fr)_repeat(3,minmax(0,1fr))_auto] items-center gap-2 px-3 pb-1.5 text-[0.65rem] font-bold uppercase tracking-[0.15em] text-muted">
-        <span className="flex justify-center text-base normal-case" aria-hidden>
-          ⚡
-        </span>
-        <span>{t('cloud.ratioTower')}</span>
-        <span className="text-center">{t('cloud.ratioInf')}</span>
-        <span className="text-center">{t('cloud.ratioCav')}</span>
-        <span className="text-center">{t('cloud.ratioArch')}</span>
-        <span className="text-right">{t('cloud.ratioTotal')}</span>
-      </div>
-      <div className="space-y-2">
-        {groups.map((rg) => {
-          const vals = rg.keys.map((k) => Number(getValue(cfg, [...path, k])) || 0);
-          const sum = vals.reduce((a, b) => a + b, 0);
-          const ok = sum === 100;
-          const enabled = rg.enable ? Boolean(getValue(cfg, [...path, rg.enable])) : true;
-          return (
-            <div
-              key={rg.name}
-              className={`grid grid-cols-[minmax(0,0.6fr)_minmax(0,1.4fr)_repeat(3,minmax(0,1fr))_auto] items-center gap-2 rounded-xl border px-3 py-2 ${
-                ok ? 'border-white/10 bg-white/[0.03]' : 'border-amber-400/40 bg-amber-400/10'
-              }`}
-            >
-              <span className="flex justify-center">
-                {rg.enable && (
-                  <Toggle
-                    checked={enabled}
-                    disabled={disabled}
-                    onChange={(v) => onChange([...path, rg.enable!], v)}
-                  />
-                )}
-              </span>
-              <span className={`text-sm font-semibold transition-opacity ${enabled ? '' : 'opacity-40'}`}>
-                {rg.name}
-              </span>
-              {rg.keys.map((k, i) => (
-                <RatioInput
-                  key={k}
-                  value={vals[i]}
-                  disabled={disabled}
-                  onChange={(v) => onChange([...path, k], v)}
-                />
-              ))}
-              <span
-                className={`text-right text-xs font-bold transition-opacity ${
-                  enabled ? (ok ? 'text-emerald-300' : 'text-amber-300') : 'opacity-30'
-                }`}
-              >
-                {ok ? '= 100% ✓' : `= ${sum}%`}
-              </span>
-            </div>
-          );
-        })}
+      <div className="overflow-x-auto pb-1">
+        <div className="min-w-[480px]">
+          <div className="grid grid-cols-[minmax(0,0.6fr)_minmax(0,1.4fr)_repeat(3,minmax(0,1fr))_auto] items-center gap-2 px-3 pb-1.5 text-[0.65rem] font-bold uppercase tracking-[0.15em] text-muted">
+            <span className="flex justify-center text-base normal-case" aria-hidden>
+              ⚡
+            </span>
+            <span>{t('cloud.ratioTower')}</span>
+            <span className="text-center">{t('cloud.ratioInf')}</span>
+            <span className="text-center">{t('cloud.ratioCav')}</span>
+            <span className="text-center">{t('cloud.ratioArch')}</span>
+            <span className="text-right">{t('cloud.ratioTotal')}</span>
+          </div>
+          <div className="space-y-2">
+            {groups.map((rg) => {
+              const vals = rg.keys.map((k) => Number(getValue(cfg, [...path, k])) || 0);
+              const sum = vals.reduce((a, b) => a + b, 0);
+              const ok = sum === 100;
+              const enabled = rg.enable ? Boolean(getValue(cfg, [...path, rg.enable])) : true;
+              return (
+                <div
+                  key={rg.name}
+                  className={`grid grid-cols-[minmax(0,0.6fr)_minmax(0,1.4fr)_repeat(3,minmax(0,1fr))_auto] items-center gap-2 rounded-xl border px-3 py-2 ${
+                    ok ? 'border-white/10 bg-white/[0.03]' : 'border-amber-400/40 bg-amber-400/10'
+                  }`}
+                >
+                  <span className="flex justify-center">
+                    {rg.enable && (
+                      <Toggle
+                        checked={enabled}
+                        disabled={disabled}
+                        onChange={(v) => onChange([...path, rg.enable!], v)}
+                      />
+                    )}
+                  </span>
+                  <span className={`text-sm font-semibold transition-opacity ${enabled ? '' : 'opacity-40'}`}>
+                    {rg.name}
+                  </span>
+                  {rg.keys.map((k, i) => (
+                    <RatioInput
+                      key={k}
+                      value={vals[i]}
+                      disabled={disabled}
+                      onChange={(v) => onChange([...path, k], v)}
+                    />
+                  ))}
+                  <span
+                    className={`text-right text-xs font-bold transition-opacity ${
+                      enabled ? (ok ? 'text-emerald-300' : 'text-amber-300') : 'opacity-30'
+                    }`}
+                  >
+                    {ok ? '= 100% ✓' : `= ${sum}%`}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
       {groups.some((rg) => {
         const sum = rg.keys.reduce((acc, k) => acc + (Number(getValue(cfg, [...path, k])) || 0), 0);
