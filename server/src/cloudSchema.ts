@@ -792,8 +792,26 @@ export const MASTER_SCHEMA = {
   categories: CATEGORIES,
 } satisfies CloudCategorySchema;
 
+/** Neutral "off / empty" value for a field (used so fresh configs start disabled). */
+export function emptyValue(f: CloudFieldSchema): boolean | number | string {
+  switch (f.type) {
+    case 'boolean':
+      return false;
+    case 'number':
+    case 'slider':
+      return 0;
+    case 'string':
+      return '';
+    case 'select':
+    case 'radio': {
+      const opts = f.options ?? [];
+      return opts.length > 0 ? opts[0]! : '';
+    }
+  }
+}
+
 /** Bumped whenever the schema shape changes so the panel refreshes its defaults. */
-export const SCHEMA_VERSION = 15;
+export const SCHEMA_VERSION = 16;
 
 export const FLAT_SCHEMA = flattenedSchema(MASTER_SCHEMA);
 
@@ -806,14 +824,14 @@ export type CloudConfig = Record<string, Record<string, unknown>>;
 
 function categoryDefault(c: CloudCategorySchema): Record<string, unknown> {
   const out: Record<string, unknown> = {};
-  for (const f of c.fields ?? []) out[f.key] = f.default;
+  for (const f of c.fields ?? []) out[f.key] = emptyValue(f);
   for (const sub of [...(c.categories ?? []), ...(c.groups ?? [])]) {
     out[sub.id] = categoryDefault(sub);
   }
   return out;
 }
 
-/** Fresh config where every field holds its schema default. */
+/** Fresh config where every field starts disabled / empty. */
 export const DEFAULT_CLOUD_CONFIG: CloudConfig = Object.fromEntries(
   (MASTER_SCHEMA.categories ?? []).map((c) => [c.id, categoryDefault(c)])
 );

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useI18n } from '../../i18n';
 import { api } from '../../api';
@@ -35,8 +35,15 @@ export default function TicketDetail() {
 
   const load = () => api<TicketDetail>(`/api/tickets/${id}`).then(setData).catch((e) => setError(e.message));
 
+  const sendingRef = useRef(false);
+
   useEffect(() => {
+    sendingRef.current = false;
     void load();
+    const timer = window.setInterval(() => {
+      if (!sendingRef.current) void load();
+    }, 15000);
+    return () => window.clearInterval(timer);
   }, [id]);
 
   if (error) return <div className="text-red-300">{error}</div>;
@@ -44,6 +51,7 @@ export default function TicketDetail() {
 
   const send = async () => {
     if (!reply.trim() || sending) return;
+    sendingRef.current = true;
     setSending(true);
     try {
       await api(`/api/tickets/${data.ticket.id}/messages`, { method: 'POST', body: { body: reply } });
@@ -52,6 +60,7 @@ export default function TicketDetail() {
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to send.');
     } finally {
+      sendingRef.current = false;
       setSending(false);
     }
   };

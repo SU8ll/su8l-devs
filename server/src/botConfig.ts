@@ -2,6 +2,7 @@ import {
   MASTER_SCHEMA,
   DEFAULT_CLOUD_CONFIG,
   RATIO_GROUPS,
+  emptyValue,
   cloudConfigSchema,
   type CloudCategorySchema,
   type CloudConfig,
@@ -69,18 +70,19 @@ function asStr(v: unknown, fallback: string): string {
 }
 
 function mergeField(f: CloudFieldSchema, value: unknown): unknown {
+  const off = emptyValue(f);
   switch (f.type) {
     case 'boolean':
-      return asBool(value, f.default as boolean);
+      return asBool(value, off as boolean);
     case 'number':
     case 'slider':
-      return asNum(value, f.default as number);
+      return asNum(value, off as number);
     case 'string':
-      return asStr(value, f.default as string);
+      return asStr(value, off as string);
     case 'select':
     case 'radio': {
       const opts = f.options ?? [];
-      return typeof value === 'string' && opts.includes(value) ? value : f.default;
+      return typeof value === 'string' && opts.includes(value) ? value : off;
     }
   }
 }

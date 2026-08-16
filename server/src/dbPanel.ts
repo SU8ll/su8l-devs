@@ -186,7 +186,8 @@ export async function panelListOrders(status?: string) {
 export async function panelListTickets(limit = 200) {
   const res = await pool.query(
     `SELECT tk.*, u.username, u.email,
-            (SELECT COUNT(*)::int FROM ticket_messages tm WHERE tm.ticket_id = tk.id) AS messages_count
+            (SELECT COUNT(*)::int FROM ticket_messages tm WHERE tm.ticket_id = tk.id) AS messages_count,
+            (SELECT tm.author FROM ticket_messages tm WHERE tm.ticket_id = tk.id ORDER BY tm.id DESC LIMIT 1) AS last_message_author
        FROM tickets tk JOIN users u ON u.id = tk.user_id
       ORDER BY (tk.status = 'open') DESC, tk.updated_at DESC
       LIMIT $1`,

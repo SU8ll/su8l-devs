@@ -554,7 +554,13 @@ export interface TicketMessage {
 }
 
 export function listTickets(userId: string): Promise<Ticket[]> {
-  return all<Ticket>('SELECT * FROM tickets WHERE user_id = ? ORDER BY updated_at DESC', userId);
+  return all<Ticket>(
+    `SELECT t.*,
+            (SELECT COUNT(*) FROM ticket_messages m WHERE m.ticket_id = t.id) AS messages_count,
+            (SELECT m.author FROM ticket_messages m WHERE m.ticket_id = t.id ORDER BY m.id DESC LIMIT 1) AS last_message_author
+       FROM tickets t WHERE t.user_id = ? ORDER BY t.updated_at DESC`,
+    userId
+  );
 }
 
 export function getTicket(id: number): Promise<Ticket | undefined> {

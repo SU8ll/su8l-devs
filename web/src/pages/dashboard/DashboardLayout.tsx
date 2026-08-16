@@ -3,12 +3,15 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useI18n } from '../../i18n';
 import { useAuth } from '../../AuthContext';
 import AvatarPicker from '../../components/AvatarPicker';
+import { useTicketNotifications } from './useTicketNotifications';
 
 export default function DashboardLayout() {
   const { t } = useI18n();
   const { user, logout, refresh } = useAuth();
   const navigate = useNavigate();
   const [pickerOpen, setPickerOpen] = useState(false);
+
+  useTicketNotifications(true);
 
   const links = [
     { to: '/dashboard', label: t('dash.overview'), icon: '◉', end: true },

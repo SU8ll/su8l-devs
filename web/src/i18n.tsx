@@ -331,6 +331,9 @@ const en: Dict = {
   '404.title': 'Signal Lost',
   '404.desc': 'This route does not exist in the grid.',
   '404.back': 'Return Home',
+
+  'notif.staffReplyTitle': 'New reply from SU8L Staff',
+  'notif.staffReplyBody': 'Ticket #{id} — {subject}',
 };
 
 const ar: Dict = {
@@ -650,6 +653,9 @@ const ar: Dict = {
   '404.title': 'فُقدت الإشارة',
   '404.desc': 'هذا المسار غير موجود في الشبكة.',
   '404.back': 'العودة للرئيسية',
+
+  'notif.staffReplyTitle': 'ردّ جديد من فريق SU8L',
+  'notif.staffReplyBody': 'التذكرة #{id} — {subject}',
 };
 
 const dicts: Record<Lang, Dict> = { en, ar };

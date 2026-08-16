@@ -1,5 +1,6 @@
 import { Router, type Request, type Response, type NextFunction } from 'express';
 import { config } from '../config.js';
+import { MASTER_SCHEMA, SCHEMA_VERSION } from '../cloudSchema.js';
 import {
   panelStats,
   panelSearchUsers,
@@ -47,6 +48,10 @@ router.post('/login', (req, res) => {
 });
 
 router.use(requirePanel);
+
+router.get('/schema', (_req, res) => {
+  res.json({ schema: MASTER_SCHEMA, version: SCHEMA_VERSION });
+});
 
 router.get('/stats', async (_req, res) => {
   res.json(await panelStats());
