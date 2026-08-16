@@ -8,9 +8,11 @@ import {
   getExtraSlotCount,
   getSubscriptions,
   hasActiveBaseSubscription,
+  isActiveSubscription,
   ownsExtraSlot,
   renameBotSlot,
   setBotSlotConfig,
+  subscriptionDisplayStatus,
 } from '../db.js';
 import { getStatusSummary } from '../services/uptime.js';
 import { resolveAvatarUrl } from '../services/avatars.js';
@@ -29,7 +31,7 @@ const router = Router();
 // GET /api/dashboard — full summary for the customer dashboard
 router.get('/', requireAuth, async (req: AuthedRequest, res) => {
   const subscriptions = await getSubscriptions(req.user.id);
-  const active = subscriptions.filter((s) => s.status === 'active');
+  const active = subscriptions.filter(isActiveSubscription);
   const slots = await getEffectiveSlots(req.user.id);
   const extraSlots = await getExtraSlotCount(req.user.id);
 
@@ -46,7 +48,8 @@ router.get('/', requireAuth, async (req: AuthedRequest, res) => {
       planName: s.plan_name,
       cycle: s.cycle,
       amount: s.amount,
-      status: s.status,
+      status: subscriptionDisplayStatus(s),
+      active: isActiveSubscription(s),
       currentPeriodEnd: s.current_period_end,
     })),
     activeSubscriptions: active.length,

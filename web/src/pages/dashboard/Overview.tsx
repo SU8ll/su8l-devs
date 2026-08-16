@@ -68,8 +68,8 @@ export default function Overview() {
               <div key={s.id} className="glass card-hover rounded-2xl p-6">
                 <div className="flex items-center justify-between">
                   <h3 className="font-display text-base font-bold">{s.planName}</h3>
-                  <Badge tone={s.status === 'active' ? 'green' : 'slate'}>
-                    {s.status === 'active' ? t('tickets.open') : s.status}
+                  <Badge tone={s.active ? 'green' : s.status === 'expired' ? 'red' : 'slate'}>
+                    {s.active ? t('dash.statusActive') : s.status === 'expired' ? t('dash.statusExpired') : t('dash.statusCancelled')}
                   </Badge>
                 </div>
                 <div className="mt-3 flex items-center justify-between text-sm">

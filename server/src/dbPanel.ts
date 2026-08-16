@@ -14,6 +14,7 @@ import {
   getBotSlotConfig,
   withTransaction,
   nowIso,
+  subscriptionDisplayStatus,
 } from './db.js';
 import { getPlan, planCycleMonths } from './plans.js';
 import { generatePromoCode } from './lib/ids.js';
@@ -119,7 +120,7 @@ export async function panelUserDetail(userId: string) {
   if (!user) return null;
   const [accounts, subscriptions, orders, extraSlots, botSlots] = await Promise.all([
     getAccounts(userId),
-    getSubscriptions(userId),
+    (await getSubscriptions(userId)).map((s) => ({ ...s, status: subscriptionDisplayStatus(s) })),
     pool.query(
       `SELECT o.*, u.username AS user_username FROM orders o JOIN users u ON u.id = o.user_id WHERE o.user_id = $1 ORDER BY o.created_at DESC`,
       [userId]

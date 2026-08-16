@@ -335,6 +335,20 @@ export async function getActiveSubscriptions(userId: string): Promise<Subscripti
   );
 }
 
+/** True when the subscription row is still within its paid period. */
+export function isActiveSubscription(s: Pick<Subscription, 'status' | 'current_period_end'>): boolean {
+  return s.status === 'active' && (s.current_period_end === null || s.current_period_end > nowEpoch());
+}
+
+/** Status to SHOW in UIs: a row still marked 'active' in the DB but past its
+ *  period end is rendered as 'expired' so it never looks like a live plan. */
+export function subscriptionDisplayStatus(s: Pick<Subscription, 'status' | 'current_period_end'>): Subscription['status'] {
+  if (s.status === 'active' && s.current_period_end !== null && s.current_period_end <= nowEpoch()) {
+    return 'expired';
+  }
+  return s.status;
+}
+
 export async function hasActiveBaseSubscription(userId: string): Promise<boolean> {
   return (await getActiveSubscriptions(userId)).length > 0;
 }
@@ -365,6 +379,17 @@ export async function activateSubscription(data: {
     );
     return (await get<Subscription>('SELECT * FROM subscriptions WHERE id = ?', existing.id))!;
   }
+  // A new activation replaces any same-plan row that already ended (or was
+  // cancelled) so the user never holds two records of the same plan.
+  await run(
+    `UPDATE subscriptions SET status = 'expired', updated_at = ?
+      WHERE user_id = ? AND plan_key = ? AND status = 'active'
+        AND current_period_end IS NOT NULL AND current_period_end <= ?`,
+    nowIso(),
+    data.userId,
+    data.plan.key,
+    nowEpoch()
+  );
   const id = `sub_${crypto.randomUUID().replace(/-/g, '').slice(0, 20)}`;
   const ts = nowIso();
   await run(

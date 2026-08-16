@@ -96,6 +96,7 @@ export interface DashboardDto {
     cycle: string;
     amount: number;
     status: string;
+    active: boolean;
     currentPeriodEnd: number | null;
   }[];
   activeSubscriptions: number;
