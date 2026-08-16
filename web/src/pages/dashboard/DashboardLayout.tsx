@@ -1,11 +1,14 @@
+import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useI18n } from '../../i18n';
 import { useAuth } from '../../AuthContext';
+import AvatarPicker from '../../components/AvatarPicker';
 
 export default function DashboardLayout() {
   const { t } = useI18n();
-  const { user, logout } = useAuth();
+  const { user, logout, refresh } = useAuth();
   const navigate = useNavigate();
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const links = [
     { to: '/dashboard', label: t('dash.overview'), icon: '◉', end: true },
@@ -21,13 +24,23 @@ export default function DashboardLayout() {
         <aside className="lg:sticky lg:top-28 lg:self-start">
           <div className="glass-strong rounded-3xl p-5">
             <div className="mb-5 flex items-center gap-3 border-b border-white/10 pb-5">
-              {user?.avatar ? (
-                <img src={user.avatar} alt="" className="avatar-glow h-11 w-11 object-cover" />
-              ) : (
-                <div className="avatar-glow flex h-11 w-11 items-center justify-center bg-gradient-to-br from-primary to-glow font-display text-sm font-black text-white">
-                  {user?.username?.[0]?.toUpperCase() ?? '?'}
-                </div>
-              )}
+              <button
+                type="button"
+                onClick={() => setPickerOpen(true)}
+                className="relative shrink-0 rounded-full transition-opacity hover:opacity-80"
+                title={t('dash.changeAvatar')}
+              >
+                {user?.avatar ? (
+                  <img src={user.avatar} alt="" className="avatar-glow h-11 w-11 object-cover" />
+                ) : (
+                  <div className="avatar-glow flex h-11 w-11 items-center justify-center bg-gradient-to-br from-primary to-glow font-display text-sm font-black text-white">
+                    {user?.username?.[0]?.toUpperCase() ?? '?'}
+                  </div>
+                )}
+                <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-primary to-glow text-[10px] text-white shadow">
+                  ✎
+                </span>
+              </button>
               <div className="min-w-0">
                 <div className="truncate font-display text-sm font-bold">{user?.username}</div>
                 <div className="text-xs text-muted">{user?.email ?? 'operator'}</div>
@@ -72,9 +85,11 @@ export default function DashboardLayout() {
 
         {/* Content */}
         <div className="min-w-0">
-          <Outlet />
+          <Outlet context={{ openAvatarPicker: () => setPickerOpen(true) }} />
         </div>
       </div>
+
+      <AvatarPicker open={pickerOpen} current={user?.avatar ?? null} onClose={() => setPickerOpen(false)} onSaved={() => void refresh()} />
     </div>
   );
 }

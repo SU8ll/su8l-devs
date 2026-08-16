@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { api, type MeDto } from './api';
+import { api, apiUrl, type MeDto } from './api';
 
 interface AuthContextValue {
   user: MeDto | null;
@@ -22,7 +22,7 @@ const AuthContext = createContext<AuthContextValue>({
   loading: true,
   refresh: async () => {},
   logout: async () => {},
-  loginUrl: () => '/api/auth/discord',
+  loginUrl: () => apiUrl('/api/auth/discord'),
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -54,7 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const loginUrl = useCallback(
-    (provider: 'discord' | 'google' | 'facebook') => `/api/auth/${provider}`,
+    (provider: 'discord' | 'google' | 'facebook') => apiUrl(`/api/auth/${provider}`),
     []
   );
 

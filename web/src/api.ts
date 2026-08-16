@@ -1,5 +1,10 @@
 const BASE = import.meta.env.VITE_API_URL || '';
 
+/** Resolves a server path against the API base URL (absolute in production). */
+export function apiUrl(path: string): string {
+  return `${BASE}${path}`;
+}
+
 export class ApiError extends Error {
   status: number;
   detail?: unknown;
@@ -62,6 +67,24 @@ export interface MeDto {
   slots: { base: number; extra: number; total: number; active: boolean };
   subscriptions: number;
   extraSlots: number;
+}
+
+export interface AvatarItemDto {
+  file: string;
+  url: string;
+}
+
+export interface AvatarsResponse {
+  default: string;
+  avatars: AvatarItemDto[];
+}
+
+export async function getAvatars(): Promise<AvatarsResponse> {
+  return api<AvatarsResponse>('/api/avatars');
+}
+
+export async function setMyAvatar(file: string): Promise<{ ok: boolean; avatar: string }> {
+  return api<{ ok: boolean; avatar: string }>('/api/avatars/me', { method: 'PUT', body: { avatar: file } });
 }
 
 export interface DashboardDto {

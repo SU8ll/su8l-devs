@@ -149,6 +149,13 @@ const en: Dict = {
   'dash.quick': 'Quick Actions',
   'dash.openTickets': 'Open a ticket',
   'dash.manageBot': 'Manage bot',
+  'dash.changeAvatar': 'Change avatar',
+
+  'avatar.title': 'Choose your avatar',
+  'avatar.subtitle': 'Pick an image to use as your profile picture.',
+  'avatar.empty': 'No avatars available yet.',
+  'avatar.loadError': 'Could not load avatars.',
+  'avatar.saveError': 'Could not save your avatar.',
 
   'status.title': 'Service Status',
   'status.subtitle': 'Live ping and 30-day uptime history for the cloud bot fleet.',
@@ -471,6 +478,13 @@ const ar: Dict = {
   'dash.quick': 'إجراءات سريعة',
   'dash.openTickets': 'افتح تذكرة',
   'dash.manageBot': 'إدارة البوت',
+  'dash.changeAvatar': 'تغيير الصورة',
+
+  'avatar.title': 'اختر صورتك',
+  'avatar.subtitle': 'اختر صورة لتكون صورتك الشخصية.',
+  'avatar.empty': 'لا توجد صور متاحة حاليًا.',
+  'avatar.loadError': 'تعذر تحميل الصور.',
+  'avatar.saveError': 'تعذر حفظ صورتك.',
 
   'status.title': 'حالة الخدمة',
   'status.subtitle': 'بينغ مباشر وسجل استمرارية 30 يومًا لأسطول البوت السحابي.',

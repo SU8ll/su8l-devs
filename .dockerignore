@@ -1,0 +1,9 @@
+node_modules
+**/node_modules
+.git
+**/.env
+server/dist
+bot/dist
+web/dist
+.vercel
+*.log

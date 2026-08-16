@@ -13,6 +13,7 @@ import {
   setBotSlotConfig,
 } from '../db.js';
 import { getStatusSummary } from '../services/uptime.js';
+import { resolveAvatarUrl } from '../services/avatars.js';
 import {
   MASTER_SCHEMA,
   cloudConfigIssues,
@@ -36,7 +37,7 @@ router.get('/', requireAuth, async (req: AuthedRequest, res) => {
     user: {
       id: req.user.id,
       username: req.user.username,
-      avatar: req.user.avatar,
+      avatar: resolveAvatarUrl(req.user.avatar),
       email: req.user.email,
     },
     subscriptions: subscriptions.map((s) => ({

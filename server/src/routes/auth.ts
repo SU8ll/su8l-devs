@@ -4,7 +4,8 @@ import { randomUUID } from 'node:crypto';
 import axios from 'axios';
 import { config } from '../config.js';
 import { clearSessionCookie, setSessionCookie, signSession, requireAuth, type AuthedRequest } from '../lib/auth.js';
-import { discordAvatarUrl, upsertOAuthUser } from '../services/auth.js';
+import { upsertOAuthUser } from '../services/auth.js';
+import { resolveAvatarUrl } from '../services/avatars.js';
 import { getEffectiveSlots, getSubscriptions, getExtraSlotCount } from '../db.js';
 
 const router = Router();
@@ -75,7 +76,6 @@ router.get('/discord/callback', async (req, res) => {
       providerId: d.id,
       email: d.email ?? null,
       username: d.global_name || d.username || d.id,
-      avatar: discordAvatarUrl(d.id, d.avatar),
       accessToken,
       locale: d.locale,
     });
@@ -129,7 +129,6 @@ router.get('/google/callback', async (req, res) => {
       providerId: g.id,
       email: g.email ?? null,
       username: g.name || g.email?.split('@')[0] || g.id,
-      avatar: g.picture ?? null,
       accessToken,
     });
     setSessionCookie(res, signSession(user.id));
@@ -177,7 +176,6 @@ router.get('/facebook/callback', async (req, res) => {
       providerId: f.id,
       email: f.email ?? null,
       username: f.name || f.email?.split('@')[0] || f.id,
-      avatar: f.picture?.data?.url ?? null,
       accessToken,
     });
     setSessionCookie(res, signSession(user.id));
@@ -197,7 +195,6 @@ router.get('/dev-login', async (_req, res) => {
     providerId: 'dev',
     email: 'dev@su8l.test',
     username: 'Test User',
-    avatar: null,
     locale: 'en',
   });
   setSessionCookie(res, signSession(user.id));
@@ -216,7 +213,7 @@ router.get('/me', requireAuth, async (req: AuthedRequest, res) => {
   res.json({
     id: req.user.id,
     username: req.user.username,
-    avatar: req.user.avatar,
+    avatar: resolveAvatarUrl(req.user.avatar),
     email: req.user.email,
     locale: req.user.locale,
     slots,

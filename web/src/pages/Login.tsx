@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useI18n } from '../i18n';
+import { apiUrl } from '../api';
 
 const PROVIDERS = [
   {
@@ -68,7 +69,7 @@ export default function Login() {
                 type="button"
                 className="btn-ghost w-full !py-3.5"
                 onClick={() => {
-                  window.location.href = `/api/auth/${p.key}`;
+                  window.location.href = apiUrl(`/api/auth/${p.key}`);
                 }}
               >
                 <span style={{ color: p.brand }}>{p.icon}</span>

@@ -14,7 +14,6 @@ export interface OAuthProfile {
   providerId: string;
   email?: string | null;
   username: string;
-  avatar?: string | null;
   accessToken?: string;
   refreshToken?: string;
   expiresAt?: number | null;
@@ -28,10 +27,9 @@ export async function upsertOAuthUser(p: OAuthProfile): Promise<User> {
 
   if (user) {
     if (p.email && !user.email) await updateUser(user.id, { email: p.email });
-    // Always refresh the avatar when the provider returns one (users change
-    // their Discord avatar, and animated avatars need the .gif variant).
-    if (p.avatar && p.avatar !== user.avatar) await updateUser(user.id, { avatar: p.avatar });
-    if (p.username) await updateUser(user.id, { username: p.username, avatar: user.avatar });
+    // Never overwrite the user's chosen avatar — avatars are managed by the
+    // picker in the dashboard, not by the OAuth provider.
+    if (p.username) await updateUser(user.id, { username: p.username });
     await addAccount({
       user_id: user.id,
       provider: p.provider,
@@ -48,7 +46,6 @@ export async function upsertOAuthUser(p: OAuthProfile): Promise<User> {
     id,
     email: p.email ?? null,
     username: p.username || p.providerId,
-    avatar: p.avatar ?? null,
     locale: p.locale ?? 'en',
   });
   await addAccount({
@@ -60,12 +57,4 @@ export async function upsertOAuthUser(p: OAuthProfile): Promise<User> {
     expires_at: p.expiresAt ?? null,
   });
   return user2;
-}
-
-export function discordAvatarUrl(discordId: string, avatarHash: string | null | undefined): string | null {
-  if (!avatarHash) return null;
-  // Animated avatars (hash prefixed "a_") only render via .gif — .png returns a
-  // blank/white static frame. Static avatars stay as .png.
-  const ext = avatarHash.startsWith('a_') ? 'gif' : 'png';
-  return `https://cdn.discordapp.com/avatars/${discordId}/${avatarHash}.${ext}?size=256`;
 }

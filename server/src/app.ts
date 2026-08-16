@@ -2,7 +2,9 @@ import express, { type Request, type Response, type NextFunction } from 'express
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { config } from './config.js';
+import { avatarDir } from './services/avatars.js';
 import authRoutes from './routes/auth.js';
+import avatarRoutes from './routes/avatars.js';
 import checkoutRoutes from './routes/checkout.js';
 import webhookRoutes from './routes/webhooks.js';
 import dashboardRoutes from './routes/dashboard.js';
@@ -48,7 +50,11 @@ app.get('/health', (_req, res) => {
   res.json({ ok: true, service: 'SU8L DEVs API', time: new Date().toISOString() });
 });
 
+// Static avatar images (server/public/avatars) served at /avatars/*.
+app.use('/avatars', express.static(avatarDir(), { maxAge: '7d', immutable: false }));
+
 app.use('/api/auth', authRoutes);
+app.use('/api/avatars', avatarRoutes);
 app.use('/api/checkout', checkoutRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/tickets', ticketRoutes);

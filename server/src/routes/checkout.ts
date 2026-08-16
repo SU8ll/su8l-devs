@@ -23,6 +23,7 @@ import {
   promoIsUnused,
 } from '../db.js';
 import { fulfillOrder } from '../services/orders.js';
+import { resolveAvatarUrl } from '../services/avatars.js';
 
 const router = Router();
 
@@ -186,7 +187,7 @@ router.get('/orders/:id', async (req, res) => {
     currency: order.currency,
     extraSlot: order.extra_slot === 1,
     discordUsername: u?.username ?? null,
-    discordAvatar: u?.avatar ?? null,
+    discordAvatar: u ? resolveAvatarUrl(u.avatar) : null,
     createdAt: order.created_at,
     whatsapp: config.ownerWhatsApp,
   });
