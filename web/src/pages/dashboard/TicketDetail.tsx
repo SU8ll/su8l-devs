@@ -88,13 +88,15 @@ export default function TicketDetail() {
               </Badge>
             </div>
           </div>
-          <button
-            type="button"
-            className="btn-ghost"
-            onClick={() => setStatus(data.ticket.status === 'closed' ? 'open' : 'closed')}
-          >
-            {data.ticket.status === 'closed' ? t('tickets.reopen') : t('tickets.close')}
-          </button>
+          {data.staff && (
+            <button
+              type="button"
+              className="btn-ghost"
+              onClick={() => setStatus(data.ticket.status === 'closed' ? 'open' : 'closed')}
+            >
+              {data.ticket.status === 'closed' ? t('tickets.reopen') : t('tickets.close')}
+            </button>
+          )}
         </div>
       </div>
 

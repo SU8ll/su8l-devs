@@ -1,17 +1,26 @@
-import { useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useI18n } from '../../i18n';
 import { useAuth } from '../../AuthContext';
 import AvatarPicker from '../../components/AvatarPicker';
-import { useTicketNotifications } from './useTicketNotifications';
 
 export default function DashboardLayout() {
   const { t } = useI18n();
   const { user, logout, refresh } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [unread, setUnread] = useState(0);
 
-  useTicketNotifications(true);
+  useEffect(() => {
+    const onReply = () => setUnread((n) => n + 1);
+    window.addEventListener('su8l:staff-reply', onReply);
+    return () => window.removeEventListener('su8l:staff-reply', onReply);
+  }, []);
+
+  useEffect(() => {
+    if (location.pathname.startsWith('/dashboard/tickets')) setUnread(0);
+  }, [location.pathname]);
 
   const links = [
     { to: '/dashboard', label: t('dash.overview'), icon: '◉', end: true },
@@ -74,7 +83,12 @@ export default function DashboardLayout() {
                   }
                 >
                   <span className="text-glow">{l.icon}</span>
-                  {l.label}
+                  <span className="flex-1">{l.label}</span>
+                  {l.to === '/dashboard/tickets' && unread > 0 && (
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-glow px-1.5 text-[11px] font-bold text-black shadow-glow">
+                      {unread > 99 ? '99+' : unread}
+                    </span>
+                  )}
                 </NavLink>
               ))}
             </nav>

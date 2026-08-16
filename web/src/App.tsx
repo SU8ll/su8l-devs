@@ -22,6 +22,13 @@ import CloudConfigurator from './pages/dashboard/CloudConfigurator';
 import DashboardStatus from './pages/dashboard/DashboardStatus';
 import Tickets from './pages/dashboard/Tickets';
 import TicketDetail from './pages/dashboard/TicketDetail';
+import { useTicketNotifications } from './pages/dashboard/useTicketNotifications';
+
+function NotificationBridge() {
+  const { user } = useAuth();
+  useTicketNotifications(Boolean(user));
+  return null;
+}
 
 function PublicLayout() {
   return (
@@ -62,6 +69,7 @@ export default function App() {
     <>
       <ScrollToTop />
       <Background />
+      <NotificationBridge />
       <Routes>
         <Route element={<PublicLayout />}>
           <Route path="/" element={<Landing />} />

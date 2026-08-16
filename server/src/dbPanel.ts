@@ -213,6 +213,13 @@ export function panelSetTicketStatus(ticketId: number, status: 'open' | 'closed'
   return setTicketStatus(ticketId, status);
 }
 
+export async function panelDeleteTicket(ticketId: number): Promise<void> {
+  await withTransaction(async () => {
+    await pool.query('DELETE FROM ticket_messages WHERE ticket_id = $1', [ticketId]);
+    await pool.query('DELETE FROM tickets WHERE id = $1', [ticketId]);
+  });
+}
+
 export async function panelListPromos() {
   const res = await pool.query(
     `SELECT p.*,

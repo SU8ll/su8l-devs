@@ -68,13 +68,13 @@ router.post('/:id(\\d+)/messages', requireAuth, async (req: AuthedRequest, res) 
   res.status(201).json({ message });
 });
 
-// POST /api/tickets/:id/status — close / reopen (owner or staff)
+// POST /api/tickets/:id/status — close / reopen (staff only)
 router.post('/:id(\\d+)/status', requireAuth, async (req: AuthedRequest, res) => {
   const parsed = statusSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: 'invalid request' });
+  if (!(await isStaff(req.user.id))) return res.status(403).json({ error: 'staff only' });
   const ticket = await getTicket(Number(req.params.id));
   if (!ticket) return res.status(404).json({ error: 'ticket not found' });
-  if (ticket.user_id !== req.user.id && !(await isStaff(req.user.id))) return res.status(403).json({ error: 'forbidden' });
   await setTicketStatus(ticket.id, parsed.data.status);
   res.json({ ok: true, status: parsed.data.status });
 });

@@ -14,6 +14,7 @@ import {
   panelTicketDetail,
   panelReplyTicket,
   panelSetTicketStatus,
+  panelDeleteTicket,
   panelListPromos,
   panelCreatePromos,
   panelDisablePromo,
@@ -130,6 +131,13 @@ router.post('/tickets/:id/status', async (req, res) => {
   if (!Number.isInteger(ticketId)) return bad(res, 'invalid_ticket_id');
   if (status !== 'open' && status !== 'closed') return bad(res, 'status must be open or closed');
   await panelSetTicketStatus(ticketId, status);
+  res.json({ ok: true });
+});
+
+router.delete('/tickets/:id', async (req, res) => {
+  const ticketId = Number(req.params.id);
+  if (!Number.isInteger(ticketId)) return bad(res, 'invalid_ticket_id');
+  await panelDeleteTicket(ticketId);
   res.json({ ok: true });
 });
 

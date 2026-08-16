@@ -43,9 +43,10 @@ function beep(): void {
   } catch {}
 }
 
-function notify(title: string, body: string): void {
+function notify(title: string, body: string, ticketId: number): void {
   beep();
   showToast(title, body);
+  window.dispatchEvent(new CustomEvent('su8l:staff-reply', { detail: { ticketId } }));
   try {
     if ('Notification' in window && Notification.permission === 'granted') {
       new Notification(title, { body, silent: true });
@@ -146,7 +147,7 @@ export function useTicketNotifications(enabled = true): void {
           const body = t('notif.staffReplyBody')
             .replace('{id}', String(tk.id))
             .replace('{subject}', tk.subject ?? '');
-          notify(title, body);
+          notify(title, body, tk.id);
         }
       }
       seen.current = now;
@@ -156,6 +157,9 @@ export function useTicketNotifications(enabled = true): void {
     const resume = () => {
       ensureAudioCtx();
       if (audioCtx && audioCtx.state === 'suspended') void audioCtx.resume().catch(() => {});
+      if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission().catch(() => {});
+      }
     };
     document.addEventListener('pointerdown', resume);
     document.addEventListener('keydown', resume);
