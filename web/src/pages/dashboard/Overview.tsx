@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useOutletContext } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useI18n } from '../../i18n';
 import { useAuth } from '../../AuthContext';
 import { api, type DashboardDto } from '../../api';
@@ -8,7 +8,6 @@ import { Badge, Kicker, Spinner, formatDate } from '../../components/ui';
 export default function Overview() {
   const { t } = useI18n();
   const { user } = useAuth();
-  const { openAvatarPicker } = useOutletContext<{ openAvatarPicker: () => void }>();
   const [data, setData] = useState<DashboardDto | null>(null);
   const [error, setError] = useState('');
 
@@ -29,23 +28,13 @@ export default function Overview() {
         <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-glow/10 blur-3xl" />
         <div className="relative flex flex-col items-start gap-6 sm:flex-row sm:items-center">
           <div className="shrink-0">
-            <button
-              type="button"
-              onClick={openAvatarPicker}
-              className="group relative block rounded-full"
-              title={t('dash.changeAvatar')}
-            >
-              {data.user.avatar ? (
-                <img src={data.user.avatar} alt="" className="avatar-glow h-24 w-24 object-cover" />
-              ) : (
-                <div className="avatar-glow flex h-24 w-24 items-center justify-center bg-gradient-to-br from-primary to-glow font-display text-3xl font-black text-white">
-                  {data.user.username[0]?.toUpperCase() ?? '?'}
-                </div>
-              )}
-              <span className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-primary to-glow text-xs text-white shadow transition-transform group-hover:scale-110">
-                ✎
-              </span>
-            </button>
+            {data.user.avatar ? (
+              <img src={data.user.avatar} alt="" className="avatar-glow h-24 w-24 object-cover" />
+            ) : (
+              <div className="avatar-glow flex h-24 w-24 items-center justify-center bg-gradient-to-br from-primary to-glow font-display text-3xl font-black text-white">
+                {data.user.username[0]?.toUpperCase() ?? '?'}
+              </div>
+            )}
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-3">

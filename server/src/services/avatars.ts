@@ -8,7 +8,7 @@ import { config } from '../config.js';
 const AVATAR_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../public/avatars');
 const AVATAR_EXT = /\.(png|jpe?g|gif|webp|svg)$/i;
 
-export const DEFAULT_AVATAR_FILE = 'default.svg';
+export const DEFAULT_AVATAR_FILE = 'alcar.webp';
 
 export function avatarDir(): string {
   return AVATAR_DIR;
