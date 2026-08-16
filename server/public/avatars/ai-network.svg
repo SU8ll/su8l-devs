@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="core" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#a855f7"/>
+      <stop offset="100%" stop-color="#6f42c1"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#a855f7" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#a855f7" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="nhalo" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#c9b6ff" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#c9b6ff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="256" height="256" fill="#0f0f12"/>
+  <circle cx="128" cy="128" r="112" fill="url(#halo)"/>
+  <circle cx="128" cy="128" r="60" fill="none" stroke="#6f42c1" stroke-width="2" opacity="0.6"/>
+  <line x1="128" y1="128" x2="186" y2="128" stroke="#6f42c1" stroke-width="2" opacity="0.5"/>
+  <line x1="128" y1="128" x2="169" y2="169" stroke="#6f42c1" stroke-width="2" opacity="0.5"/>
+  <line x1="128" y1="128" x2="128" y2="186" stroke="#6f42c1" stroke-width="2" opacity="0.5"/>
+  <line x1="128" y1="128" x2="87" y2="169" stroke="#6f42c1" stroke-width="2" opacity="0.5"/>
+  <line x1="128" y1="128" x2="70" y2="128" stroke="#6f42c1" stroke-width="2" opacity="0.5"/>
+  <line x1="128" y1="128" x2="87" y2="87" stroke="#6f42c1" stroke-width="2" opacity="0.5"/>
+  <line x1="128" y1="128" x2="128" y2="70" stroke="#6f42c1" stroke-width="2" opacity="0.5"/>
+  <line x1="128" y1="128" x2="169" y2="87" stroke="#6f42c1" stroke-width="2" opacity="0.5"/>
+  <circle cx="128" cy="128" r="34" fill="url(#core)"/>
+  <circle cx="128" cy="128" r="11" fill="#ffffff"/>
+  <circle cx="128" cy="128" r="11" fill="url(#nhalo)"/>
+  <g fill="#c9b6ff">
+    <circle cx="186" cy="128" r="6"/>
+    <circle cx="169" cy="169" r="6"/>
+    <circle cx="128" cy="186" r="6"/>
+    <circle cx="87" cy="169" r="6"/>
+    <circle cx="70" cy="128" r="6"/>
+    <circle cx="87" cy="87" r="6"/>
+    <circle cx="128" cy="70" r="6"/>
+    <circle cx="169" cy="87" r="6"/>
+  </g>
+  <g fill="#a855f7">
+    <circle cx="186" cy="128" r="2.5"/>
+    <circle cx="128" cy="70" r="2.5"/>
+    <circle cx="70" cy="128" r="2.5"/>
+    <circle cx="128" cy="186" r="2.5"/>
+  </g>
+</svg>

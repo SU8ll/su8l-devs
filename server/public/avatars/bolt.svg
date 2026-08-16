@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="hex" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#a855f7"/>
+      <stop offset="100%" stop-color="#6f42c1"/>
+    </linearGradient>
+    <linearGradient id="bolt" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#c9b6ff"/>
+      <stop offset="100%" stop-color="#a855f7"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#a855f7" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#a855f7" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="256" height="256" fill="#0f0f12"/>
+  <circle cx="128" cy="128" r="112" fill="url(#halo)"/>
+  <path d="M128 50 L196 89 L196 167 L128 206 L60 167 L60 89 Z" fill="none" stroke="url(#hex)" stroke-width="7" stroke-linejoin="round"/>
+  <path d="M134 84 L92 146 h28 l-10 44 46 -76 h-26 z" fill="url(#bolt)"/>
+  <path d="M120 118 l-4 16 h8 l-3 12 16 -22 h-8 l2 -6 z" fill="#ffffff" opacity="0.9"/>
+</svg>

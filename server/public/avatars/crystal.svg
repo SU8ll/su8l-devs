@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="crystal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#c9b6ff"/>
+      <stop offset="45%" stop-color="#a855f7"/>
+      <stop offset="100%" stop-color="#6f42c1"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#a855f7" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#a855f7" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="256" height="256" fill="#0f0f12"/>
+  <circle cx="128" cy="128" r="112" fill="url(#halo)"/>
+  <path d="M128 62 L176 98 L176 160 L128 198 L80 160 L80 98 Z" fill="url(#crystal)"/>
+  <path d="M128 62 L128 198 M80 98 L176 160 M80 160 L176 98" stroke="#ffffff" stroke-width="2" stroke-opacity="0.45" fill="none" stroke-linecap="round"/>
+  <path d="M128 92 L160 114 L160 154 L128 178 L96 154 L96 114 Z" fill="#171126" opacity="0.85"/>
+  <path d="M192 54 l4 8 8 4 -8 4 -4 8 -4 -8 -8 -4 8 -4 z" fill="#ffffff"/>
+  <path d="M196 90 l3 5 5 3 -5 3 -3 5 -3 -5 -5 -3 5 -3 z" fill="#c9b6ff"/>
+  <path d="M70 168 l3 6 6 3 -6 3 -3 6 -3 -6 -6 -3 6 -3 z" fill="#c9b6ff" opacity="0.7"/>
+</svg>

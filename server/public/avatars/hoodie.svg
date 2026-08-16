@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="hood" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#a855f7"/>
+      <stop offset="100%" stop-color="#6f42c1"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#a855f7" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#a855f7" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="eye" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#c9b6ff" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#c9b6ff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="256" height="256" fill="#0f0f12"/>
+  <circle cx="128" cy="128" r="112" fill="url(#halo)"/>
+  <rect x="58" y="96" width="18" height="34" rx="8" fill="#6f42c1"/>
+  <rect x="180" y="96" width="18" height="34" rx="8" fill="#6f42c1"/>
+  <path d="M72 112 a56 56 0 0 1 112 0 v16 h-112 z" fill="url(#hood)"/>
+  <rect x="84" y="126" width="88" height="68" rx="16" fill="#171126"/>
+  <polygon points="92,138 106,138 100,152 86,152" fill="url(#eye)"/>
+  <polygon points="164,138 150,138 156,152 170,152" fill="url(#eye)"/>
+  <polygon points="92,138 106,138 100,152 86,152" fill="#a855f7"/>
+  <polygon points="164,138 150,138 156,152 170,152" fill="#a855f7"/>
+  <polygon points="96,142 102,142 99,148 93,148" fill="#ffffff"/>
+  <polygon points="160,142 154,142 157,148 163,148" fill="#ffffff"/>
+  <rect x="108" y="176" width="40" height="5" rx="2.5" fill="#6f42c1"/>
+</svg>
