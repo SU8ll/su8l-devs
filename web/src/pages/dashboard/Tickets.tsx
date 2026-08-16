@@ -26,7 +26,13 @@ export default function Tickets() {
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
 
-  const load = () => api<{ tickets: Ticket[] }>('/api/tickets').then((r) => setTickets(r.tickets)).catch(() => {});
+  const load = () =>
+    api<{ tickets: Ticket[] }>('/api/tickets')
+      .then((r) => setTickets(r.tickets))
+      .catch((e) => {
+        setError(e instanceof Error ? e.message : 'Failed to load tickets.');
+        setTickets([]);
+      });
   useEffect(() => {
     void load();
   }, []);
@@ -101,6 +107,14 @@ export default function Tickets() {
 
       {!tickets ? (
         <div className="flex justify-center py-24"><Spinner size={32} /></div>
+      ) : error ? (
+        <div className="glass rounded-3xl p-8 text-center">
+          <div className="text-3xl">⚠</div>
+          <p className="mt-3 text-sm text-red-300">{error}</p>
+          <button type="button" className="btn-ghost mt-4" onClick={() => { setError(''); setTickets(null); void load(); }}>
+            ↻ {t('status.checkNow')}
+          </button>
+        </div>
       ) : tickets.length === 0 ? (
         <div className="glass rounded-3xl p-12 text-center">
           <div className="text-3xl">▤</div>

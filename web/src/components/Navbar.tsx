@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useI18n, useLang, type Lang } from '../i18n';
 import { useAuth } from '../AuthContext';
+import AvatarPicker from './AvatarPicker';
 
 function LangToggle() {
   const { lang, setLang } = useLang();
@@ -32,10 +33,11 @@ function LangToggle() {
 
 export default function Navbar() {
   const { t } = useI18n();
-  const { user } = useAuth();
+  const { user, refresh } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [logoFailed, setLogoFailed] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   return (
     <header className="fixed top-0 inset-x-0 z-50">
@@ -85,9 +87,28 @@ export default function Navbar() {
           <div className="hidden items-center gap-3 lg:flex">
             <LangToggle />
             {user ? (
-              <button type="button" className="btn-primary !px-5 !py-2.5" onClick={() => navigate('/dashboard')}>
-                {t('nav.dashboard')}
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => setPickerOpen(true)}
+                  className="relative rounded-full transition-opacity hover:opacity-80"
+                  title={t('dash.changeAvatar')}
+                >
+                  {user.avatar ? (
+                    <img src={user.avatar} alt="" className="avatar-glow h-10 w-10 object-cover" />
+                  ) : (
+                    <div className="avatar-glow flex h-10 w-10 items-center justify-center bg-gradient-to-br from-primary to-glow font-display text-sm font-black text-white">
+                      {user.username?.[0]?.toUpperCase() ?? '?'}
+                    </div>
+                  )}
+                  <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-primary to-glow text-[10px] text-white shadow">
+                    ✎
+                  </span>
+                </button>
+                <button type="button" className="btn-primary !px-5 !py-2.5" onClick={() => navigate('/dashboard')}>
+                  {t('nav.dashboard')}
+                </button>
+              </>
             ) : (
               <button type="button" className="btn-primary !px-5 !py-2.5" onClick={() => navigate('/login')}>
                 {t('nav.login')}
@@ -134,9 +155,35 @@ export default function Navbar() {
               </NavLink>
               <div className="h-px bg-white/10" />
               {user ? (
-                <button type="button" className="btn-primary" onClick={() => { setOpen(false); navigate('/dashboard'); }}>
-                  {t('nav.dashboard')}
-                </button>
+                <>
+                  <button
+                    type="button"
+                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-muted transition-colors hover:bg-white/5 hover:text-white"
+                    onClick={() => {
+                      setOpen(false);
+                      setPickerOpen(true);
+                    }}
+                  >
+                    {user.avatar ? (
+                      <img src={user.avatar} alt="" className="avatar-glow h-8 w-8 object-cover" />
+                    ) : (
+                      <div className="avatar-glow flex h-8 w-8 items-center justify-center bg-gradient-to-br from-primary to-glow font-display text-xs font-black text-white">
+                        {user.username?.[0]?.toUpperCase() ?? '?'}
+                      </div>
+                    )}
+                    {t('dash.changeAvatar')}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    onClick={() => {
+                      setOpen(false);
+                      navigate('/dashboard');
+                    }}
+                  >
+                    {t('nav.dashboard')}
+                  </button>
+                </>
               ) : (
                 <button type="button" className="btn-primary" onClick={() => { setOpen(false); navigate('/login'); }}>
                   {t('nav.login')}
@@ -146,6 +193,8 @@ export default function Navbar() {
           </div>
         )}
       </div>
+
+      <AvatarPicker open={pickerOpen} current={user?.avatar ?? null} onClose={() => setPickerOpen(false)} onSaved={() => void refresh()} />
     </header>
   );
 }
