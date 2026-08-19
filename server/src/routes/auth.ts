@@ -217,8 +217,14 @@ router.get('/facebook/callback', async (req, res) => {
 
 // ── Email / Username + Password Auth ────────────────────────────────────────
 
-router.post('/test-ping', (_req, res) => {
-  res.json({ ok: true, method: 'email-password-auth' });
+router.post('/test-ping', async (_req, res) => {
+  try {
+    const hash = await hashPassword('test123');
+    const ok = await verifyPassword('test123', hash);
+    res.json({ ok: true, method: 'email-password-auth', hashWorks: ok });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
 });
 
 router.post('/register', async (req, res) => {
