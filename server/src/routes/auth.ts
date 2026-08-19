@@ -236,7 +236,7 @@ router.post('/register', async (req, res) => {
     }
 
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
-    const userId = `usr_${crypto.randomUUID().replace(/-/g, '').slice(0, 20)}`;
+    const userId = `usr_${randomUUID().replace(/-/g, '').slice(0, 20)}`;
     const ts = nowIso();
 
     await run(
@@ -329,7 +329,7 @@ router.post('/create-user', async (req, res) => {
     }
 
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
-    const userId = `usr_${crypto.randomUUID().replace(/-/g, '').slice(0, 20)}`;
+    const userId = `usr_${randomUUID().replace(/-/g, '').slice(0, 20)}`;
     const ts = nowIso();
 
     await run(
