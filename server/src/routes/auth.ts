@@ -223,6 +223,7 @@ router.post('/test-ping', (_req, res) => {
 
 router.post('/register', async (req, res) => {
   try {
+    console.log('[auth:register] hit', JSON.stringify(req.body));
     const { email, username, password } = req.body as {
       email?: string;
       username?: string;
