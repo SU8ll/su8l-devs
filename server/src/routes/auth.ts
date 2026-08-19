@@ -217,15 +217,8 @@ router.get('/facebook/callback', async (req, res) => {
 
 // ── Email / Username + Password Auth ────────────────────────────────────────
 
-router.post('/test-ping', async (_req, res) => {
-  try {
-    const hash = await hashPassword('test123');
-    const ok = await verifyPassword('test123', hash);
-    const user = await findUserByEmail('test@test.com');
-    res.json({ ok: true, method: 'email-password-auth', hashWorks: ok, dbQuery: user !== undefined });
-  } catch (err) {
-    res.status(500).json({ error: String(err) });
-  }
+router.post('/test-ping', (_req, res) => {
+  res.json({ ok: true, method: 'email-password-auth' });
 });
 
 router.post('/register', async (req, res) => {
@@ -257,7 +250,7 @@ router.post('/register', async (req, res) => {
     return res.json({ ok: true, token, userId });
   } catch (err) {
     console.error('[auth:register]', err);
-    return res.status(500).json({ error: 'internal server error', detail: String(err) });
+    return res.status(500).json({ error: 'internal server error' });
   }
 });
 
@@ -296,7 +289,7 @@ router.post('/login', async (req, res) => {
     return res.json({ ok: true, token });
   } catch (err) {
     console.error('[auth:login]', err);
-    return res.status(500).json({ error: 'internal server error', detail: String(err) });
+    return res.status(500).json({ error: 'internal server error' });
   }
 });
 
