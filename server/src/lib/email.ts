@@ -1,8 +1,11 @@
 import nodemailer from 'nodemailer';
 import { config } from '../config.js';
 
+const hasSmtp = !!(config.smtp.user && config.smtp.pass);
+console.log(`[email] SMTP configured: ${hasSmtp} (host=${config.smtp.host}:${config.smtp.port}, user=${config.smtp.user ? '***' : 'MISSING'}, pass=${config.smtp.pass ? '***' : 'MISSING'}, from=${config.smtp.from || 'MISSING'})`);
+
 const transporter =
-  config.smtp.user && config.smtp.pass
+  hasSmtp
     ? nodemailer.createTransport({
         host: config.smtp.host,
         port: config.smtp.port,
