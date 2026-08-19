@@ -1,18 +1,7 @@
-import nodemailer from 'nodemailer';
 import { config } from '../config.js';
 
-const hasSmtp = !!(config.smtp.user && config.smtp.pass);
-console.log(`[email] SMTP configured: ${hasSmtp} (host=${config.smtp.host}:${config.smtp.port}, user=${config.smtp.user ? '***' : 'MISSING'}, pass=${config.smtp.pass ? '***' : 'MISSING'}, from=${config.smtp.from || 'MISSING'})`);
-
-const transporter =
-  hasSmtp
-    ? nodemailer.createTransport({
-        host: config.smtp.host,
-        port: config.smtp.port,
-        secure: config.smtp.port === 465,
-        auth: { user: config.smtp.user, pass: config.smtp.pass },
-      })
-    : null;
+const hasApiKey = !!(config.smtp.pass && config.smtp.user);
+console.log(`[email] Brevo API configured: ${hasApiKey} (user=${config.smtp.user ? '***' : 'MISSING'}, from=${config.smtp.from || 'MISSING'})`);
 
 function emailShell(bodyHtml: string): string {
   return `<!DOCTYPE html>
@@ -60,37 +49,63 @@ function emailShell(bodyHtml: string): string {
 </html>`;
 }
 
+async function sendBrevo(to: string, subject: string, html: string): Promise<boolean> {
+  if (!hasApiKey) {
+    console.warn('[email] Brevo API key not configured — skipping email');
+    return false;
+  }
+
+  const payload = {
+    sender: { name: 'SU8L DEVs', email: config.smtp.user },
+    to: [{ email: to }],
+    subject,
+    htmlContent: html,
+  };
+
+  try {
+    const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-key': config.smtp.pass,
+        accept: 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const body = await res.text();
+      console.error(`[email] Brevo API error ${res.status}:`, body);
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.error('[email] Brevo API request failed:', err);
+    return false;
+  }
+}
+
 export async function sendVerificationEmail(
   email: string,
   username: string,
   code: string,
 ): Promise<boolean> {
-  if (!transporter) {
-    console.warn('[email] SMTP not configured — skipping verification email');
-    return false;
-  }
-
-  try {
-    await transporter.sendMail({
-      from: config.smtp.from || `"SU8L DEVs" <${config.smtp.user}>`,
-      to: email,
-      subject: 'SU8L DEVs — Verify Your Email',
-      html: emailShell(`
-        <h2>Hello ${username}!</h2>
-        <p>Thanks for signing up. To complete your registration, enter the verification code below:</p>
-        <div class="code">
-          <div class="label">Your Verification Code</div>
-          <div class="value">${code}</div>
-        </div>
-        <p style="color:#64748b; font-size:13px;">This code expires in <strong>10 minutes</strong>. If you did not request this, you can ignore this email.</p>
-      `),
-    });
-    console.log(`[email] Verification email sent to ${email}`);
-    return true;
-  } catch (err) {
-    console.error('[email] Failed to send verification email:', err);
-    return false;
-  }
+  const ok = await sendBrevo(
+    email,
+    'SU8L DEVs — Verify Your Email',
+    emailShell(`
+      <h2>Hello ${username}!</h2>
+      <p>Thanks for signing up. To complete your registration, enter the verification code below:</p>
+      <div class="code">
+        <div class="label">Your Verification Code</div>
+        <div class="value">${code}</div>
+      </div>
+      <p style="color:#64748b; font-size:13px;">This code expires in <strong>10 minutes</strong>. If you did not request this, you can ignore this email.</p>
+    `),
+  );
+  if (ok) console.log(`[email] Verification email sent to ${email}`);
+  return ok;
 }
 
 export async function sendRecoveryEmail(
@@ -98,70 +113,48 @@ export async function sendRecoveryEmail(
   username: string,
   code: string,
 ): Promise<boolean> {
-  if (!transporter) {
-    console.warn('[email] SMTP not configured — skipping recovery email');
-    return false;
-  }
-
-  try {
-    await transporter.sendMail({
-      from: config.smtp.from || `"SU8L DEVs" <${config.smtp.user}>`,
-      to: email,
-      subject: 'SU8L DEVs — Account Recovery Code',
-      html: emailShell(`
-        <h2>Hello ${username}!</h2>
-        <p>We received a request to recover your SU8L DEVs account. Use the code below to reset your password:</p>
-        <div class="code">
-          <div class="label">Your Recovery Code</div>
-          <div class="value">${code}</div>
-        </div>
-        <p style="color:#64748b; font-size:13px;">This code expires in <strong>10 minutes</strong>. If you did not request this, you can ignore this email and your password will stay unchanged.</p>
-      `),
-    });
-    console.log(`[email] Recovery email sent to ${email}`);
-    return true;
-  } catch (err) {
-    console.error('[email] Failed to send recovery email:', err);
-    return false;
-  }
+  const ok = await sendBrevo(
+    email,
+    'SU8L DEVs — Account Recovery Code',
+    emailShell(`
+      <h2>Hello ${username}!</h2>
+      <p>We received a request to recover your SU8L DEVs account. Use the code below to reset your password:</p>
+      <div class="code">
+        <div class="label">Your Recovery Code</div>
+        <div class="value">${code}</div>
+      </div>
+      <p style="color:#64748b; font-size:13px;">This code expires in <strong>10 minutes</strong>. If you did not request this, you can ignore this email and your password will stay unchanged.</p>
+    `),
+  );
+  if (ok) console.log(`[email] Recovery email sent to ${email}`);
+  return ok;
 }
 
 export async function sendWelcomeEmail(
   email: string,
   username: string,
 ): Promise<boolean> {
-  if (!transporter) {
-    console.warn('[email] SMTP not configured — skipping welcome email');
-    return false;
-  }
-
-  try {
-    await transporter.sendMail({
-      from: config.smtp.from || `"SU8L DEVs" <${config.smtp.user}>`,
-      to: email,
-      subject: 'Welcome to SU8L DEVs — Save Your Credentials!',
-      html: emailShell(`
-        <h2>Welcome, ${username}!</h2>
-        <p>Your account has been created successfully on the SU8L DEVs platform. You can now sign in and start using our services.</p>
-        <div class="box">
-          <div class="label">Email Address</div>
-          <div class="value">${email}</div>
-        </div>
-        <div class="box">
-          <div class="label">Username</div>
-          <div class="value">${username}</div>
-        </div>
-        <div class="warning">
-          <h3>⚠ Important Notice — Keep Your Credentials Safe!</h3>
-          <p>If you ever forget your password, username, or email, you can recover them through your registered email using the "Forgot password?" link on the sign-in page. Still, we recommend saving this information in a secure place.</p>
-        </div>
-        <p style="margin-top:24px; color:#64748b; font-size:13px;">If you did not create this account, you can simply ignore this email.</p>
-      `),
-    });
-    console.log(`[email] Welcome email sent to ${email}`);
-    return true;
-  } catch (err) {
-    console.error('[email] Failed to send welcome email:', err);
-    return false;
-  }
+  const ok = await sendBrevo(
+    email,
+    'Welcome to SU8L DEVs — Save Your Credentials!',
+    emailShell(`
+      <h2>Welcome, ${username}!</h2>
+      <p>Your account has been created successfully on the SU8L DEVs platform. You can now sign in and start using our services.</p>
+      <div class="box">
+        <div class="label">Email Address</div>
+        <div class="value">${email}</div>
+      </div>
+      <div class="box">
+        <div class="label">Username</div>
+        <div class="value">${username}</div>
+      </div>
+      <div class="warning">
+        <h3>Important Notice — Keep Your Credentials Safe!</h3>
+        <p>If you ever forget your password, username, or email, you can recover them through your registered email using the "Forgot password?" link on the sign-in page. Still, we recommend saving this information in a secure place.</p>
+      </div>
+      <p style="margin-top:24px; color:#64748b; font-size:13px;">If you did not create this account, you can simply ignore this email.</p>
+    `),
+  );
+  if (ok) console.log(`[email] Welcome email sent to ${email}`);
+  return ok;
 }
