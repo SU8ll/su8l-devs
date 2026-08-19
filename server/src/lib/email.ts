@@ -150,7 +150,7 @@ export async function sendWelcomeEmail(
         </div>
         <div class="warning">
           <h3>⚠ Important Notice — Keep Your Credentials Safe!</h3>
-          <p>In case you lose your password, username, or email, <strong>SU8L DEVs will NOT assist you in recovering them.</strong> Please save this information in a secure place.</p>
+          <p>If you ever forget your password, username, or email, you can recover them through your registered email using the "Forgot password?" link on the sign-in page. Still, we recommend saving this information in a secure place.</p>
         </div>
         <p style="margin-top:24px; color:#64748b; font-size:13px;">If you did not create this account, you can simply ignore this email.</p>
       `),
