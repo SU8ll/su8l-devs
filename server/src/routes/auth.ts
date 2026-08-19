@@ -18,6 +18,7 @@ import {
   nowIso,
   run,
 } from '../db.js';
+import { sendWelcomeEmail } from '../lib/email.js';
 
 const scryptAsync = promisify(scrypt);
 
@@ -247,6 +248,10 @@ router.post('/register', async (req, res) => {
 
     const token = signSession(userId);
     setSessionCookie(res, token);
+
+    // Send welcome email in background (fire-and-forget)
+    sendWelcomeEmail(String(email).toLowerCase().trim(), String(username).trim()).catch(() => {});
+
     return res.json({ ok: true, token, userId });
   } catch (err) {
     console.error('[auth:register]', err);

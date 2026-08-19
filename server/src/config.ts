@@ -1,4 +1,13 @@
-import 'dotenv/config';
+import { config as loadEnv } from 'dotenv';
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+// Load .env first, then .env.local (overrides)
+loadEnv();
+const localEnv = resolve(process.cwd(), '.env.local');
+if (existsSync(localEnv)) {
+  loadEnv({ path: localEnv, override: true });
+}
 
 export const config = {
   port: Number(process.env.PORT || 4000),
@@ -48,6 +57,11 @@ export const config = {
 
   uptimeTarget: process.env.UPTIME_TARGET_URL || '',
   uptimeIntervalMs: Number(process.env.UPTIME_INTERVAL_MS || 60000),
+
+  gmail: {
+    user: process.env.GMAIL_USER || '',
+    pass: process.env.GMAIL_APP_PASSWORD || '',
+  },
 } as const;
 
 export const PAYPAL_BASE =
