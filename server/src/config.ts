@@ -1,13 +1,14 @@
-import { existsSync, readFileSync } from 'node:fs';
+import 'dotenv/config';
+import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { config as loadEnv } from 'dotenv';
 
 // In dev, load .env.local first (it overrides .env values).
-const localPath = resolve(process.cwd(), '.env.local');
-if (existsSync(localPath)) {
-  loadEnv({ path: localPath });
-} else {
-  loadEnv();
+if (process.env.NODE_ENV !== 'production') {
+  const localPath = resolve(process.cwd(), '.env.local');
+  if (existsSync(localPath)) {
+    loadEnv({ path: localPath });
+  }
 }
 
 export const config = {
