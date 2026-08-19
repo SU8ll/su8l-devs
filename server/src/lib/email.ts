@@ -13,7 +13,7 @@ const transporter =
 
 function welcomeHtml(username: string, email: string): string {
   return `<!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -44,27 +44,27 @@ function welcomeHtml(username: string, email: string): string {
     <p>Cloud Bot Service Platform</p>
   </div>
   <div class="body">
-    <h2>مرحباً ${username}!</h2>
-    <p>تم إنشاء حسابك بنجاح في منصة SU8L DEVs. يمكنك الآن تسجيل الدخول والبدء في استخدام الخدمات.</p>
+    <h2>Welcome, ${username}!</h2>
+    <p>Your account has been created successfully on the SU8L DEVs platform. You can now sign in and start using our services.</p>
 
     <div class="box">
-      <div class="label">البريد الإلكتروني</div>
+      <div class="label">Email Address</div>
       <div class="value">${email}</div>
     </div>
     <div class="box">
-      <div class="label">اسم المستخدم</div>
+      <div class="label">Username</div>
       <div class="value">${username}</div>
     </div>
 
     <div class="warning">
-      <h3>⚠ تنبيه هام — احفظ معلوماتك!</h3>
-      <p>في حال فقدان كلمة المرور أو اسم المستخدم أو البريد الإلكتروني، <strong>SU8L DEVs لن تساعدك في استرجاعها.</strong> احفظ هذه المعلومات في مكان آمن.</p>
+      <h3>⚠ Important Notice — Keep Your Credentials Safe!</h3>
+      <p>In case you lose your password, username, or email, <strong>SU8L DEVs will NOT assist you in recovering them.</strong> Please save this information in a secure place.</p>
     </div>
 
-    <p style="margin-top:24px; color:#64748b; font-size:13px;">إذا لم تكن أنت من قام بإنشاء هذا الحساب، يمكنك تجاهل هذا الإيميل.</p>
+    <p style="margin-top:24px; color:#64748b; font-size:13px;">If you did not create this account, you can simply ignore this email.</p>
   </div>
   <div class="footer">
-    <p>&copy; ${new Date().getFullYear()} <a href="https://su8ldevs.eu.cc">SU8L DEVs</a>. جميع الحقوق محفوظة.</p>
+    <p>&copy; ${new Date().getFullYear()} <a href="https://su8ldevs.eu.cc">SU8L DEVs</a>. All rights reserved.</p>
   </div>
 </div>
 </body>
@@ -84,7 +84,7 @@ export async function sendWelcomeEmail(
     await transporter.sendMail({
       from: config.smtp.from || `"SU8L DEVs" <${config.smtp.user}>`,
       to: email,
-      subject: 'مرحباً بك في SU8L DEVs — احفظ معلوماتك!',
+      subject: 'Welcome to SU8L DEVs — Save Your Credentials!',
       html: welcomeHtml(username, email),
     });
     console.log(`[email] Welcome email sent to ${email}`);
