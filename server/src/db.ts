@@ -170,16 +170,6 @@ CREATE INDEX IF NOT EXISTS idx_bot_slots_user ON bot_slots(user_id);
 
 -- Password-based auth: nullable column for email/password users.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT;
--- Only create the unique index if no duplicate emails exist.
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_class WHERE relname = 'idx_users_email_unique') THEN
-    -- Skip if duplicates would violate the constraint.
-    IF (SELECT COUNT(*) FROM (SELECT LOWER(email) e FROM users WHERE email IS NOT NULL GROUP BY LOWER(email) HAVING COUNT(*) > 1) x) = 0 THEN
-      CREATE UNIQUE INDEX idx_users_email_unique ON users(LOWER(email)) WHERE email IS NOT NULL;
-    END IF;
-  END IF;
-END $$;
 `);
 }
 

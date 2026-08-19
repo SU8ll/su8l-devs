@@ -217,6 +217,10 @@ router.get('/facebook/callback', async (req, res) => {
 
 // ── Email / Username + Password Auth ────────────────────────────────────────
 
+router.post('/test-ping', (_req, res) => {
+  res.json({ ok: true, method: 'email-password-auth' });
+});
+
 router.post('/register', async (req, res) => {
   try {
     const { email, username, password } = req.body as {
