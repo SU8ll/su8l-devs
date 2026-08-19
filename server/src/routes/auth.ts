@@ -223,44 +223,21 @@ router.post('/test-ping', (_req, res) => {
 
 router.post('/register', async (req, res) => {
   try {
-    console.log('[auth:register] hit', JSON.stringify(req.body));
-    const { email, username, password } = req.body as {
-      email?: string;
-      username?: string;
-      password?: string;
-    };
+    const { email, username, password } = req.body as Record<string, unknown>;
 
     if (!email || !username || !password) {
       return res.status(400).json({ error: 'email, username and password are required' });
     }
-    if (typeof email !== 'string' || !email.includes('@') || email.length > 254) {
-      return res.status(400).json({ error: 'Invalid email address' });
-    }
-    if (typeof username !== 'string' || username.length < 3 || username.length > 32) {
-      return res.status(400).json({ error: 'Username must be 3-32 characters' });
-    }
-    if (typeof password !== 'string' || password.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters' });
-    }
 
-    const existingEmail = await findUserByEmail(email);
-    if (existingEmail) {
-      return res.status(409).json({ error: 'Email already registered' });
-    }
-    const existingUser = await findUserByUsername(username);
-    if (existingUser) {
-      return res.status(409).json({ error: 'Username already taken' });
-    }
-
-    const passwordHash = await hashPassword(password);
+    const passwordHash = await hashPassword(String(password));
     const userId = `usr_${randomUUID().replace(/-/g, '').slice(0, 20)}`;
     const ts = nowIso();
 
     await run(
       'INSERT INTO users (id, email, username, password_hash, avatar, locale, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?)',
       userId,
-      email.toLowerCase().trim(),
-      username.trim(),
+      String(email).toLowerCase().trim(),
+      String(username).trim(),
       passwordHash,
       null,
       'en',
@@ -273,7 +250,7 @@ router.post('/register', async (req, res) => {
     return res.json({ ok: true, token, userId });
   } catch (err) {
     console.error('[auth:register]', err);
-    return res.status(500).json({ error: 'internal server error' });
+    return res.status(500).json({ error: 'internal server error', detail: String(err) });
   }
 });
 
@@ -312,7 +289,7 @@ router.post('/login', async (req, res) => {
     return res.json({ ok: true, token });
   } catch (err) {
     console.error('[auth:login]', err);
-    return res.status(500).json({ error: 'internal server error' });
+    return res.status(500).json({ error: 'internal server error', detail: String(err) });
   }
 });
 
