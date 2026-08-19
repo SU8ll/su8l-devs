@@ -2,10 +2,12 @@ import nodemailer from 'nodemailer';
 import { config } from '../config.js';
 
 const transporter =
-  config.gmail.user && config.gmail.pass
+  config.smtp.user && config.smtp.pass
     ? nodemailer.createTransport({
-        service: 'gmail',
-        auth: { user: config.gmail.user, pass: config.gmail.pass },
+        host: config.smtp.host,
+        port: config.smtp.port,
+        secure: config.smtp.port === 465,
+        auth: { user: config.smtp.user, pass: config.smtp.pass },
       })
     : null;
 
@@ -57,7 +59,7 @@ function welcomeHtml(username: string, email: string): string {
       <p>في حال فقدان كلمة المرور أو اسم المستخدم أو البريد الإلكتروني، <strong>SU8L DEVs لن تساعدك في استرجاعها.</strong> احفظ هذه المعلومات في مكان آمن.</p>
     </div>
 
-    <p style="margin-top:24px; color:#64748b; font-size:13px;">إذا لم تنت أنت من قام بإنشاء هذا الحساب، يمكنك تجاهل هذا الإيميل.</p>
+    <p style="margin-top:24px; color:#64748b; font-size:13px;">إذا لم تكن أنت من قام بإنشاء هذا الحساب، يمكنك تجاهل هذا الإيميل.</p>
   </div>
   <div class="footer">
     <p>&copy; ${new Date().getFullYear()} <a href="https://su8ldevs.eu.cc">SU8L DEVs</a>. جميع الحقوق محفوظة.</p>
@@ -72,13 +74,13 @@ export async function sendWelcomeEmail(
   username: string,
 ): Promise<boolean> {
   if (!transporter) {
-    console.warn('[email] Gmail SMTP not configured — skipping welcome email');
+    console.warn('[email] SMTP not configured — skipping welcome email');
     return false;
   }
 
   try {
     await transporter.sendMail({
-      from: `"SU8L DEVs" <${config.gmail.user}>`,
+      from: config.smtp.from || `"SU8L DEVs" <${config.smtp.user}>`,
       to: email,
       subject: 'مرحباً بك في SU8L DEVs — احفظ معلوماتك!',
       html: welcomeHtml(username, email),

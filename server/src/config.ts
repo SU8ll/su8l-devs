@@ -62,6 +62,14 @@ export const config = {
     user: process.env.GMAIL_USER || '',
     pass: process.env.GMAIL_APP_PASSWORD || '',
   },
+
+  smtp: {
+    host: process.env.SMTP_HOST || 'smtp-relay.brevo.com',
+    port: Number(process.env.SMTP_PORT || 587),
+    user: process.env.SMTP_USER || '',
+    pass: process.env.SMTP_PASS || '',
+    from: process.env.SMTP_FROM || '',
+  },
 } as const;
 
 export const PAYPAL_BASE =
