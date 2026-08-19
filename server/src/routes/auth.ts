@@ -221,7 +221,8 @@ router.post('/test-ping', async (_req, res) => {
   try {
     const hash = await hashPassword('test123');
     const ok = await verifyPassword('test123', hash);
-    res.json({ ok: true, method: 'email-password-auth', hashWorks: ok });
+    const user = await findUserByEmail('test@test.com');
+    res.json({ ok: true, method: 'email-password-auth', hashWorks: ok, dbQuery: user !== undefined });
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }
