@@ -56,7 +56,7 @@ async function sendBrevo(to: string, subject: string, html: string): Promise<boo
   }
 
   const payload = {
-    sender: { name: 'SU8L DEVs', email: config.smtp.user },
+    sender: { name: 'SU8L DEVs', email: 'alghamdyy321@11868290.brevosend.com' },
     to: [{ email: to }],
     subject,
     htmlContent: html,
