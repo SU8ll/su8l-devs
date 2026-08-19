@@ -11,7 +11,7 @@ const transporter =
       })
     : null;
 
-function welcomeHtml(username: string, email: string): string {
+function emailShell(bodyHtml: string): string {
   return `<!DOCTYPE html>
 <html lang="en" dir="ltr">
 <head>
@@ -29,6 +29,9 @@ function welcomeHtml(username: string, email: string): string {
   .box { background:#1e293b; border:1px solid #334155; border-radius:8px; padding:16px 20px; margin:20px 0; }
   .box .label { color:#94a3b8; font-size:12px; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px; }
   .box .value { color:#f1f5f9; font-size:15px; font-weight:600; word-break:break-all; }
+  .code { background:#0ea5e9; border-radius:8px; padding:20px; margin:20px 0; text-align:center; }
+  .code .label { color:#bae6fd; font-size:12px; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; }
+  .code .value { color:#fff; font-size:36px; font-weight:800; letter-spacing:12px; font-family:Consolas,Menlo,monospace; }
   .warning { background:#451a03; border:1px solid #92400e; border-radius:8px; padding:16px 20px; margin:20px 0; }
   .warning h3 { color:#fbbf24; font-size:14px; margin:0 0 8px 0; }
   .warning p { color:#fde68a; font-size:13px; margin:0; line-height:1.6; }
@@ -44,24 +47,7 @@ function welcomeHtml(username: string, email: string): string {
     <p>Cloud Bot Service Platform</p>
   </div>
   <div class="body">
-    <h2>Welcome, ${username}!</h2>
-    <p>Your account has been created successfully on the SU8L DEVs platform. You can now sign in and start using our services.</p>
-
-    <div class="box">
-      <div class="label">Email Address</div>
-      <div class="value">${email}</div>
-    </div>
-    <div class="box">
-      <div class="label">Username</div>
-      <div class="value">${username}</div>
-    </div>
-
-    <div class="warning">
-      <h3>⚠ Important Notice — Keep Your Credentials Safe!</h3>
-      <p>In case you lose your password, username, or email, <strong>SU8L DEVs will NOT assist you in recovering them.</strong> Please save this information in a secure place.</p>
-    </div>
-
-    <p style="margin-top:24px; color:#64748b; font-size:13px;">If you did not create this account, you can simply ignore this email.</p>
+    ${bodyHtml}
   </div>
   <div class="footer">
     <p>&copy; ${new Date().getFullYear()} <a href="https://su8ldevs.eu.cc">SU8L DEVs</a>. All rights reserved.</p>
@@ -69,6 +55,39 @@ function welcomeHtml(username: string, email: string): string {
 </div>
 </body>
 </html>`;
+}
+
+export async function sendVerificationEmail(
+  email: string,
+  username: string,
+  code: string,
+): Promise<boolean> {
+  if (!transporter) {
+    console.warn('[email] SMTP not configured — skipping verification email');
+    return false;
+  }
+
+  try {
+    await transporter.sendMail({
+      from: config.smtp.from || `"SU8L DEVs" <${config.smtp.user}>`,
+      to: email,
+      subject: 'SU8L DEVs — Verify Your Email',
+      html: emailShell(`
+        <h2>Hello ${username}!</h2>
+        <p>Thanks for signing up. To complete your registration, enter the verification code below:</p>
+        <div class="code">
+          <div class="label">Your Verification Code</div>
+          <div class="value">${code}</div>
+        </div>
+        <p style="color:#64748b; font-size:13px;">This code expires in <strong>10 minutes</strong>. If you did not request this, you can ignore this email.</p>
+      `),
+    });
+    console.log(`[email] Verification email sent to ${email}`);
+    return true;
+  } catch (err) {
+    console.error('[email] Failed to send verification email:', err);
+    return false;
+  }
 }
 
 export async function sendWelcomeEmail(
@@ -85,7 +104,23 @@ export async function sendWelcomeEmail(
       from: config.smtp.from || `"SU8L DEVs" <${config.smtp.user}>`,
       to: email,
       subject: 'Welcome to SU8L DEVs — Save Your Credentials!',
-      html: welcomeHtml(username, email),
+      html: emailShell(`
+        <h2>Welcome, ${username}!</h2>
+        <p>Your account has been created successfully on the SU8L DEVs platform. You can now sign in and start using our services.</p>
+        <div class="box">
+          <div class="label">Email Address</div>
+          <div class="value">${email}</div>
+        </div>
+        <div class="box">
+          <div class="label">Username</div>
+          <div class="value">${username}</div>
+        </div>
+        <div class="warning">
+          <h3>⚠ Important Notice — Keep Your Credentials Safe!</h3>
+          <p>In case you lose your password, username, or email, <strong>SU8L DEVs will NOT assist you in recovering them.</strong> Please save this information in a secure place.</p>
+        </div>
+        <p style="margin-top:24px; color:#64748b; font-size:13px;">If you did not create this account, you can simply ignore this email.</p>
+      `),
     });
     console.log(`[email] Welcome email sent to ${email}`);
     return true;

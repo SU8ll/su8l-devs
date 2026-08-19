@@ -18,9 +18,13 @@ import {
   nowIso,
   run,
 } from '../db.js';
-import { sendWelcomeEmail } from '../lib/email.js';
+import { sendVerificationEmail, sendWelcomeEmail } from '../lib/email.js';
 
 const scryptAsync = promisify(scrypt);
+
+function generateCode(): string {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
 
 async function hashPassword(password: string): Promise<string> {
   const salt = randomBytes(16).toString('hex');
@@ -230,31 +234,121 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'email, username and password are required' });
     }
 
+    const existingEmail = await findUserByEmail(String(email));
+    if (existingEmail) {
+      return res.status(409).json({ error: 'email already registered' });
+    }
+    const existingUser = await findUserByUsername(String(username));
+    if (existingUser) {
+      return res.status(409).json({ error: 'username already taken' });
+    }
+
     const passwordHash = await hashPassword(String(password));
     const userId = `usr_${randomUUID().replace(/-/g, '').slice(0, 20)}`;
     const ts = nowIso();
+    const code = generateCode();
+    const expires = new Date(Date.now() + 10 * 60 * 1000).toISOString();
 
     await run(
-      'INSERT INTO users (id, email, username, password_hash, avatar, locale, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?)',
+      'INSERT INTO users (id, email, username, password_hash, email_verified, verify_code, verify_expires, avatar, locale, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
       userId,
       String(email).toLowerCase().trim(),
       String(username).trim(),
       passwordHash,
+      0,
+      code,
+      expires,
       null,
       'en',
       ts,
       ts
     );
 
-    const token = signSession(userId);
-    setSessionCookie(res, token);
+    // Send verification email in background (fire-and-forget)
+    sendVerificationEmail(String(email).toLowerCase().trim(), String(username).trim(), code).catch(() => {});
 
-    // Send welcome email in background (fire-and-forget)
-    sendWelcomeEmail(String(email).toLowerCase().trim(), String(username).trim()).catch(() => {});
-
-    return res.json({ ok: true, token, userId });
+    return res.json({ ok: true, needsVerification: true, userId });
   } catch (err) {
     console.error('[auth:register]', err);
+    return res.status(500).json({ error: 'internal server error' });
+  }
+});
+
+router.post('/verify-email', async (req, res) => {
+  try {
+    const { email, code } = req.body as { email?: string; code?: string };
+
+    if (!email || !code) {
+      return res.status(400).json({ error: 'email and code are required' });
+    }
+
+    const user = await findUserByEmail(String(email));
+    if (!user) {
+      return res.status(404).json({ error: 'user not found' });
+    }
+    if (user.email_verified) {
+      return res.status(400).json({ error: 'email already verified' });
+    }
+    if (!user.verify_code || !user.verify_expires) {
+      return res.status(400).json({ error: 'no verification code found — request a new one' });
+    }
+    if (user.verify_code !== String(code).trim()) {
+      return res.status(400).json({ error: 'invalid verification code' });
+    }
+    if (new Date(user.verify_expires).getTime() < Date.now()) {
+      return res.status(400).json({ error: 'verification code expired — request a new one' });
+    }
+
+    await run(
+      'UPDATE users SET email_verified = 1, verify_code = NULL, verify_expires = NULL, updated_at = ? WHERE id = ?',
+      nowIso(),
+      user.id
+    );
+
+    const token = signSession(user.id);
+    setSessionCookie(res, token);
+
+    // Send the welcome email after successful verification (fire-and-forget)
+    sendWelcomeEmail(String(email).toLowerCase().trim(), user.username).catch(() => {});
+
+    return res.json({ ok: true, token, userId: user.id });
+  } catch (err) {
+    console.error('[auth:verify-email]', err);
+    return res.status(500).json({ error: 'internal server error' });
+  }
+});
+
+router.post('/resend-code', async (req, res) => {
+  try {
+    const { email } = req.body as { email?: string };
+
+    if (!email) {
+      return res.status(400).json({ error: 'email is required' });
+    }
+
+    const user = await findUserByEmail(String(email));
+    if (!user) {
+      return res.status(404).json({ error: 'user not found' });
+    }
+    if (user.email_verified) {
+      return res.status(400).json({ error: 'email already verified' });
+    }
+
+    const code = generateCode();
+    const expires = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+    await run(
+      'UPDATE users SET verify_code = ?, verify_expires = ?, updated_at = ? WHERE id = ?',
+      code,
+      expires,
+      nowIso(),
+      user.id
+    );
+
+    sendVerificationEmail(String(email).toLowerCase().trim(), user.username, code).catch(() => {});
+
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error('[auth:resend-code]', err);
     return res.status(500).json({ error: 'internal server error' });
   }
 });
@@ -273,6 +367,9 @@ router.post('/login', async (req, res) => {
     const user = await findUserByEmailOrUsername(identifier);
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    if (!user.email_verified) {
+      return res.status(403).json({ error: 'email_not_verified', email: user.email });
     }
 
     // Fetch password_hash separately (not in User type)

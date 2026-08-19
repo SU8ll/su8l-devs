@@ -77,7 +77,13 @@ export default function Login() {
         window.location.href = '/dashboard';
       }
     } catch (err: unknown) {
-      const apiErr = err as { detail?: { error?: string }; message?: string };
+      const apiErr = err as { detail?: { error?: string; email?: string }; message?: string };
+      const code = apiErr?.detail?.error;
+      if (code === 'email_not_verified') {
+        const email = apiErr.detail?.email || identifier;
+        window.location.href = `/verify?email=${encodeURIComponent(email)}`;
+        return;
+      }
       setFormError(apiErr?.detail?.error || apiErr?.message || 'Login failed');
     } finally {
       setLoading(false);

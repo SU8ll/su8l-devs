@@ -32,13 +32,12 @@ export default function Register() {
 
     setLoading(true);
     try {
-      const data = await api<{ ok: boolean; token: string }>('/api/auth/register', {
+      const data = await api<{ ok: boolean; needsVerification: boolean }>('/api/auth/register', {
         method: 'POST',
         body: { email, username, password },
       });
-      if (data.ok && data.token) {
-        localStorage.setItem('su8l_token', data.token);
-        window.location.href = '/dashboard';
+      if (data.ok && data.needsVerification) {
+        window.location.href = `/verify?email=${encodeURIComponent(email)}`;
       }
     } catch (err: unknown) {
       const apiErr = err as { detail?: { error?: string }; message?: string };

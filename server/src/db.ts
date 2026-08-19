@@ -170,6 +170,12 @@ CREATE INDEX IF NOT EXISTS idx_bot_slots_user ON bot_slots(user_id);
 
 -- Password-based auth: nullable column for email/password users.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT;
+-- Email verification: 0 = not verified, 1 = verified.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS verify_code TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS verify_expires TEXT;
+-- Keep pre-existing accounts active (they registered before verification was required).
+UPDATE users SET email_verified = 1 WHERE email_verified = 0 AND (password_hash IS NOT NULL OR id IN (SELECT user_id FROM accounts));
 `);
 }
 
@@ -228,6 +234,10 @@ export interface User {
   locale: string;
   created_at: string;
   updated_at: string;
+  password_hash: string | null;
+  email_verified: number;
+  verify_code: string | null;
+  verify_expires: string | null;
 }
 
 export interface Account {
