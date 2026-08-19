@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import jwt from 'jsonwebtoken';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, scrypt, randomBytes } from 'node:crypto';
+import { promisify } from 'node:util';
 import axios from 'axios';
-import bcrypt from 'bcryptjs';
 import { config } from '../config.js';
 import { clearSessionCookie, setSessionCookie, signSession, requireAuth, type AuthedRequest } from '../lib/auth.js';
 import { upsertOAuthUser } from '../services/auth.js';
@@ -15,10 +15,24 @@ import {
   findUserByEmail,
   findUserByUsername,
   findUserByEmailOrUsername,
-  createUser,
   nowIso,
   run,
 } from '../db.js';
+
+const scryptAsync = promisify(scrypt);
+
+async function hashPassword(password: string): Promise<string> {
+  const salt = randomBytes(16).toString('hex');
+  const derived = (await scryptAsync(password, salt, 64)) as Buffer;
+  return `${salt}:${derived.toString('hex')}`;
+}
+
+async function verifyPassword(password: string, stored: string): Promise<boolean> {
+  const [salt, hash] = stored.split(':');
+  if (!salt || !hash) return false;
+  const derived = (await scryptAsync(password, salt, 64)) as Buffer;
+  return derived.toString('hex') === hash;
+}
 
 const router = Router();
 
@@ -203,8 +217,6 @@ router.get('/facebook/callback', async (req, res) => {
 
 // ── Email / Username + Password Auth ────────────────────────────────────────
 
-const SALT_ROUNDS = 10;
-
 router.post('/register', async (req, res) => {
   try {
     const { email, username, password } = req.body as {
@@ -235,7 +247,7 @@ router.post('/register', async (req, res) => {
       return res.status(409).json({ error: 'Username already taken' });
     }
 
-    const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+    const passwordHash = await hashPassword(password);
     const userId = `usr_${randomUUID().replace(/-/g, '').slice(0, 20)}`;
     const ts = nowIso();
 
@@ -285,7 +297,7 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'This account uses social login only' });
     }
 
-    const valid = await bcrypt.compare(password, row.password_hash);
+    const valid = await verifyPassword(password, row.password_hash);
     if (!valid) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
@@ -328,7 +340,7 @@ router.post('/create-user', async (req, res) => {
       return res.status(409).json({ error: 'Username already taken' });
     }
 
-    const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+    const passwordHash = await hashPassword(password);
     const userId = `usr_${randomUUID().replace(/-/g, '').slice(0, 20)}`;
     const ts = nowIso();
 
