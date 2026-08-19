@@ -21,6 +21,7 @@ function welcomeHtml(username: string, email: string): string {
   body { margin:0; padding:0; background:#0b0e14; font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; }
   .wrapper { max-width:600px; margin:0 auto; background:#131926; border:1px solid #1e293b; border-radius:12px; overflow:hidden; }
   .header { background:linear-gradient(135deg,#0ea5e9,#8b5cf6); padding:32px 24px; text-align:center; }
+  .header img { width:72px; height:72px; border-radius:16px; background:#fff; padding:8px; box-shadow:0 4px 16px rgba(0,0,0,0.25); margin-bottom:12px; }
   .header h1 { color:#fff; font-size:24px; margin:0 0 4px 0; font-weight:700; }
   .header p { color:rgba(255,255,255,0.85); font-size:14px; margin:0; }
   .body { padding:32px 24px; color:#cbd5e1; font-size:15px; line-height:1.7; }
@@ -38,6 +39,7 @@ function welcomeHtml(username: string, email: string): string {
 <body>
 <div class="wrapper">
   <div class="header">
+    <img src="https://su8ldevs.eu.cc/logo.png" alt="SU8L DEVs" width="72" height="72" />
     <h1>SU8L DEVs</h1>
     <p>Cloud Bot Service Platform</p>
   </div>
