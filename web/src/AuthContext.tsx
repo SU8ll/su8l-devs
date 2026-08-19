@@ -15,7 +15,7 @@ interface AuthContextValue {
   loading: boolean;
   refresh: () => Promise<void>;
   logout: () => Promise<void>;
-  loginUrl: (provider: 'discord' | 'google' | 'facebook') => string;
+  loginUrl: (provider: 'discord') => string;
 }
 
 const AuthContext = createContext<AuthContextValue>({
@@ -56,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const loginUrl = useCallback(
-    (provider: 'discord' | 'google' | 'facebook') => apiUrl(`/api/auth/${provider}`),
+    (provider: 'discord') => apiUrl(`/api/auth/${provider}`),
     []
   );
 

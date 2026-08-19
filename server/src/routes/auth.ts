@@ -17,6 +17,7 @@ import {
   findUserByEmailOrUsername,
   nowIso,
   run,
+  type User,
 } from '../db.js';
 import { sendRecoveryEmail, sendVerificationEmail, sendWelcomeEmail } from '../lib/email.js';
 
@@ -115,107 +116,6 @@ router.get('/discord/callback', async (req, res) => {
     return res.redirect(`${config.appUrl}/auth/callback#token=${encodeURIComponent(token)}`);
   } catch (err) {
     console.error('[auth:discord]', err);
-    return res.redirect(`${config.appUrl}/login?error=oauth_failed`);
-  }
-});
-
-// ── Google (fallback) ────────────────────────────────────────────────────────
-
-router.get('/google', (_req, res) => {
-  const params = new URLSearchParams({
-    client_id: config.google.clientId,
-    redirect_uri: redirectUri('google'),
-    response_type: 'code',
-    scope: 'openid email profile',
-    access_type: 'online',
-    state: makeState('google'),
-    prompt: 'select_account',
-  });
-  res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
-});
-
-router.get('/google/callback', async (req, res) => {
-  const { code, state, error } = req.query;
-  if (error || !code || !state || !verifyState(String(state), 'google')) {
-    return res.redirect(`${config.appUrl}/login?error=oauth_denied`);
-  }
-  try {
-    const tokenRes = await axios.post(
-      'https://oauth2.googleapis.com/token',
-      new URLSearchParams({
-        client_id: config.google.clientId,
-        client_secret: config.google.clientSecret,
-        code: String(code),
-        grant_type: 'authorization_code',
-        redirect_uri: redirectUri('google'),
-      }),
-      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
-    );
-    const accessToken = tokenRes.data.access_token as string;
-    const me = await axios.get('https://www.googleapis.com/oauth2/v2/userinfo', {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    const g = me.data as { id: string; name?: string; email?: string; picture?: string };
-    const user = await upsertOAuthUser({
-      provider: 'google',
-      providerId: g.id,
-      email: g.email ?? null,
-      username: g.name || g.email?.split('@')[0] || g.id,
-      accessToken,
-    });
-    const token = signSession(user.id);
-    setSessionCookie(res, token);
-    return res.redirect(`${config.appUrl}/auth/callback#token=${encodeURIComponent(token)}`);
-  } catch (err) {
-    console.error('[auth:google]', err);
-    return res.redirect(`${config.appUrl}/login?error=oauth_failed`);
-  }
-});
-
-// ── Facebook (fallback) ──────────────────────────────────────────────────────
-
-router.get('/facebook', (_req, res) => {
-  const params = new URLSearchParams({
-    client_id: config.facebook.clientId,
-    redirect_uri: redirectUri('facebook'),
-    state: makeState('facebook'),
-    scope: 'email,public_profile',
-  });
-  res.redirect(`https://www.facebook.com/v19.0/dialog/oauth?${params.toString()}`);
-});
-
-router.get('/facebook/callback', async (req, res) => {
-  const { code, state, error } = req.query;
-  if (error || !code || !state || !verifyState(String(state), 'facebook')) {
-    return res.redirect(`${config.appUrl}/login?error=oauth_denied`);
-  }
-  try {
-    const tokenRes = await axios.get('https://graph.facebook.com/v19.0/oauth/access_token', {
-      params: {
-        client_id: config.facebook.clientId,
-        client_secret: config.facebook.clientSecret,
-        code: String(code),
-        redirect_uri: redirectUri('facebook'),
-      },
-    });
-    const accessToken = tokenRes.data.access_token as string;
-    const me = await axios.get('https://graph.facebook.com/v19.0/me', {
-      params: { fields: 'id,name,email,picture.type(large)' },
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    const f = me.data as { id: string; name?: string; email?: string; picture?: { data?: { url?: string } } };
-    const user = await upsertOAuthUser({
-      provider: 'facebook',
-      providerId: f.id,
-      email: f.email ?? null,
-      username: f.name || f.email?.split('@')[0] || f.id,
-      accessToken,
-    });
-    const token = signSession(user.id);
-    setSessionCookie(res, token);
-    return res.redirect(`${config.appUrl}/auth/callback#token=${encodeURIComponent(token)}`);
-  } catch (err) {
-    console.error('[auth:facebook]', err);
     return res.redirect(`${config.appUrl}/login?error=oauth_failed`);
   }
 });
@@ -443,17 +343,16 @@ router.post('/reset-password', async (req, res) => {
       return res.status(400).json({ error: 'Password must be at least 6 characters' });
     }
 
-    const user = await findUserByEmailOrUsername(String(identifier));
+    // Resolve the user by the code itself (the code is proof of email ownership),
+    // so duplicate emails / mixed identifiers can never mismatch.
+    const user = await get<User>(
+      'SELECT * FROM users WHERE verify_code = ? AND verify_expires IS NOT NULL ORDER BY verify_expires DESC LIMIT 1',
+      String(code).trim()
+    );
     if (!user) {
-      return res.status(404).json({ error: 'user not found' });
+      return res.status(400).json({ error: 'invalid code — request a new one' });
     }
-    if (!user.verify_code || !user.verify_expires) {
-      return res.status(400).json({ error: 'no recovery code found — request a new one' });
-    }
-    if (user.verify_code !== String(code).trim()) {
-      return res.status(400).json({ error: 'invalid code' });
-    }
-    if (new Date(user.verify_expires).getTime() < Date.now()) {
+    if (new Date(user.verify_expires!).getTime() < Date.now()) {
       return res.status(400).json({ error: 'code expired — request a new one' });
     }
 

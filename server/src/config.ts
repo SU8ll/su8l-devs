@@ -29,14 +29,6 @@ export const config = {
     clientId: process.env.DISCORD_CLIENT_ID || '',
     clientSecret: process.env.DISCORD_CLIENT_SECRET || '',
   },
-  google: {
-    clientId: process.env.GOOGLE_CLIENT_ID || '',
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
-  },
-  facebook: {
-    clientId: process.env.FACEBOOK_CLIENT_ID || '',
-    clientSecret: process.env.FACEBOOK_CLIENT_SECRET || '',
-  },
 
   paypal: {
     clientId: process.env.PAYPAL_CLIENT_ID || '',
