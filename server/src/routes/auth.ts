@@ -2,11 +2,23 @@ import { Router } from 'express';
 import jwt from 'jsonwebtoken';
 import { randomUUID } from 'node:crypto';
 import axios from 'axios';
+import bcrypt from 'bcryptjs';
 import { config } from '../config.js';
 import { clearSessionCookie, setSessionCookie, signSession, requireAuth, type AuthedRequest } from '../lib/auth.js';
 import { upsertOAuthUser } from '../services/auth.js';
 import { resolveAvatarUrl } from '../services/avatars.js';
-import { getEffectiveSlots, getSubscriptions, getExtraSlotCount } from '../db.js';
+import {
+  get,
+  getEffectiveSlots,
+  getSubscriptions,
+  getExtraSlotCount,
+  findUserByEmail,
+  findUserByUsername,
+  findUserByEmailOrUsername,
+  createUser,
+  nowIso,
+  run,
+} from '../db.js';
 
 const router = Router();
 
@@ -186,6 +198,156 @@ router.get('/facebook/callback', async (req, res) => {
   } catch (err) {
     console.error('[auth:facebook]', err);
     return res.redirect(`${config.appUrl}/login?error=oauth_failed`);
+  }
+});
+
+// ── Email / Username + Password Auth ────────────────────────────────────────
+
+const SALT_ROUNDS = 10;
+
+router.post('/register', async (req, res) => {
+  try {
+    const { email, username, password } = req.body as {
+      email?: string;
+      username?: string;
+      password?: string;
+    };
+
+    if (!email || !username || !password) {
+      return res.status(400).json({ error: 'email, username and password are required' });
+    }
+    if (typeof email !== 'string' || !email.includes('@') || email.length > 254) {
+      return res.status(400).json({ error: 'Invalid email address' });
+    }
+    if (typeof username !== 'string' || username.length < 3 || username.length > 32) {
+      return res.status(400).json({ error: 'Username must be 3-32 characters' });
+    }
+    if (typeof password !== 'string' || password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+
+    const existingEmail = await findUserByEmail(email);
+    if (existingEmail) {
+      return res.status(409).json({ error: 'Email already registered' });
+    }
+    const existingUser = await findUserByUsername(username);
+    if (existingUser) {
+      return res.status(409).json({ error: 'Username already taken' });
+    }
+
+    const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+    const userId = `usr_${crypto.randomUUID().replace(/-/g, '').slice(0, 20)}`;
+    const ts = nowIso();
+
+    await run(
+      'INSERT INTO users (id, email, username, password_hash, avatar, locale, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?)',
+      userId,
+      email.toLowerCase().trim(),
+      username.trim(),
+      passwordHash,
+      null,
+      'en',
+      ts,
+      ts
+    );
+
+    const token = signSession(userId);
+    setSessionCookie(res, token);
+    return res.json({ ok: true, token, userId });
+  } catch (err) {
+    console.error('[auth:register]', err);
+    return res.status(500).json({ error: 'internal server error' });
+  }
+});
+
+router.post('/login', async (req, res) => {
+  try {
+    const { identifier, password } = req.body as {
+      identifier?: string;
+      password?: string;
+    };
+
+    if (!identifier || !password) {
+      return res.status(400).json({ error: 'identifier and password are required' });
+    }
+
+    const user = await findUserByEmailOrUsername(identifier);
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Fetch password_hash separately (not in User type)
+    const row = await get<{ password_hash: string | null }>(
+      'SELECT password_hash FROM users WHERE id = ?',
+      user.id
+    );
+    if (!row?.password_hash) {
+      return res.status(401).json({ error: 'This account uses social login only' });
+    }
+
+    const valid = await bcrypt.compare(password, row.password_hash);
+    if (!valid) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    const token = signSession(user.id);
+    setSessionCookie(res, token);
+    return res.json({ ok: true, token });
+  } catch (err) {
+    console.error('[auth:login]', err);
+    return res.status(500).json({ error: 'internal server error' });
+  }
+});
+
+// ── Admin: create a user with email/password ──────────────────────────────
+
+router.post('/create-user', async (req, res) => {
+  try {
+    // Only allow if ADMIN_API_KEY is set and matches
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ') || authHeader.slice(7) !== config.adminKey) {
+      return res.status(403).json({ error: 'forbidden' });
+    }
+
+    const { email, username, password } = req.body as {
+      email?: string;
+      username?: string;
+      password?: string;
+    };
+
+    if (!email || !username || !password) {
+      return res.status(400).json({ error: 'email, username and password are required' });
+    }
+
+    const existingEmail = await findUserByEmail(email);
+    if (existingEmail) {
+      return res.status(409).json({ error: 'Email already registered' });
+    }
+    const existingUser = await findUserByUsername(username);
+    if (existingUser) {
+      return res.status(409).json({ error: 'Username already taken' });
+    }
+
+    const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+    const userId = `usr_${crypto.randomUUID().replace(/-/g, '').slice(0, 20)}`;
+    const ts = nowIso();
+
+    await run(
+      'INSERT INTO users (id, email, username, password_hash, avatar, locale, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?)',
+      userId,
+      email.toLowerCase().trim(),
+      username.trim(),
+      passwordHash,
+      null,
+      'en',
+      ts,
+      ts
+    );
+
+    return res.json({ ok: true, userId, email, username });
+  } catch (err) {
+    console.error('[auth:create-user]', err);
+    return res.status(500).json({ error: 'internal server error' });
   }
 });
 

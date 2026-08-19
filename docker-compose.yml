@@ -1,4 +1,19 @@
 services:
+  # ── Local Development PostgreSQL ──────────────────────────────────────────────
+  postgres:
+    image: postgres:16
+    container_name: su8l-pg-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: su8l_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  # ── Production Bot (Render handles the server) ────────────────────────────────
   bot:
     build:
       context: .
@@ -9,3 +24,6 @@ services:
       - bot/.env
     ports:
       - "4001:4001"
+
+volumes:
+  pgdata:

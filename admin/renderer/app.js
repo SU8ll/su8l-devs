@@ -37,6 +37,15 @@ const I18N = {
     botConfigs: 'إعدادات بوتات',
     searchPlaceholder: 'ابحث بالاسم أو البريد أو المعرّف…',
     search: 'بحث',
+    createUser: 'إنشاء مستخدم',
+    createUserTitle: 'إنشاء مستخدم جديد',
+    createUserEmail: 'البريد الإلكتروني',
+    createUserUsername: 'اسم المستخدم',
+    createUserPassword: 'كلمة المرور',
+    createUserBtn: 'إنشاء',
+    createUserCancel: 'إلغاء',
+    createUserSuccess: 'تم إنشاء المستخدم بنجاح',
+    createUserFailed: 'فشل إنشاء المستخدم',
     idCol: 'المعرّف',
     nameCol: 'الاسم',
     emailCol: 'البريد',
@@ -171,6 +180,15 @@ const I18N = {
     botConfigs: 'Bot configs',
     searchPlaceholder: 'Search by name, email or id…',
     search: 'Search',
+    createUser: 'Create User',
+    createUserTitle: 'Create New User',
+    createUserEmail: 'Email',
+    createUserUsername: 'Username',
+    createUserPassword: 'Password',
+    createUserBtn: 'Create',
+    createUserCancel: 'Cancel',
+    createUserSuccess: 'User created successfully',
+    createUserFailed: 'Failed to create user',
     idCol: 'ID',
     nameCol: 'Name',
     emailCol: 'Email',
@@ -621,6 +639,41 @@ function renderStats() {
 }
 
 /* ── Users ─────────────────────────────────────────────── */
+
+function showCreateUserModal() {
+  const overlay = el(`<div class="modal-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:flex;align-items:center;justify-content:center;">
+    <div class="panel" style="width:380px;max-width:90vw;">
+      <h3>${t('createUserTitle')}</h3>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px;">
+        <input id="cuEmail" class="input" type="email" placeholder="${t('createUserEmail')}" />
+        <input id="cuUsername" class="input" placeholder="${t('createUserUsername')}" />
+        <input id="cuPassword" class="input" type="password" placeholder="${t('createUserPassword')}" />
+        <div class="row" style="justify-content:flex-end;gap:8px;">
+          <button class="btn ghost" id="cuCancel">${t('createUserCancel')}</button>
+          <button class="btn success" id="cuSubmit">${t('createUserBtn')}</button>
+        </div>
+      </div>
+    </div>
+  </div>`);
+  document.body.appendChild(overlay);
+  overlay.querySelector('#cuCancel').addEventListener('click', () => overlay.remove());
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+  overlay.querySelector('#cuSubmit').addEventListener('click', async () => {
+    const email = overlay.querySelector('#cuEmail').value.trim();
+    const username = overlay.querySelector('#cuUsername').value.trim();
+    const password = overlay.querySelector('#cuPassword').value;
+    if (!email || !username || !password) return;
+    try {
+      await api('/auth/create-user', { method: 'POST', body: { email, username, password } });
+      overlay.remove();
+      alert(t('createUserSuccess'));
+      loadUsers();
+    } catch (err) {
+      alert(t('createUserFailed') + ': ' + (err.message || err));
+    }
+  });
+}
+
 async function loadUsers(q) {
   const query = (q || $('#userSearch')?.value || '').trim();
   try {
@@ -640,6 +693,7 @@ function renderUsers() {
     <div class="search-row">
       <input id="userSearch" class="input" placeholder="${t('searchPlaceholder')}" value="${escapeHtml(($('#userSearch')?.value || ''))}" />
       <button class="btn ghost" id="userSearchBtn">${t('search')}</button>
+      <button class="btn success" id="createUserBtn">${t('createUser')}</button>
     </div>
     <div class="panel table-wrap">
       <table>
@@ -1276,6 +1330,7 @@ $('#view').addEventListener('click', (e) => {
   if (e.target.id === 'grantSubBtn') doAction('grant-sub', undefined, undefined, e.target);
   if (e.target.id === 'replyBtn') doAction('reply', undefined, undefined, e.target);
   if (e.target.id === 'genPromoBtn') doAction('gen-promos', undefined, undefined, e.target);
+  if (e.target.id === 'createUserBtn') showCreateUserModal();
 });
 
 document.addEventListener('keydown', (e) => {

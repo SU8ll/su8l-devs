@@ -10,14 +10,21 @@
   ],
   "scripts": {
     "dev": "concurrently -n server,bot,web -c magenta,cyan,green \"npm run dev -w @su8l/server\" \"npm run dev -w @su8l/bot\" \"npm run dev -w @su8l/web\"",
+    "dev:local": "concurrently -n server,web -c magenta,green \"npm run dev -w @su8l/server\" \"npm run dev -w @su8l/web\"",
     "dev:server": "npm run dev -w @su8l/server",
     "dev:web": "npm run dev -w @su8l/web",
     "dev:bot": "npm run dev -w @su8l/bot",
     "build": "npm run build -w @su8l/server && npm run build -w @su8l/web",
     "start": "npm run start -w @su8l/server",
-    "typecheck": "npm run typecheck -w @su8l/server && npm run typecheck -w @su8l/bot && npm run typecheck -w @su8l/web"
+    "typecheck": "npm run typecheck -w @su8l/server && npm run typecheck -w @su8l/bot && npm run typecheck -w @su8l/web",
+    "db:up": "docker compose up postgres -d",
+    "db:down": "docker compose down"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "concurrently": "^9.1.2"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3"
   }
 }

@@ -167,6 +167,10 @@ CREATE TABLE IF NOT EXISTS bot_slots (
   updated_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_bot_slots_user ON bot_slots(user_id);
+
+-- Password-based auth: nullable column for email/password users.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_unique ON users(LOWER(email)) WHERE email IS NOT NULL;
 `);
 }
 
@@ -253,6 +257,18 @@ export function getAccounts(userId: string): Promise<Account[]> {
 export async function findUserByEmail(email: string): Promise<User | undefined> {
   if (!email) return undefined;
   return get<User>('SELECT * FROM users WHERE LOWER(email) = LOWER(?)', email);
+}
+
+export async function findUserByUsername(username: string): Promise<User | undefined> {
+  if (!username) return undefined;
+  return get<User>('SELECT * FROM users WHERE LOWER(username) = LOWER(?)', username);
+}
+
+export async function findUserByEmailOrUsername(identifier: string): Promise<User | undefined> {
+  if (!identifier) return undefined;
+  const byEmail = await get<User>('SELECT * FROM users WHERE LOWER(email) = LOWER(?)', identifier);
+  if (byEmail) return byEmail;
+  return get<User>('SELECT * FROM users WHERE LOWER(username) = LOWER(?)', identifier);
 }
 
 export async function createUser(data: {
