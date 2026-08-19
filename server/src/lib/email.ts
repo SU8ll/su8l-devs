@@ -90,6 +90,39 @@ export async function sendVerificationEmail(
   }
 }
 
+export async function sendRecoveryEmail(
+  email: string,
+  username: string,
+  code: string,
+): Promise<boolean> {
+  if (!transporter) {
+    console.warn('[email] SMTP not configured — skipping recovery email');
+    return false;
+  }
+
+  try {
+    await transporter.sendMail({
+      from: config.smtp.from || `"SU8L DEVs" <${config.smtp.user}>`,
+      to: email,
+      subject: 'SU8L DEVs — Account Recovery Code',
+      html: emailShell(`
+        <h2>Hello ${username}!</h2>
+        <p>We received a request to recover your SU8L DEVs account. Use the code below to reset your password:</p>
+        <div class="code">
+          <div class="label">Your Recovery Code</div>
+          <div class="value">${code}</div>
+        </div>
+        <p style="color:#64748b; font-size:13px;">This code expires in <strong>10 minutes</strong>. If you did not request this, you can ignore this email and your password will stay unchanged.</p>
+      `),
+    });
+    console.log(`[email] Recovery email sent to ${email}`);
+    return true;
+  } catch (err) {
+    console.error('[email] Failed to send recovery email:', err);
+    return false;
+  }
+}
+
 export async function sendWelcomeEmail(
   email: string,
   username: string,

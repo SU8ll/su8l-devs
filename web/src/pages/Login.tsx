@@ -179,6 +179,11 @@ export default function Login() {
               {loading ? t('login.loggingIn') : t('login.loginBtn')}
             </button>
             <p className="text-center text-xs text-muted">
+              <Link to="/forgot" className="text-glow/80 hover:text-glow hover:underline">
+                {t('login.forgotLink')}
+              </Link>
+            </p>
+            <p className="text-center text-xs text-muted">
               {t('login.noAccount')}{' '}
               <Link to="/register" className="text-glow hover:underline">
                 {t('login.registerLink')}

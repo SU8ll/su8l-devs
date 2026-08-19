@@ -18,7 +18,7 @@ import {
   nowIso,
   run,
 } from '../db.js';
-import { sendVerificationEmail, sendWelcomeEmail } from '../lib/email.js';
+import { sendRecoveryEmail, sendVerificationEmail, sendWelcomeEmail } from '../lib/email.js';
 
 const scryptAsync = promisify(scrypt);
 
@@ -391,6 +391,87 @@ router.post('/login', async (req, res) => {
     return res.json({ ok: true, token });
   } catch (err) {
     console.error('[auth:login]', err);
+    return res.status(500).json({ error: 'internal server error' });
+  }
+});
+
+// ── Account recovery (forgot password / username / email) ────────────────
+
+router.post('/forgot', async (req, res) => {
+  try {
+    const { identifier } = req.body as { identifier?: string };
+    if (!identifier) {
+      return res.status(400).json({ error: 'identifier is required' });
+    }
+
+    const user = await findUserByEmailOrUsername(String(identifier));
+    if (!user || !user.email) {
+      // Don't leak whether the account exists.
+      return res.json({ ok: true });
+    }
+
+    const code = generateCode();
+    const expires = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+    await run(
+      'UPDATE users SET verify_code = ?, verify_expires = ?, updated_at = ? WHERE id = ?',
+      code,
+      expires,
+      nowIso(),
+      user.id
+    );
+
+    sendRecoveryEmail(user.email, user.username, code).catch(() => {});
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error('[auth:forgot]', err);
+    return res.status(500).json({ error: 'internal server error' });
+  }
+});
+
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { identifier, code, newPassword } = req.body as {
+      identifier?: string;
+      code?: string;
+      newPassword?: string;
+    };
+
+    if (!identifier || !code || !newPassword) {
+      return res.status(400).json({ error: 'identifier, code and newPassword are required' });
+    }
+    if (String(newPassword).length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+
+    const user = await findUserByEmailOrUsername(String(identifier));
+    if (!user) {
+      return res.status(404).json({ error: 'user not found' });
+    }
+    if (!user.verify_code || !user.verify_expires) {
+      return res.status(400).json({ error: 'no recovery code found — request a new one' });
+    }
+    if (user.verify_code !== String(code).trim()) {
+      return res.status(400).json({ error: 'invalid code' });
+    }
+    if (new Date(user.verify_expires).getTime() < Date.now()) {
+      return res.status(400).json({ error: 'code expired — request a new one' });
+    }
+
+    const passwordHash = await hashPassword(String(newPassword));
+    await run(
+      'UPDATE users SET password_hash = ?, verify_code = NULL, verify_expires = NULL, updated_at = ? WHERE id = ?',
+      passwordHash,
+      nowIso(),
+      user.id
+    );
+
+    return res.json({
+      ok: true,
+      email: user.email,
+      username: user.username,
+    });
+  } catch (err) {
+    console.error('[auth:reset-password]', err);
     return res.status(500).json({ error: 'internal server error' });
   }
 });
