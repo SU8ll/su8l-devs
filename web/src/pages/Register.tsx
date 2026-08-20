@@ -32,12 +32,12 @@ export default function Register() {
 
     setLoading(true);
     try {
-      const data = await api<{ ok: boolean; needsVerification: boolean }>('/api/auth/register', {
+      const data = await api<{ ok: boolean; userId: string }>('/api/auth/register', {
         method: 'POST',
         body: { email, username, password },
       });
-      if (data.ok && data.needsVerification) {
-        window.location.href = `/verify?email=${encodeURIComponent(email)}`;
+      if (data.ok) {
+        window.location.href = '/login?registered=1';
       }
     } catch (err: unknown) {
       const apiErr = err as { detail?: { error?: string }; message?: string };
@@ -133,6 +133,11 @@ export default function Register() {
           >
             {loading ? t('register.creating') : t('register.createBtn')}
           </button>
+
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs leading-relaxed text-amber-300">
+            <strong className="block mb-1">{t('register.warning.title')}</strong>
+            {t('register.warning.body')}
+          </div>
 
           <p className="text-center text-xs text-muted">
             {t('register.hasAccount')}{' '}

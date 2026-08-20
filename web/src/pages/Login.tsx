@@ -21,6 +21,7 @@ export default function Login() {
   const location = useLocation();
   const params = new URLSearchParams(location.search);
   const error = params.get('error');
+  const registered = params.get('registered');
   const from = (location.state as { from?: string } | null)?.from;
 
   const [msg, setMsg] = useState('');
@@ -55,12 +56,6 @@ export default function Login() {
       }
     } catch (err: unknown) {
       const apiErr = err as { detail?: { error?: string; email?: string }; message?: string };
-      const code = apiErr?.detail?.error;
-      if (code === 'email_not_verified') {
-        const email = apiErr.detail?.email || identifier;
-        window.location.href = `/verify?email=${encodeURIComponent(email)}`;
-        return;
-      }
       setFormError(apiErr?.detail?.error || apiErr?.message || 'Login failed');
     } finally {
       setLoading(false);
@@ -90,6 +85,11 @@ export default function Login() {
         {msg && (
           <div className="mt-6 rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-3 text-sm text-red-300">
             {msg}
+          </div>
+        )}
+        {registered && !msg && (
+          <div className="mt-6 rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-300">
+            {t('login.registeredSuccess')}
           </div>
         )}
 
@@ -155,11 +155,6 @@ export default function Login() {
             >
               {loading ? t('login.loggingIn') : t('login.loginBtn')}
             </button>
-            <p className="text-center text-xs text-muted">
-              <Link to="/forgot" className="text-glow/80 hover:text-glow hover:underline">
-                {t('login.forgotLink')}
-              </Link>
-            </p>
             <p className="text-center text-xs text-muted">
               {t('login.noAccount')}{' '}
               <Link to="/register" className="text-glow hover:underline">
