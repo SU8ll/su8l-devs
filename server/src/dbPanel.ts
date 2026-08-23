@@ -269,6 +269,21 @@ export async function panelListConfigs(limit = 100) {
 
 // Kept for parity with the tickets export list; used by the admin panel router.
 export { listAllTickets };
+
+export async function panelConfigChanges(since?: string) {
+  const where = since ? `WHERE bs.updated_at > $1` : '';
+  const params = since ? [since] : [];
+  const res = await pool.query(
+    `SELECT bs.id AS slot_id, bs.name, bs.updated_at, u.username, u.email
+       FROM bot_slots bs JOIN users u ON u.id = bs.user_id
+       ${where}
+       ORDER BY bs.updated_at DESC
+       LIMIT 50`,
+    params
+  );
+  return res.rows;
+}
+
 export const panelPlanOptions = ['starter', 'elite'].map((key) => ({
   key,
   months: planCycleMonths('monthly'),

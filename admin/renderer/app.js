@@ -141,6 +141,7 @@ const I18N = {
     refreshErr: 'تعذر التحميل',
     notifNewTicket: 'تذكرة جديدة',
     notifNewReply: 'ردّ جديد',
+    notifConfigSaved: 'تم تحديث إعدادات بوت',
     notifBtnOn: 'تشغيل الإشعارات',
     notifBtnOff: 'كتم الإشعارات',
     ratioTower: 'البرج',
@@ -284,6 +285,7 @@ const I18N = {
     refreshErr: 'Failed to load',
     notifNewTicket: 'New ticket',
     notifNewReply: 'New reply',
+    notifConfigSaved: 'Bot config updated',
     notifBtnOn: 'Turn notifications on',
     notifBtnOff: 'Mute notifications',
     ratioTower: 'Tower',
@@ -495,12 +497,35 @@ async function pollTickets() {
   state.notifSeeded = true;
 }
 
+/* ── Config change polling ─────────────────────────────── */
+const configWatch = {};
+let configSeeded = false;
+
+async function pollConfigChanges() {
+  if (!state.token || !state.notifOn) return;
+  try {
+    const d = await api('/config-changes');
+    const changes = d.changes || [];
+    for (const c of changes) {
+      const prev = configWatch[c.slot_id];
+      if (prev && prev === c.updated_at) continue;
+      configWatch[c.slot_id] = c.updated_at;
+      if (configSeeded) {
+        notify(t('notifConfigSaved'), (c.username || '') + ' — ' + (c.name || c.slot_id));
+      }
+    }
+    configSeeded = true;
+  } catch { /* ignore */ }
+}
+
 function startNotifPoll() {
   stopNotifPoll();
   state.notifSeeded = false;
   state.ticketWatch = {};
+  configSeeded = false;
   pollTickets();
-  state.notifTimer = setInterval(pollTickets, 20000);
+  pollConfigChanges();
+  state.notifTimer = setInterval(() => { pollTickets(); pollConfigChanges(); }, 15000);
 }
 function stopNotifPoll() {
   if (state.notifTimer) {

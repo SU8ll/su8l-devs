@@ -21,6 +21,7 @@ import {
   panelCreatePromos,
   panelDisablePromo,
   panelListConfigs,
+  panelConfigChanges,
 } from '../dbPanel.js';
 
 const router = Router();
@@ -201,6 +202,13 @@ router.delete('/promos/:id', async (req, res) => {
 
 router.get('/configs', async (_req, res) => {
   res.json({ configs: await panelListConfigs() });
+});
+
+// GET /api/panel/config-changes — recent bot-slot config changes since a timestamp.
+router.get('/config-changes', async (req, res) => {
+  const since = String(req.query.since ?? '').trim();
+  const changes = await panelConfigChanges(since || undefined);
+  res.json({ changes });
 });
 
 export default router;
