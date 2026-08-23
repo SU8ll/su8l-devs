@@ -130,7 +130,7 @@ function schemaForCategory(c: CloudCategorySchema): z.ZodObject<Record<string, z
   const shape: Record<string, z.ZodTypeAny> = {};
   for (const f of c.fields ?? []) shape[f.key] = fieldSchema(f);
   for (const g of c.groups ?? []) shape[g.id] = schemaForCategory(g);
-  return z.object(shape);
+  return z.object(shape).passthrough();
 }
 
 /** Full zod validator for a whole config payload (for `POST /api/cloud/config`). */
@@ -139,7 +139,7 @@ export function configSchema(root: CloudCategorySchema): z.ZodObject<Record<stri
   for (const sub of [...(root.categories ?? []), ...(root.groups ?? [])]) {
     shape[sub.id] = schemaForCategory(sub);
   }
-  return z.object(shape);
+  return z.object(shape).passthrough();
 }
 
 function bool(def: boolean): CloudFieldSchema {
