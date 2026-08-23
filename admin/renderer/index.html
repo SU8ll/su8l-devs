@@ -54,7 +54,10 @@
       <div class="topbar">
         <h2 id="viewTitle">نظرة عامة</h2>
         <div class="row">
-          <button id="notifBtn" class="btn ghost small" title="🔔">🔔</button>
+          <div class="notif-wrap">
+            <button id="notifBtn" class="btn ghost small notif-btn" title="🔔">🔔<span id="notifBadge" class="notif-badge"></span></button>
+            <div id="notifPanel" class="notif-panel hidden"></div>
+          </div>
           <button id="refreshBtn" class="btn ghost small">⟳ <span data-i18n="refresh">تحديث</span></button>
         </div>
       </div>

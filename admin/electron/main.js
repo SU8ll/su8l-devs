@@ -44,8 +44,6 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      // The panel calls the public HTTPS API directly; CORS is disabled for
-      // desktop clients so the file:// renderer can talk to it.
       webSecurity: false,
     },
   });
@@ -56,6 +54,12 @@ function createWindow() {
     shell.openExternal(url);
     return { action: 'deny' };
   });
+
+  win.webContents.session.setPermissionRequestHandler((_wc, permission, callback) => {
+    if (permission === 'notifications') callback(true);
+    else callback(false);
+  });
+  win.webContents.session.setPermissionCheckHandler(() => true);
 }
 
 app.whenReady().then(() => {

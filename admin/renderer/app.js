@@ -335,7 +335,6 @@ const state = {
   notifSeeded: false,
   notifTimer: null,
   streamCtl: null,
-  notifOn: localStorage.getItem('su8l_admin_notif') !== 'off',
 };
 
 let toastTimer = null;
@@ -438,34 +437,60 @@ function logout(soft) {
 
 /* ── Notifications ─────────────────────────────────────── */
 let notifAudioCtx = null;
-function beep() {
+let notifUnlocked = false;
+
+function ensureAudioCtx() {
   try {
     const AC = window.AudioContext || window.webkitAudioContext;
-    if (!AC) return;
+    if (!AC) return null;
     if (!notifAudioCtx || notifAudioCtx.state === 'closed') notifAudioCtx = new AC();
-    const ctx = notifAudioCtx;
-    if (ctx.state === 'suspended') ctx.resume();
+    if (notifAudioCtx.state === 'suspended') notifAudioCtx.resume();
+    return notifAudioCtx;
+  } catch { return null; }
+}
+
+document.addEventListener('click', () => {
+  if (!notifUnlocked) {
+    notifUnlocked = true;
+    const ctx = ensureAudioCtx();
+    if (ctx && ctx.state === 'suspended') ctx.resume();
+  }
+}, { once: false });
+
+function beep() {
+  try {
+    const ctx = ensureAudioCtx();
+    if (!ctx) return;
     const play = (freq, start, dur) => {
       const o = ctx.createOscillator();
       const g = ctx.createGain();
       o.type = 'sine';
       o.frequency.value = freq;
       g.gain.setValueAtTime(0.0001, ctx.currentTime + start);
-      g.gain.exponentialRampToValueAtTime(0.22, ctx.currentTime + start + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.35, ctx.currentTime + start + 0.015);
       g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + start + dur);
       o.connect(g);
       g.connect(ctx.destination);
       o.start(ctx.currentTime + start);
       o.stop(ctx.currentTime + start + dur + 0.05);
     };
-    play(880, 0, 0.12);
-    play(1318, 0.14, 0.18);
+    play(880, 0, 0.15);
+    play(1100, 0.10, 0.12);
+    play(1318, 0.22, 0.20);
   } catch {}
 }
 
+const notifHistory = [];
+let notifBadge = 0;
+
 function notify(title, body) {
-  if (!state.notifOn) return;
   beep();
+  const entry = { title, body, time: Date.now(), read: false };
+  notifHistory.unshift(entry);
+  if (notifHistory.length > 50) notifHistory.length = 50;
+  notifBadge++;
+  renderNotifBadge();
+  renderNotifPanel();
   toast(title + ' — ' + body, 'ok');
   try {
     if (typeof window.desktopNotify === 'function') {
@@ -477,7 +502,7 @@ function notify(title, body) {
 }
 
 async function pollTickets() {
-  if (!state.token || !state.notifOn) return;
+  if (!state.token) return;
   let tickets;
   try {
     tickets = (await api('/tickets')).tickets || [];
@@ -502,7 +527,7 @@ const configWatch = {};
 let configSeeded = false;
 
 async function pollConfigChanges() {
-  if (!state.token || !state.notifOn) return;
+  if (!state.token) return;
   try {
     const d = await api('/config-changes');
     const changes = d.changes || [];
@@ -525,7 +550,7 @@ function startNotifPoll() {
   configSeeded = false;
   pollTickets();
   pollConfigChanges();
-  state.notifTimer = setInterval(() => { pollTickets(); pollConfigChanges(); }, 15000);
+  state.notifTimer = setInterval(() => { pollTickets(); pollConfigChanges(); }, 10000);
 }
 function stopNotifPoll() {
   if (state.notifTimer) {
@@ -577,7 +602,7 @@ function connectTicketStream() {
 function onTicketStreamEvent(evt) {
   if (!evt || evt.ticketId === undefined) return;
   // Re-fetch instantly so the count-based notification fires without the 20s wait.
-  if (state.notifOn) pollTickets();
+  if (state.token) pollTickets();
   // If the admin is viewing that ticket, reload it so the message appears live
   // (preserving the reply draft). The admin's own replies are excluded — they
   // already trigger a reload in doAction.
@@ -599,8 +624,53 @@ function onTicketStreamEvent(evt) {
 function renderNotifBtn() {
   const b = $('#notifBtn');
   if (!b) return;
-  b.textContent = state.notifOn ? '🔔' : '🔕';
-  b.title = state.notifOn ? t('notifBtnOn') : t('notifBtnOff');
+  b.innerHTML = '🔔<span id="notifBadge" class="notif-badge' + (notifBadge > 0 ? ' show' : '') + '">' + (notifBadge > 99 ? '99+' : notifBadge) + '</span>';
+}
+
+function renderNotifBadge() {
+  const badge = $('#notifBadge');
+  if (!badge) return renderNotifBtn();
+  badge.textContent = notifBadge > 99 ? '99+' : notifBadge;
+  badge.classList.toggle('show', notifBadge > 0);
+}
+
+function renderNotifPanel() {
+  const panel = $('#notifPanel');
+  if (!panel) return;
+  if (notifHistory.length === 0) {
+    panel.innerHTML = '<div class="notif-empty">' + (lang === 'ar' ? 'لا إشعارات' : 'No notifications') + '</div>';
+    return;
+  }
+  panel.innerHTML = notifHistory.slice(0, 30).map((n) => {
+    const t2 = new Date(n.time);
+    const timeStr = t2.toLocaleTimeString(lang === 'ar' ? 'ar' : 'en-GB', { hour: '2-digit', minute: '2-digit' });
+    const dateStr = t2.toLocaleDateString(lang === 'ar' ? 'ar' : 'en-GB', { day: '2-digit', month: '2-digit' });
+    return '<div class="notif-item' + (n.read ? '' : ' unread') + '">' +
+      '<div class="notif-item-title">' + n.title + '</div>' +
+      '<div class="notif-item-body">' + n.body + '</div>' +
+      '<div class="notif-item-time">' + dateStr + ' ' + timeStr + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function toggleNotifPanel() {
+  const panel = $('#notifPanel');
+  if (!panel) return;
+  const isVisible = !panel.classList.contains('hidden');
+  if (!isVisible) {
+    notifHistory.forEach(n => { n.read = true; });
+    notifBadge = 0;
+    renderNotifBadge();
+    renderNotifPanel();
+  }
+  panel.classList.toggle('hidden');
+}
+
+function markAllRead() {
+  notifHistory.forEach(n => { n.read = true; });
+  notifBadge = 0;
+  renderNotifBadge();
+  renderNotifPanel();
 }
 
 /* ── Navigation ────────────────────────────────────────── */
@@ -622,6 +692,7 @@ function showApp() {
     Notification.requestPermission().catch(() => {});
   }
   renderNotifBtn();
+  renderNotifPanel();
   startNotifPoll();
   connectTicketStream();
   loadView();
@@ -1330,13 +1401,15 @@ $('#loginLangBtn').addEventListener('click', () => setLang(lang === 'ar' ? 'en' 
 $('#langBtn').addEventListener('click', () => setLang(lang === 'ar' ? 'en' : 'ar'));
 $('#logoutBtn').addEventListener('click', () => logout(false));
 $('#refreshBtn').addEventListener('click', loadView);
-$('#notifBtn').addEventListener('click', () => {
-  state.notifOn = !state.notifOn;
-  localStorage.setItem('su8l_admin_notif', state.notifOn ? 'on' : 'off');
-  if (state.notifOn && window.Notification && Notification.permission === 'default') {
-    Notification.requestPermission().catch(() => {});
+$('#notifBtn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  toggleNotifPanel();
+});
+document.addEventListener('click', (e) => {
+  const panel = $('#notifPanel');
+  if (panel && !panel.classList.contains('hidden') && !e.target.closest('.notif-wrap')) {
+    panel.classList.add('hidden');
   }
-  renderNotifBtn();
 });
 
 document.querySelectorAll('.nav-item').forEach((b) =>
