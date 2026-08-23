@@ -483,9 +483,9 @@ function beep() {
 const notifHistory = [];
 let notifBadge = 0;
 
-function notify(title, body) {
+function notify(title, body, action) {
   beep();
-  const entry = { title, body, time: Date.now(), read: false };
+  const entry = { title, body, time: Date.now(), read: false, done: false, action: action || null, id: 'n' + Date.now() + Math.random().toString(36).slice(2, 6) };
   notifHistory.unshift(entry);
   if (notifHistory.length > 50) notifHistory.length = 50;
   notifBadge++;
@@ -501,6 +501,38 @@ function notify(title, body) {
   } catch {}
 }
 
+function notifNavigate(nid) {
+  const entry = notifHistory.find(n => n.id === nid);
+  if (!entry || !entry.action) return;
+  entry.read = true;
+  const a = entry.action;
+  if (a.view) switchView(a.view);
+  if (a.view === 'tickets' && a.id) {
+    setTimeout(() => openTicket(a.id).catch(() => {}), 200);
+  }
+  if (a.view === 'users' && a.id) {
+    setTimeout(() => { state.selectedUser = a.id; loadView(); }, 200);
+  }
+  renderNotifPanel();
+}
+
+function toggleDone(nid) {
+  const entry = notifHistory.find(n => n.id === nid);
+  if (!entry) return;
+  entry.done = !entry.done;
+  renderNotifPanel();
+}
+
+function toggleNotifRead(nid) {
+  const entry = notifHistory.find(n => n.id === nid);
+  if (!entry) return;
+  entry.read = !entry.read;
+  if (!entry.read) notifBadge++;
+  else notifBadge = Math.max(0, notifBadge - 1);
+  renderNotifBadge();
+  renderNotifPanel();
+}
+
 async function pollTickets() {
   if (!state.token) return;
   let tickets;
@@ -513,9 +545,9 @@ async function pollTickets() {
     const prev = state.ticketWatch[tk.id];
     now[tk.id] = count;
     if (!prev) {
-      if (state.notifSeeded) notify(t('notifNewTicket'), '#' + tk.id + ' — ' + (tk.subject || ''));
+      if (state.notifSeeded) notify(t('notifNewTicket'), '#' + tk.id + ' — ' + (tk.subject || ''), { view: 'tickets', id: tk.id });
     } else if (count > prev && tk.last_message_author !== 'staff') {
-      notify(t('notifNewReply'), '#' + tk.id + ' — ' + (tk.subject || ''));
+      notify(t('notifNewReply'), '#' + tk.id + ' — ' + (tk.subject || ''), { view: 'tickets', id: tk.id });
     }
   }
   state.ticketWatch = now;
@@ -536,7 +568,7 @@ async function pollConfigChanges() {
       if (prev && prev === c.updated_at) continue;
       configWatch[c.slot_id] = c.updated_at;
       if (configSeeded) {
-        notify(t('notifConfigSaved'), (c.username || '') + ' — ' + (c.name || c.slot_id));
+        notify(t('notifConfigSaved'), (c.username || '') + ' — ' + (c.name || c.slot_id), { view: 'configs', id: c.slot_id });
       }
     }
     configSeeded = true;
@@ -641,16 +673,40 @@ function renderNotifPanel() {
     panel.innerHTML = '<div class="notif-empty">' + (lang === 'ar' ? 'لا إشعارات' : 'No notifications') + '</div>';
     return;
   }
-  panel.innerHTML = notifHistory.slice(0, 30).map((n) => {
+  const doneCount = notifHistory.filter(n => n.done).length;
+  const totalCount = notifHistory.length;
+  panel.innerHTML =
+    '<div class="notif-header">' +
+      '<span class="notif-header-title">' + (lang === 'ar' ? 'الإشعارات' : 'Notifications') + ' <small>(' + doneCount + '/' + totalCount + ')</small></span>' +
+      '<button class="notif-mark-all" onclick="notifMarkAllDone()">' + (lang === 'ar' ? 'تحديد الكل كمنجز' : 'Mark all done') + '</button>' +
+    '</div>' +
+    notifHistory.slice(0, 30).map((n) => {
     const t2 = new Date(n.time);
     const timeStr = t2.toLocaleTimeString(lang === 'ar' ? 'ar' : 'en-GB', { hour: '2-digit', minute: '2-digit' });
     const dateStr = t2.toLocaleDateString(lang === 'ar' ? 'ar' : 'en-GB', { day: '2-digit', month: '2-digit' });
-    return '<div class="notif-item' + (n.read ? '' : ' unread') + '">' +
-      '<div class="notif-item-title">' + n.title + '</div>' +
-      '<div class="notif-item-body">' + n.body + '</div>' +
-      '<div class="notif-item-time">' + dateStr + ' ' + timeStr + '</div>' +
+    const hasAction = n.action ? ' clickable' : '';
+    const doneClass = n.done ? ' done' : '';
+    const unreadClass = n.read ? '' : ' unread';
+    return '<div class="notif-item' + unreadClass + doneClass + hasAction + '" data-nid="' + n.id + '">' +
+      '<div class="notif-item-main" onclick="notifNavigate(\'' + n.id + '\')">' +
+        '<div class="notif-item-title">' + n.title + '</div>' +
+        '<div class="notif-item-body">' + n.body + '</div>' +
+        '<div class="notif-item-time">' + dateStr + ' ' + timeStr + (n.action ? ' · ' + (lang === 'ar' ? 'اضغط للانتقال' : 'Click to go') : '') + '</div>' +
+      '</div>' +
+      '<div class="notif-item-actions">' +
+        (n.done
+          ? '<button class="notif-btn-done" onclick="event.stopPropagation(); toggleDone(\'' + n.id + '\')" title="' + (lang === 'ar' ? 'إلغاء التنفيذ' : 'Undo') + '">✓</button>'
+          : '<button class="notif-btn-undone" onclick="event.stopPropagation(); toggleDone(\'' + n.id + '\')" title="' + (lang === 'ar' ? 'تم التنفيذ' : 'Mark done') + '">○</button>') +
+      '</div>' +
     '</div>';
   }).join('');
+}
+
+function notifMarkAllDone() {
+  notifHistory.forEach(n => { n.done = true; n.read = true; });
+  notifBadge = 0;
+  renderNotifBadge();
+  renderNotifPanel();
 }
 
 function toggleNotifPanel() {
@@ -664,13 +720,6 @@ function toggleNotifPanel() {
     renderNotifPanel();
   }
   panel.classList.toggle('hidden');
-}
-
-function markAllRead() {
-  notifHistory.forEach(n => { n.read = true; });
-  notifBadge = 0;
-  renderNotifBadge();
-  renderNotifPanel();
 }
 
 /* ── Navigation ────────────────────────────────────────── */
@@ -1434,3 +1483,7 @@ $('#view').addEventListener('click', (e) => {
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && e.target.id === 'userSearch') loadUsers();
 });
+
+window.notifNavigate = notifNavigate;
+window.toggleDone = toggleDone;
+window.notifMarkAllDone = notifMarkAllDone;
