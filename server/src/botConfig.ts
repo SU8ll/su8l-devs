@@ -28,16 +28,6 @@ export function cloudConfigIssues(cfg: CloudConfig): string[] {
     if (minVal > maxVal) issues.push(`${a} must not exceed ${b} (${label})`);
   };
 
-  // 100% troop-ratio constraint — applied to the Alliance Championship split AND
-  // every Climb Tower troop ratio (Coliseum, Forest of Life, Crystal Cave,
-  // Knowledge Nexus, Molten Fort, Radiant Spire). Each group must total exactly 100%.
-  const cfgObj = cfg as unknown as Record<string, Record<string, Record<string, unknown>>>;
-  for (const rg of RATIO_GROUPS) {
-    const group = cfgObj?.[rg.categoryId]?.[rg.groupId];
-    if (!group || typeof group !== 'object') continue;
-    const sum = rg.keys.reduce((acc, k) => acc + (typeof group[k] === 'number' ? group[k] : 0), 0);
-    if (sum !== 100) issues.push(`${rg.name} troop split must total exactly 100%`);
-  }
   const walk = (c: CloudCategorySchema, values: Record<string, unknown>) => {
     for (const f of c.fields ?? []) {
       if (f.type !== 'number') continue;
