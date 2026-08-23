@@ -18,8 +18,6 @@ import { getStatusSummary } from '../services/uptime.js';
 import { resolveAvatarUrl } from '../services/avatars.js';
 import {
   MASTER_SCHEMA,
-  cloudConfigIssues,
-  cloudConfigSchema,
   compileCloudConfig,
   normalizeCloudConfig,
   type CloudConfig,
@@ -120,14 +118,12 @@ router.put('/cloud-config', requireAuth, async (req: AuthedRequest, res) => {
     req.body && typeof req.body === 'object' && !Array.isArray(req.body) && 'config' in req.body
       ? (req.body as { config: unknown }).config
       : req.body;
-  const parsed = cloudConfigSchema.safeParse(raw);
-  if (!parsed.success) {
-    return res.status(400).json({ error: 'invalid config', detail: parsed.error.flatten() });
+
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return res.status(400).json({ error: 'invalid config' });
   }
-  const issues = cloudConfigIssues(parsed.data);
-  if (issues.length > 0) {
-    return res.status(400).json({ error: 'invalid config', detail: issues });
-  }
+
+  const config = normalizeCloudConfig(raw) as CloudConfig;
 
   const slotsInfo = await getEffectiveSlots(req.user.id);
   if (slotsInfo.total === 0) {
@@ -140,7 +136,6 @@ router.put('/cloud-config', requireAuth, async (req: AuthedRequest, res) => {
       : undefined;
   const slot = (requested ? slots.find((s) => s.id === requested) : undefined) ?? slots[0]!;
 
-  const config = parsed.data as CloudConfig;
   await setBotSlotConfig(slot.id, config as unknown as Record<string, unknown>);
 
   let dispatched = false;
