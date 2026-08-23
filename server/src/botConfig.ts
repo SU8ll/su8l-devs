@@ -93,11 +93,9 @@ function mergeCategory(c: CloudCategorySchema, src: Record<string, unknown> | un
 export function normalizeCloudConfig(stored: unknown): CloudConfig {
   const src =
     (typeof stored === 'object' && stored !== null ? stored : {}) as Record<string, unknown>;
-  const candidate = Object.fromEntries(
+  return Object.fromEntries(
     MASTER_SCHEMA.categories.map((c) => [c.id, mergeCategory(c, src[c.id] as Record<string, unknown> | undefined)])
-  );
-  const parsed = cloudConfigSchema.safeParse(candidate);
-  return parsed.success ? parsed.data : DEFAULT_CLOUD_CONFIG;
+  ) as CloudConfig;
 }
 
 const yesNo = (b: boolean) => (b ? 'Yes' : 'No');
