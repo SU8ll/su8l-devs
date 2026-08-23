@@ -123,7 +123,7 @@ router.put('/cloud-config', requireAuth, async (req: AuthedRequest, res) => {
     return res.status(400).json({ error: 'invalid config' });
   }
 
-  const config = normalizeCloudConfig(raw) as CloudConfig;
+  const config = raw as CloudConfig;
 
   const slotsInfo = await getEffectiveSlots(req.user.id);
   if (slotsInfo.total === 0) {
