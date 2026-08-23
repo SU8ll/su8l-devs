@@ -30,3 +30,5 @@ admin/build-out*/
 admin/build-out*/**
 admin/release*/
 admin/release*/**
+admin/dist-out/
+admin/dist-out/**
