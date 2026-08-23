@@ -187,6 +187,12 @@ const en: Dict = {
   'dash.manageBot': 'Manage bot',
   'dash.changeAvatar': 'Change avatar',
 
+  'notif.title': 'Notifications',
+  'notif.empty': 'No notifications yet',
+  'notif.markAll': 'Mark all as read',
+  'notif.configSaved': 'Settings Saved',
+  'notif.new': 'New',
+
   'avatar.title': 'Choose your avatar',
   'avatar.subtitle': 'Pick an image to use as your profile picture.',
   'avatar.empty': 'No avatars available yet.',
@@ -555,6 +561,12 @@ const ar: Dict = {
   'dash.openTickets': 'افتح تذكرة',
   'dash.manageBot': 'إدارة البوت',
   'dash.changeAvatar': 'تغيير الصورة',
+
+  'notif.title': 'الإشعارات',
+  'notif.empty': 'لا توجد إشعارات',
+  'notif.markAll': 'تعيين الكل كمقروء',
+  'notif.configSaved': 'تم حفظ الإعدادات',
+  'notif.new': 'جديد',
 
   'avatar.title': 'اختر صورتك',
   'avatar.subtitle': 'اختر صورة لتكون صورتك الشخصية.',

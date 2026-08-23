@@ -13,6 +13,11 @@ import {
   renameBotSlot,
   setBotSlotConfig,
   subscriptionDisplayStatus,
+  createNotification,
+  getNotifications,
+  getUnreadNotificationCount,
+  markNotificationRead,
+  markAllNotificationsRead,
 } from '../db.js';
 import { getStatusSummary } from '../services/uptime.js';
 import { resolveAvatarUrl } from '../services/avatars.js';
@@ -138,6 +143,9 @@ router.put('/cloud-config', requireAuth, async (req: AuthedRequest, res) => {
 
   await setBotSlotConfig(slot.id, config as unknown as Record<string, unknown>);
 
+  // Persist a notification so the admin panel alerts immediately
+  createNotification(req.user.id, 'config_saved', 'Config Saved', `Cloud config updated for slot "${slot.name}" at ${new Date().toLocaleString()}`, { slotId: slot.id, slotName: slot.name }).catch(() => {});
+
   let dispatched = false;
   let dispatchReason: string | undefined;
   const identity = await getDiscordIdentity(req.user.id);
@@ -159,6 +167,31 @@ router.put('/cloud-config', requireAuth, async (req: AuthedRequest, res) => {
     dispatched,
     dispatchReason,
   });
+});
+
+// ── Notifications ──────────────────────────────────────────────────────────────
+
+router.get('/notifications', requireAuth, async (req: AuthedRequest, res) => {
+  const notifs = await getNotifications(req.user.id, 50);
+  const unread = await getUnreadNotificationCount(req.user.id);
+  res.json({ notifications: notifs, unread });
+});
+
+router.get('/notifications/unread-count', requireAuth, async (req: AuthedRequest, res) => {
+  const unread = await getUnreadNotificationCount(req.user.id);
+  res.json({ unread });
+});
+
+router.post('/notifications/:id/read', requireAuth, async (req: AuthedRequest, res) => {
+  const id = req.params.id;
+  if (!id) return res.status(400).json({ error: 'missing id' });
+  await markNotificationRead(id, req.user.id);
+  res.json({ ok: true });
+});
+
+router.post('/notifications/read-all', requireAuth, async (req: AuthedRequest, res) => {
+  await markAllNotificationsRead(req.user.id);
+  res.json({ ok: true });
 });
 
 export default router;

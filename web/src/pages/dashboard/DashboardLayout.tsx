@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useI18n } from '../../i18n';
 import { useAuth } from '../../AuthContext';
 import AvatarPicker from '../../components/AvatarPicker';
+import NotificationBell from '../../components/NotificationBell';
 
 export default function DashboardLayout() {
   const { t } = useI18n();
@@ -54,6 +55,7 @@ export default function DashboardLayout() {
           <div className="min-w-0 flex-1">
             <div className="truncate text-sm font-bold">{user?.username}</div>
           </div>
+          <NotificationBell />
           <button
             type="button"
             onClick={() => navigate('/')}
@@ -126,14 +128,17 @@ export default function DashboardLayout() {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => navigate('/')}
-              className="mb-2 flex w-full items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-semibold text-muted transition-all hover:bg-white/5 hover:text-white"
-            >
-              <span className="text-glow">⌂</span>
-              {t('nav.home')}
-            </button>
+            <div className="mb-2 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => navigate('/')}
+                className="flex flex-1 items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-semibold text-muted transition-all hover:bg-white/5 hover:text-white"
+              >
+                <span className="text-glow">⌂</span>
+                {t('nav.home')}
+              </button>
+              <NotificationBell />
+            </div>
 
             <nav className="flex flex-col gap-1">
               {links.map((l) => (

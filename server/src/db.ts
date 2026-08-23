@@ -176,6 +176,18 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS verify_code TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS verify_expires TEXT;
 -- Keep pre-existing accounts active (they registered before verification was required).
 UPDATE users SET email_verified = 1 WHERE email_verified = 0 AND (password_hash IS NOT NULL OR id IN (SELECT user_id FROM accounts));
+
+CREATE TABLE IF NOT EXISTS notifications (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  type TEXT NOT NULL,
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  meta TEXT DEFAULT '{}',
+  read_at TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_notif_user ON notifications(user_id, created_at DESC);
 `);
 }
 
@@ -813,4 +825,48 @@ export async function getBotSlotConfig(slotId: string): Promise<Record<string, u
 
 export async function setBotSlotConfig(slotId: string, cfg: Record<string, unknown>): Promise<void> {
   await run('UPDATE bot_slots SET bot_config = ?, updated_at = ? WHERE id = ?', JSON.stringify(cfg), nowIso(), slotId);
+}
+
+// ── Notifications ──────────────────────────────────────────────────────────────
+export interface NotificationRow {
+  id: string;
+  user_id: string;
+  type: string;
+  title: string;
+  message: string;
+  meta: string;
+  read_at: string | null;
+  created_at: string;
+}
+
+export async function createNotification(userId: string, type: string, title: string, message: string, meta?: Record<string, unknown>): Promise<void> {
+  const id = `notif_${crypto.randomUUID().replace(/-/g, '').slice(0, 20)}`;
+  await run(
+    'INSERT INTO notifications (id, user_id, type, title, message, meta, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    id, userId, type, title, message, JSON.stringify(meta ?? {}), nowIso()
+  );
+}
+
+export async function getNotifications(userId: string, limit = 50): Promise<NotificationRow[]> {
+  const r = await all<NotificationRow>(
+    'SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT ?',
+    userId, limit
+  );
+  return r;
+}
+
+export async function getUnreadNotificationCount(userId: string): Promise<number> {
+  const r = await get<{ count: string }>(
+    'SELECT COUNT(*)::text as count FROM notifications WHERE user_id = ? AND read_at IS NULL',
+    userId
+  );
+  return r ? Number(r.count) : 0;
+}
+
+export async function markNotificationRead(notifId: string, userId: string): Promise<void> {
+  await run('UPDATE notifications SET read_at = ? WHERE id = ? AND user_id = ?', nowIso(), notifId, userId);
+}
+
+export async function markAllNotificationsRead(userId: string): Promise<void> {
+  await run('UPDATE notifications SET read_at = ? WHERE user_id = ? AND read_at IS NULL', nowIso(), userId);
 }
