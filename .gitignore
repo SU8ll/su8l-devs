@@ -24,3 +24,9 @@ tsconfig.tsbuildinfo
 .vs/
 
 .vercel
+
+# Electron admin build artifacts
+admin/build-out*/
+admin/build-out*/**
+admin/release*/
+admin/release*/**
