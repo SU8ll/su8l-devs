@@ -28,6 +28,7 @@ import {
   type CloudConfig,
 } from '../botConfig.js';
 import { dispatchToBot, getDiscordIdentity } from '../services/dispatch.js';
+import { notifyConfigSaved } from '../lib/telegram.js';
 
 const router = Router();
 
@@ -145,6 +146,7 @@ router.put('/cloud-config', requireAuth, async (req: AuthedRequest, res) => {
 
   // Persist a notification so the admin panel alerts immediately
   createNotification(req.user.id, 'config_saved', 'Config Saved', `Cloud config updated for slot "${slot.name}" at ${new Date().toLocaleString()}`, { slotId: slot.id, slotName: slot.name }).catch(() => {});
+  notifyConfigSaved(req.user.username || req.user.email || 'unknown', slot.name).catch(() => {});
 
   let dispatched = false;
   let dispatchReason: string | undefined;

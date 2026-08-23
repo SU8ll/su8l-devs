@@ -14,6 +14,7 @@ import {
   setTicketStatus,
 } from '../db.js';
 import { config } from '../config.js';
+import { notifyNewTicket, notifyTicketReply } from '../lib/telegram.js';
 
 const router = Router();
 
@@ -56,6 +57,7 @@ router.post('/', requireAuth, async (req: AuthedRequest, res) => {
     priority: parsed.data.priority,
   });
   emitTicketEvent({ type: 'new', ticketId: ticket.id, userId: req.user.id, subject: ticket.subject });
+  notifyNewTicket(ticket.id, ticket.subject, req.user.username || req.user.email || 'unknown').catch(() => {});
   res.status(201).json({ ticket });
 });
 
@@ -78,6 +80,7 @@ router.post('/:id(\\d+)/messages', requireAuth, async (req: AuthedRequest, res) 
   const author = (await isStaff(req.user.id)) ? 'staff' : 'user';
   const message = await addTicketMessage(ticket.id, author, parsed.data.body);
   emitTicketEvent({ type: 'message', ticketId: ticket.id, userId: ticket.user_id, author, subject: ticket.subject });
+  if (author === 'user') notifyTicketReply(ticket.id, ticket.subject, req.user.username || req.user.email || 'user').catch(() => {});
   res.status(201).json({ message });
 });
 
