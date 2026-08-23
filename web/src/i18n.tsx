@@ -305,6 +305,7 @@ const en: Dict = {
   'cloud.ratioSumOk': 'valid (100%)',
   'cloud.ratioSumInvalid': 'must equal exactly 100%',
   'cloud.ratioGridWarning': 'Every tower troop split must total exactly 100% to save.',
+  'cloud.ratioSaveWarning': 'These ratio groups do not add up to 100%: {groups}. Save anyway?',
   'cloud.ratioTower': 'Tower',
   'cloud.ratioInf': 'Inf %',
   'cloud.ratioCav': 'Cav %',

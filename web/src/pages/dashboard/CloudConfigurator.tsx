@@ -157,6 +157,12 @@ export default function CloudConfigurator() {
 
   const save = async () => {
     if (!cfg) return;
+
+    if (!ratioValid) {
+      const names = ratioIssues.map((r) => `${r.name} (${r.sum}%)`).join(', ');
+      if (!window.confirm(t('cloud.ratioSaveWarning').replace('{groups}', names))) return;
+    }
+
     setSaving(true);
     try {
       const res = await api<SaveCloudConfigResponse>('/api/dashboard/cloud-config', {
@@ -315,7 +321,7 @@ export default function CloudConfigurator() {
                     type="button"
                     className="btn-primary w-full px-10 py-3 text-base sm:w-auto"
                     onClick={save}
-                    disabled={saving || !dirty || !ratioValid}
+                    disabled={saving || !dirty}
                   >
                     {saving ? (
                       <span className="inline-flex items-center gap-2">
