@@ -20,7 +20,7 @@ const en: Dict = {
   'hero.title1': 'Run your bot on',
   'hero.title2': 'majestic cloud power',
   'hero.subtitle':
-    'A high-performance, always-on home for your game bot. Discord-native authentication, institutional payment processing and a 24/7 status page — all in one powerful platform.',
+    'A high-performance, always-on home for your game bot. Secure authentication, institutional payment processing and a 24/7 status page — all in one powerful platform.',
   'hero.cta1': 'Deploy Your Bot',
   'hero.cta2': 'Live Status',
 
@@ -29,8 +29,8 @@ const en: Dict = {
   'stat.secure': 'Bank-Grade Encryption',
   'stat.support': 'Ticket Support',
 
-  'features.title': 'The Cloud Arsenal',
-  'features.subtitle': 'Advanced software engineering that puts total control in your hands, around the clock.',
+  'features.title': 'Engineered for Dominance',
+  'features.subtitle': 'Advanced automation software built for operators who demand 24/7 performance and total battlefield control.',
   'features.more': '✨ and more to discover yourself',
   'feature.1t': 'City Automation',
   'feature.1d': 'Full automation of build queues, tech tree, and resource management 24/7 — your city progresses at maximum speed, non-stop.',
@@ -71,7 +71,7 @@ const en: Dict = {
   'pricing.extraLocked': 'Requires an active base subscription',
 
   'checkout.title': 'Secure Checkout',
-  'checkout.subtitle': 'Institutional-grade payment processing. Your game credentials never touch this platform.',
+  'checkout.subtitle': 'Institutional-grade payment processing. Your credentials never touch this platform.',
   'checkout.payPanel': 'Secure Checkout',
   'checkout.summary': 'Order Summary',
   'checkout.plan': 'Plan',
@@ -102,7 +102,7 @@ const en: Dict = {
   'success.discord': 'Discord User',
   'success.whatsapp': 'Continue on WhatsApp',
   'success.whatsappNote':
-    'Tap the button to securely message the owner with your order details. Your game account credentials are shared ONLY through WhatsApp — never on this website.',
+    'Tap the button to securely message the owner with your order details. Your credentials are shared ONLY through WhatsApp — never on this website.',
   'success.nextStep': 'Next step',
   'success.processing': 'Confirming payment… this takes a few seconds.',
   'success.notReady': 'Your payment is still being confirmed. This page refreshes automatically.',
@@ -113,8 +113,8 @@ const en: Dict = {
   'success.waNotConfigured': 'WhatsApp not configured',
 
   'login.title': 'Enter the Grid',
-  'login.subtitle': 'Authenticate to access your cloud bot dashboard.',
-  'login.securedNote': '🔒 Session secured · Discord identity powers your dashboard profile',
+  'login.subtitle': 'Sign in to access your cloud bot dashboard.',
+  'login.securedNote': '🔒 Secure session · Your identity powers your dashboard profile',
   'login.registeredSuccess': 'Account created successfully! Please sign in.',
   'login.returnTo': "You'll return to:",
   'login.discord': 'Continue with Discord',
@@ -326,7 +326,7 @@ const en: Dict = {
     'SU8L DEVs provides cloud-hosted game bot services ("the Service"). Subscriptions are billed via PayPal on a monthly or yearly cycle. The Service is provided on an "as is" and "as available" basis.',
   'terms.s2t': '2. Account & Authentication',
   'terms.s2d':
-    'Accounts are created through Discord OAuth2 (or supported providers). You are responsible for safeguarding your credentials and for all activity under your account.',
+    'Accounts are created through supported authentication providers. You are responsible for safeguarding your credentials and for all activity under your account.',
   'terms.s3t': '3. Acceptable Use',
   'terms.s3d':
     'You agree not to misuse the Service, violate the game terms of any title the bot connects to, resell access, or attempt to reverse-engineer the platform. Game account credentials are exchanged privately with the owner and are never stored on this platform.',
@@ -395,7 +395,7 @@ const ar: Dict = {
   'hero.title1': 'شغّل بوتك على',
   'hero.title2': 'قوة سحابية فاخرة',
   'hero.subtitle':
-    'منزل عالي الأداء يعمل على مدار الساعة لبوت اللعبة الخاص بك. دخول عبر ديسكورد، معالجة مدفوعات مؤسسية، وصفحة حالة 24/7 — كل ذلك في منصة واحدة قوية.',
+    'منزل عالي الأداء يعمل على مدار الساعة لبوت اللعبة الخاص بك. مصادقة آمنة، معالجة مدفوعات مؤسسية، وصفحة حالة 24/7 — كل ذلك في منصة واحدة قوية.',
   'hero.cta1': 'فعّل بوتك',
   'hero.cta2': 'الحالة المباشرة',
 
@@ -404,8 +404,8 @@ const ar: Dict = {
   'stat.secure': 'تشفير بمستوى البنوك',
   'stat.support': 'دعم بالتذاكر',
 
-  'features.title': 'ترسانة القوة السحابية',
-  'features.subtitle': 'هندسة برمجية متطورة تضع السيطرة المطلقة بين يديك على مدار الساعة.',
+  'features.title': 'مُengineered للسيطرة',
+  'features.subtitle': 'برمجيات أتمتة متطورة مصممة للمشغّلين الذين يطلبون أداء 24/7 وسيطرة كاملة على ساحة المعركة.',
   'features.more': '✨ و المزيد لتكتشف بنفسك',
   'feature.1t': 'السيادة التلقائية على المدينة',
   'feature.1d': 'أتمتة كاملة لخطوط البناء، شجرة التقنية، وإدارة الموارد على مدار 24 ساعة لضمان تطور مدينتك بأقصى سرعة ممكنة دون توقف.',
@@ -446,7 +446,7 @@ const ar: Dict = {
   'pricing.extraLocked': 'تتطلب اشتراكًا أساسيًا نشطًا',
 
   'checkout.title': 'دفع آمن',
-  'checkout.subtitle': 'معالجة مدفوعات بمستوى مؤسسي. بيانات حساب لعبتك لا تصل إلى هذه المنصة أبدًا.',
+  'checkout.subtitle': 'معالجة مدفوعات بمستوى مؤسسي. بياناتك لا تصل إلى هذه المنصة أبدًا.',
   'checkout.payPanel': 'دفع آمن',
   'checkout.summary': 'ملخص الطلب',
   'checkout.plan': 'الخطة',
@@ -477,7 +477,7 @@ const ar: Dict = {
   'success.discord': 'مستخدم ديسكورد',
   'success.whatsapp': 'المتابعة عبر واتساب',
   'success.whatsappNote':
-    'اضغط الزر لإرسال رسالة آمنة إلى المالك مع تفاصيل طلبك. بيانات حساب اللعبة تُشارك فقط عبر واتساب — ولا تُدخل أبدًا على هذا الموقع.',
+    'اضغط الزر لإرسال رسالة آمنة إلى المالك مع تفاصيل طلبك. بياناتك تُشارك فقط عبر واتساب — ولا تُدخل أبدًا على هذا الموقع.',
   'success.nextStep': 'الخطوة التالية',
   'success.processing': 'جارٍ تأكيد الدفع… يستغرق بضع ثوانٍ.',
   'success.notReady': 'لا يزال الدفع قيد التأكيد. يتم تحديث هذه الصفحة تلقائيًا.',
@@ -489,7 +489,7 @@ const ar: Dict = {
 
   'login.title': 'ادخل إلى الشبكة',
   'login.subtitle': 'سجّل الدخول للوصول إلى لوحة تحكم البوت السحابي.',
-  'login.securedNote': '🔒 جلسة آمنة · هوية ديسكورد تمنح لوحة تحكمك',
+  'login.securedNote': '🔒 جلسة آمنة · هويتك تمنح لوحة تحكمك',
   'login.registeredSuccess': 'تم إنشاء الحساب بنجاح! سجّل الدخول الآن.',
   'login.returnTo': 'ستعود إلى:',
   'login.discord': 'المتابعة عبر ديسكورد',
@@ -690,7 +690,7 @@ const ar: Dict = {
     'توفر SU8L DEVs خدمات بوت ألعاب مستضافة على السحابة ("الخدمة"). تُفوتر الاشتراكات عبر باي بال شهريًا أو سنويًا. تُقدم الخدمة "كما هي" و"كما تتوفر".',
   'terms.s2t': '2. الحساب والمصادقة',
   'terms.s2d':
-    'تُنشأ الحسابات عبر ديسكورد OAuth2 (أو موفرات مدعومة). أنت مسؤول عن حماية بياناتك وعن كل النشاط تحت حسابك.',
+    'تُنشأ الحسابات عبر مزوّدي المصادقة المدعومين. أنت مسؤول عن حماية بياناتك وعن كل النشاط تحت حسابك.',
   'terms.s3t': '3. الاستخدام المقبول',
   'terms.s3d':
     'توافق على عدم إساءة استخدام الخدمة، أو مخالفة شروط أي لعبة يتصل بها البوت، أو إعادة بيع الوصول، أو محاولة الهندسة العكسية للمنصة. تُشارك بيانات حساب اللعبة خصوصًا مع المالك ولا تُخزن على هذه المنصة.',

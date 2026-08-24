@@ -4,6 +4,7 @@ import { useI18n } from '../i18n';
 import { useAuth } from '../AuthContext';
 import { api, type DashboardDto, type PlanDto, type PlansResponse } from '../api';
 import { Badge, Kicker, Spinner } from '../components/ui';
+import { useScrollReveal } from '../hooks/useScrollReveal';
 
 type Cycle = 'monthly' | 'yearly';
 
@@ -135,6 +136,7 @@ export default function Pricing() {
   const [error, setError] = useState('');
   const [hostingModal, setHostingModal] = useState<BotProduct | null>(null);
   const isAr = lang === 'ar';
+  useScrollReveal();
 
   useEffect(() => {
     api<PlansResponse>('/api/plans')
@@ -169,7 +171,7 @@ export default function Pricing() {
             type="button"
             onClick={() => setCycle('monthly')}
             className={`rounded-full px-6 py-2 text-sm font-semibold transition-all ${
-              cycle === 'monthly' ? 'bg-gradient-to-r from-primary to-glow text-white shadow-glow' : 'text-muted'
+              cycle === 'monthly' ? 'bg-gradient-to-r from-primary to-glow text-white shadow-glow' : 'text-muted hover:text-white'
             }`}
           >
             {t('pricing.monthly')}
@@ -178,7 +180,7 @@ export default function Pricing() {
             type="button"
             onClick={() => setCycle('yearly')}
             className={`rounded-full px-6 py-2 text-sm font-semibold transition-all ${
-              cycle === 'yearly' ? 'bg-gradient-to-r from-primary to-glow text-white shadow-glow' : 'text-muted'
+              cycle === 'yearly' ? 'bg-gradient-to-r from-primary to-glow text-white shadow-glow' : 'text-muted hover:text-white'
             }`}
           >
             {t('pricing.yearly')}
@@ -199,10 +201,10 @@ export default function Pricing() {
             return (
               <div
                 key={p.key}
-                className={`glass card-hover fade-up relative flex flex-col rounded-3xl p-8 ${
-                  isElite ? 'glow-border lg:-translate-y-4' : ''
+                className={`glass pricing-card card-hover reveal relative flex flex-col rounded-3xl p-8 ${
+                  isElite ? 'glow-border lg:-translate-y-3' : ''
                 }`}
-                style={{ animationDelay: `${idx * 0.08}s` }}
+                style={{ transitionDelay: `${idx * 0.12}s` }}
               >
                 {p.badge && (
                   <div className="absolute -top-3 right-8">
@@ -214,7 +216,7 @@ export default function Pricing() {
                 <h3 className="font-display text-xl font-extrabold text-gradient">{t(`plan.${p.key}.name`) || p.name}</h3>
                 <p className="mt-1 text-sm text-muted">{t(`plan.${p.key}.tagline`) || p.tagline}</p>
                 <div className="mt-6 flex items-end gap-1">
-                  <span className="font-display text-5xl font-black">${price}</span>
+                  <span className="font-display text-5xl font-black text-gradient">${price}</span>
                   <span className="mb-1.5 text-sm text-muted">{per}</span>
                 </div>
                 {cycle === 'yearly' && (
@@ -261,9 +263,9 @@ export default function Pricing() {
 
       {/* ── Other Bots Section ──────────────────────────────── */}
       <div className="mt-24">
-        <div className="text-center">
-          <Kicker>{isAr ? 'بوتات أخرى' : 'Other Bots'}</Kicker>
-          <p className="mx-auto mt-2 max-w-2xl text-muted">
+        <div className="reveal text-center">
+          <Kicker>{isAr ? 'بوتات أخرى' : 'OTHER PRODUCTS'}</Kicker>
+          <p className="mx-auto mt-3 max-w-2xl text-muted">
             {isAr ? 'بوتات ديسكورد وأدوات على الحاسوب — جاهزة للعمل' : 'Discord bots & desktop tools — ready to deploy'}
           </p>
         </div>
@@ -272,8 +274,8 @@ export default function Pricing() {
           {BOT_PRODUCTS.map((bot, idx) => (
             <div
               key={bot.id}
-              className="glass card-hover fade-up relative flex flex-col rounded-3xl p-6"
-              style={{ animationDelay: `${idx * 0.08}s` }}
+              className="glass pricing-card card-hover reveal relative flex flex-col rounded-3xl p-6"
+              style={{ transitionDelay: `${idx * 0.1}s` }}
             >
               <div className="text-4xl mb-4">{bot.icon}</div>
               <h3 className="font-display text-lg font-extrabold text-gradient">
@@ -283,7 +285,7 @@ export default function Pricing() {
                 {isAr ? bot.taglineAr : bot.tagline}
               </p>
               <div className="mt-4 flex items-end gap-1">
-                <span className="font-display text-3xl font-black">${bot.price}</span>
+                <span className="font-display text-3xl font-black text-gradient">${bot.price}</span>
                 <span className="mb-1 text-xs text-muted">{isAr ? 'دفعة واحدة' : 'one-time'}</span>
               </div>
               <ul className="mt-4 flex-1 space-y-2 text-sm">
@@ -318,9 +320,9 @@ export default function Pricing() {
 
       {/* ── Hosting Choice Modal ────────────────────────────── */}
       {hostingModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setHostingModal(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4" onClick={() => setHostingModal(null)}>
           <div
-            className="glass w-full max-w-lg rounded-3xl p-8 glow-border"
+            className="glass-strong w-full max-w-lg rounded-3xl p-8 glow-border modal-panel"
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="font-display text-2xl font-extrabold text-gradient text-center">
@@ -331,33 +333,31 @@ export default function Pricing() {
             </p>
 
             <div className="mt-8 grid gap-4 sm:grid-cols-2">
-              {/* Free Local Hosting */}
               <button
                 type="button"
-                className="glass group flex flex-col items-center gap-3 rounded-2xl border border-white/10 p-6 text-center transition-all hover:border-green-400/50 hover:bg-green-400/5"
+                className="glass feature-card group flex flex-col items-center gap-3 rounded-2xl border border-white/8 p-6 text-center transition-all duration-300 hover:border-emerald-400/40 hover:bg-emerald-400/5"
                 onClick={() => {
                   setHostingModal(null);
                   toast(isAr ? 'تم اختيار الاستضافة المحلية المجانية' : 'Free local hosting selected', 'ok');
                 }}
               >
-                <div className="text-3xl">🏠</div>
+                <div className="text-3xl transition-transform duration-300 group-hover:scale-110">🏠</div>
                 <div>
-                  <div className="font-display text-lg font-bold text-green-400">
+                  <div className="font-display text-lg font-bold text-emerald-400">
                     {isAr ? 'استضافة محلية' : 'Local Hosting'}
                   </div>
                   <div className="text-sm text-muted mt-1">
                     {isAr ? 'مجاني — تشغيل على جهازك' : 'Free — runs on your PC'}
                   </div>
                 </div>
-                <div className="rounded-full bg-green-400/10 px-4 py-1.5 text-sm font-bold text-green-400">
+                <div className="rounded-full bg-emerald-400/10 px-4 py-1.5 text-sm font-bold text-emerald-400">
                   $0
                 </div>
               </button>
 
-              {/* Cloud Hosting */}
               <button
                 type="button"
-                className="glass group flex flex-col items-center gap-3 rounded-2xl border border-white/10 p-6 text-center transition-all hover:border-glow/50 hover:bg-glow/5"
+                className="glass feature-card group flex flex-col items-center gap-3 rounded-2xl border border-white/8 p-6 text-center transition-all duration-300 hover:border-glow/40 hover:bg-glow/5"
                 onClick={() => {
                   setHostingModal(null);
                   if (!user) {
@@ -367,7 +367,7 @@ export default function Pricing() {
                   toast(isAr ? 'تواصل معنا عبر التذاكر لتفعيل الاستضافة السحابية ($8/شهر)' : 'Contact us via tickets to activate cloud hosting ($8/mo)', 'ok');
                 }}
               >
-                <div className="text-3xl">☁️</div>
+                <div className="text-3xl transition-transform duration-300 group-hover:scale-110">☁️</div>
                 <div>
                   <div className="font-display text-lg font-bold text-glow">
                     {isAr ? 'استضافة سحابية' : 'Cloud Hosting'}
