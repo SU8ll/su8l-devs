@@ -40,6 +40,7 @@ export default function Checkout() {
   const { user } = useAuth();
   const [params] = useSearchParams();
   const extra = params.get('extra') === '1';
+  const cloudHosting = params.get('cloud') === '1';
   const isAr = lang === 'ar';
 
   const [plans, setPlans] = useState<PlanDto[] | null>(null);
@@ -85,9 +86,11 @@ export default function Checkout() {
 
   const extraSlotPrice = dashboard?.extraSlotPrice ?? 15;
 
+  const CLOUD_HOSTING_PRICE = 8;
+
   const basePrice = (() => {
     if (extra) return extraSlotPrice;
-    if (isProduct && productInfo) return productInfo.price;
+    if (isProduct && productInfo) return productInfo.price + (cloudHosting ? CLOUD_HOSTING_PRICE : 0);
     if (!plan) return 0;
     return cycle === 'yearly' ? plan.yearly : plan.monthly;
   })();
@@ -123,7 +126,7 @@ export default function Checkout() {
         body: extra
           ? { extraSlot: true }
           : isProduct
-            ? { planKey: productInfo?.key || params.get('plan'), cycle: 'monthly' }
+            ? { planKey: productInfo?.key || params.get('plan'), cycle: 'monthly', cloudHosting }
             : { planKey: plan!.key, cycle, promoCode: promoApplied ? promoInput.trim() : null },
       });
       if (res.free) {
@@ -180,6 +183,10 @@ export default function Checkout() {
             <div className="mt-6 space-y-4">
               <Row label={t('checkout.plan')} value={isAr ? productInfo.nameAr : productInfo.name} />
               <Row label={t('checkout.type')} value={t('checkout.oneTime')} />
+              <Row label={isAr ? 'المنتج' : 'Product'} value={`$${productInfo.price}`} />
+              {cloudHosting && (
+                <Row label={isAr ? 'الاستضافة السحابية' : 'Cloud Hosting'} value={`$${CLOUD_HOSTING_PRICE}`} />
+              )}
             </div>
           ) : !plan || !plans ? (
             <div className="flex justify-center py-16">

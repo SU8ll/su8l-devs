@@ -271,10 +271,10 @@ export default function Pricing() {
                 onClick={() => {
                   setHostingModal(null);
                   if (!user) {
-                    navigate('/login', { state: { from: `/checkout?plan=${hostingModal.key}&cycle=monthly` } });
+                    navigate('/login', { state: { from: `/checkout?plan=${hostingModal.key}&cycle=monthly&cloud=1` } });
                     return;
                   }
-                  navigate(`/checkout?plan=${hostingModal.key}&cycle=monthly`);
+                  navigate(`/checkout?plan=${hostingModal.key}&cycle=monthly&cloud=1`);
                 }}
               >
                 <div className="text-3xl transition-transform duration-300 group-hover:scale-110">☁️</div>

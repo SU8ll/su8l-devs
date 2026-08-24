@@ -32,6 +32,7 @@ const createSchema = z.object({
   cycle: z.enum(['monthly', 'yearly']).optional(),
   promoCode: z.string().trim().max(64).optional().nullable(),
   extraSlot: z.boolean().optional().default(false),
+  cloudHosting: z.boolean().optional().default(false),
 });
 
 const captureSchema = z.object({ paypalOrderId: z.string().min(1) });
@@ -41,7 +42,7 @@ const promoValidateSchema = z.object({ promoCode: z.string().trim().min(1).max(6
 router.post('/create', requireAuth, async (req: AuthedRequest, res) => {
   const parsed = createSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: 'invalid request', detail: parsed.error.flatten() });
-  const { planKey, cycle, promoCode, extraSlot } = parsed.data;
+  const { planKey, cycle, promoCode, extraSlot, cloudHosting } = parsed.data;
 
   let amount: number;
   let description: string;
@@ -63,10 +64,10 @@ router.post('/create', requireAuth, async (req: AuthedRequest, res) => {
     // Check if it's a product (one-time purchase)
     const product = getProduct(planKey);
     if (product) {
-      amount = product.price;
-      description = product.name;
+      amount = product.price + (cloudHosting ? 8 : 0);
+      description = cloudHosting ? `${product.name} + Cloud Hosting ($8/mo)` : product.name;
       finalPlanKey = product.key;
-      finalPlanName = product.name;
+      finalPlanName = cloudHosting ? `${product.name} + Cloud Hosting` : product.name;
     } else {
       plan = getPlan(planKey);
       if (!plan) return res.status(400).json({ error: 'unknown plan' });
