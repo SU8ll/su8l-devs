@@ -910,8 +910,8 @@ function renderUserDetail() {
       <h3>${t('grantSub')}</h3>
       <div class="row">
         <select id="grantPlan" class="input grow">
-          <option value="starter">Starter — $35/${t('monthly').toLowerCase()}</option>
-          <option value="elite">Elite — $45/${t('monthly').toLowerCase()}</option>
+          <option value="starter">Starter — $18/${t('monthly').toLowerCase()}</option>
+          <option value="elite">Elite — $22/${t('monthly').toLowerCase()}</option>
         </select>
         <select id="grantCycle" class="input">
           <option value="monthly">${t('monthly')}</option>
