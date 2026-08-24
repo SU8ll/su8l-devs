@@ -149,6 +149,15 @@ const I18N = {
     ratioCav: 'فرسان',
     ratioArch: 'رماة',
     ratioTotal: 'المجموع %',
+    'nav.status': 'الحالة',
+    statusTabTitle: 'الحالة والصيانة',
+    maintenanceLabel: 'وضع الصيانة',
+    maintenanceMessage: 'رسالة الصيانة',
+    maintenancePlaceholder: 'رسالة للمستخدمين أثناء الصيانة…',
+    maintenanceOn: 'الصيانة مفعّلة',
+    maintenanceOff: 'الصيانة متوقفة',
+    saveStatus: 'حفظ',
+    statusSaved: 'تم الحفظ ✓',
   },
   en: {
     loginSub: 'Admin Panel',
@@ -293,6 +302,15 @@ const I18N = {
     ratioCav: 'Cav',
     ratioArch: 'Arch',
     ratioTotal: 'Total %',
+    'nav.status': 'Status',
+    statusTabTitle: 'Status & Maintenance',
+    maintenanceLabel: 'Maintenance Mode',
+    maintenanceMessage: 'Maintenance Message',
+    maintenancePlaceholder: 'Message shown to users during maintenance…',
+    maintenanceOn: 'Maintenance ON',
+    maintenanceOff: 'Maintenance OFF',
+    saveStatus: 'Save',
+    statusSaved: 'Saved ✓',
   },
 };
 
@@ -755,6 +773,7 @@ function loadView() {
   else if (v === 'tickets') loadTickets();
   else if (v === 'promos') loadPromos();
   else if (v === 'configs') loadConfigs();
+  else if (v === 'status') loadStatus();
 }
 
 /* ── Overview ──────────────────────────────────────────── */
@@ -1431,9 +1450,46 @@ async function doAction(name, id, extra, trigger) {
       toast(t('disablePromo'), 'ok');
       loadPromos();
     }
+    else if (name === 'save-status') {
+      const maintenance = $('#statusMaintenance').checked;
+      const message = $('#statusMessage').value.trim();
+      await api('/status', { method: 'PUT', body: { maintenance, message } });
+      toast(t('statusSaved'), 'ok');
+      loadStatus();
+    }
   } catch (e) {
     toast(e.message || String(e), 'error');
   }
+}
+
+/* ── Status / Maintenance ─────────────────────────────── */
+async function loadStatus() {
+  try {
+    const data = await api('/status');
+    renderStatus(data);
+  } catch (e) { renderError(e); }
+}
+function renderStatus(data) {
+  const on = data.maintenance_mode === 1;
+  const msg = data.maintenance_message || '';
+  $('#view').innerHTML = `
+    <div class="panel" style="max-width:480px;">
+      <h3 style="margin-bottom:16px;">${t('statusTabTitle')}</h3>
+      <div class="row" style="align-items:center;gap:12px;margin-bottom:16px;">
+        <label class="row" style="gap:8px;cursor:pointer;">
+          <input type="checkbox" id="statusMaintenance" ${on ? 'checked' : ''} />
+          <span>${t('maintenanceLabel')}</span>
+        </label>
+        <span class="badge ${on ? 'red' : 'green'}" style="margin-left:auto;">${on ? t('maintenanceOn') : t('maintenanceOff')}</span>
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="display:block;margin-bottom:6px;font-size:0.85rem;color:var(--muted);">${t('maintenanceMessage')}</label>
+        <textarea id="statusMessage" class="input" rows="3" style="width:100%;resize:vertical;" placeholder="${t('maintenancePlaceholder')}">${escapeHtml(msg)}</textarea>
+      </div>
+      <div class="row" style="justify-content:flex-end;">
+        <button class="btn success" data-action="save-status">${t('saveStatus')}</button>
+      </div>
+    </div>`;
 }
 
 /* ── Events ────────────────────────────────────────────── */
