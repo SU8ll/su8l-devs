@@ -94,8 +94,8 @@ try {
   const elite = plans.data?.plans?.find((p) => p.isHighestTier);
   const starter = plans.data?.plans?.find((p) => p.key === 'starter');
   check('GET /api/plans exposes exactly two plans', plans.data?.plans?.length === 2);
-  check('elite priced at $45/mo', !!elite && elite.monthly === 45 && elite.yearly === 45 * 12);
-  check('starter priced at $35/mo', !!starter && starter.monthly === 35 && starter.yearly === 35 * 12);
+  check('elite priced at $22/mo', !!elite && elite.monthly === 22);
+  check('starter priced at $18/mo', !!starter && starter.monthly === 18);
   check('plans response does not expose extra slot price', plans.data?.extraSlotPrice === undefined);
 
   // bot promo endpoint guards

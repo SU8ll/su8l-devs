@@ -7,14 +7,134 @@ import { Badge, Kicker, Spinner } from '../components/ui';
 
 type Cycle = 'monthly' | 'yearly';
 
+interface BotProduct {
+  id: string;
+  name: string;
+  nameAr: string;
+  price: number;
+  tagline: string;
+  taglineAr: string;
+  icon: string;
+  features: string[];
+  featuresAr: string[];
+  hasHostingChoice?: boolean;
+}
+
+const BOT_PRODUCTS: BotProduct[] = [
+  {
+    id: 'kingshot',
+    name: 'Kingshot Discord Bot',
+    nameAr: 'بوت Kingshot للديسكورد',
+    price: 10,
+    tagline: 'Complete Kingshot Alliance Management System',
+    taglineAr: 'نظام إدارة التحالف الكامل لـ Kingshot',
+    icon: '👑',
+    hasHostingChoice: true,
+    features: [
+      'Alliance Management',
+      'Gift Code System',
+      'Attendance & OCR',
+      'Power Tracking',
+      'Event Notifications',
+      'Centralized Control Panel',
+    ],
+    featuresAr: [
+      'إدارة التحالف',
+      'نظام أكواد الهدايا',
+      'الحضور والـ OCR',
+      'تتبع القوة',
+      'إشعارات الأحداث',
+      'لوحة تحكم موحدة',
+    ],
+  },
+  {
+    id: 'osota',
+    name: 'OSotA Kutlu',
+    nameAr: 'OSotA Kutlu',
+    price: 10,
+    tagline: 'Multilingual Discord Translation Bot',
+    taglineAr: 'بوت ترجمة متعدد اللغات للديسكورد',
+    icon: '🌐',
+    hasHostingChoice: true,
+    features: [
+      '9 Languages Supported',
+      'Reaction Translation',
+      'Right-Click Translate',
+      'Auto Language Detection',
+      'Private DM Translations',
+      'Individual Preferences',
+    ],
+    featuresAr: [
+      'دعم 9 لغات',
+      'ترجمة بالتفاعل',
+      'ترجمة بنقرة يمين',
+      'كشف اللغة تلقائياً',
+      'ترجمة خاصة بالرسائل المباشرة',
+      'تفضيلات فردية',
+    ],
+  },
+  {
+    id: 'command-center',
+    name: 'Command Center',
+    nameAr: 'Command Center',
+    price: 170,
+    tagline: 'AI-Powered War Management',
+    taglineAr: 'إدارة الحروب بالذكاء الاصطناعي',
+    icon: '⚔️',
+    features: [
+      'AI War Brain',
+      'Live Threat Analysis',
+      'Instant Rally Management',
+      'Battle Intelligence',
+      'Strategic Decision Support',
+      'Built for KvK',
+    ],
+    featuresAr: [
+      'ذكاء الحرب بالـ AI',
+      'تحليل التهديدات المباشر',
+      'إدارة الفورات الفورية',
+      'ذكاء المعركة',
+      'دعم القرارات الاستراتيجية',
+      'مصمم لـ KvK',
+    ],
+  },
+  {
+    id: 'auto-help',
+    name: 'Auto Help',
+    nameAr: 'المساعدة التلقائية',
+    price: 25,
+    tagline: 'ADB-Based Automated Alliance Help',
+    taglineAr: 'مساعدةتحالف تلقائية عبر ADB',
+    icon: '⚡',
+    features: [
+      'Background Operation',
+      'Multi-Account Support',
+      'Instant Detection & Execution',
+      'Live System Monitoring',
+      'Automatic Operation',
+      'No Mouse Interference',
+    ],
+    featuresAr: [
+      'تشغيل في الخلفية',
+      'دعم حسابات متعددة',
+      'كشف وتنفيذ فوري',
+      'مراقبة مباشرة',
+      'تشغيل تلقائي',
+      'بدون تداخل بالماوس',
+    ],
+  },
+];
+
 export default function Pricing() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [plans, setPlans] = useState<PlanDto[] | null>(null);
   const [dashboard, setDashboard] = useState<DashboardDto | null>(null);
   const [cycle, setCycle] = useState<Cycle>('monthly');
   const [error, setError] = useState('');
+  const [hostingModal, setHostingModal] = useState<BotProduct | null>(null);
+  const isAr = lang === 'ar';
 
   useEffect(() => {
     api<PlansResponse>('/api/plans')
@@ -139,6 +259,140 @@ export default function Pricing() {
         </div>
       )}
 
+      {/* ── Other Bots Section ──────────────────────────────── */}
+      <div className="mt-24">
+        <div className="text-center">
+          <Kicker>{isAr ? 'بوتات أخرى' : 'Other Bots'}</Kicker>
+          <p className="mx-auto mt-2 max-w-2xl text-muted">
+            {isAr ? 'بوتات ديسكورد وأدوات على الحاسوب — جاهزة للعمل' : 'Discord bots & desktop tools — ready to deploy'}
+          </p>
+        </div>
+
+        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {BOT_PRODUCTS.map((bot, idx) => (
+            <div
+              key={bot.id}
+              className="glass card-hover fade-up relative flex flex-col rounded-3xl p-6"
+              style={{ animationDelay: `${idx * 0.08}s` }}
+            >
+              <div className="text-4xl mb-4">{bot.icon}</div>
+              <h3 className="font-display text-lg font-extrabold text-gradient">
+                {isAr ? bot.nameAr : bot.name}
+              </h3>
+              <p className="mt-1 text-sm text-muted min-h-[40px]">
+                {isAr ? bot.taglineAr : bot.tagline}
+              </p>
+              <div className="mt-4 flex items-end gap-1">
+                <span className="font-display text-3xl font-black">${bot.price}</span>
+                <span className="mb-1 text-xs text-muted">{isAr ? 'دفعة واحدة' : 'one-time'}</span>
+              </div>
+              <ul className="mt-4 flex-1 space-y-2 text-sm">
+                {(isAr ? bot.featuresAr : bot.features).map((f) => (
+                  <li key={f} className="flex items-start gap-2">
+                    <svg className="mt-0.5 shrink-0 text-glow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                      <path d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span className="text-ink/80">{f}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-6">
+                <button
+                  type="button"
+                  className="btn-primary w-full text-sm"
+                  onClick={() => {
+                    if (bot.hasHostingChoice) {
+                      setHostingModal(bot);
+                    } else {
+                      toast(isAr ? 'تواصل معنا عبر التذاكر للطلب' : 'Contact us via tickets to order', 'ok');
+                    }
+                  }}
+                >
+                  {isAr ? 'شراء' : 'Buy Now'}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Hosting Choice Modal ────────────────────────────── */}
+      {hostingModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setHostingModal(null)}>
+          <div
+            className="glass w-full max-w-lg rounded-3xl p-8 glow-border"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="font-display text-2xl font-extrabold text-gradient text-center">
+              {hostingModal.icon} {isAr ? hostingModal.nameAr : hostingModal.name}
+            </h2>
+            <p className="mt-2 text-center text-sm text-muted">
+              {isAr ? 'اختر نوع الاستضافة' : 'Choose your hosting type'}
+            </p>
+
+            <div className="mt-8 grid gap-4 sm:grid-cols-2">
+              {/* Free Local Hosting */}
+              <button
+                type="button"
+                className="glass group flex flex-col items-center gap-3 rounded-2xl border border-white/10 p-6 text-center transition-all hover:border-green-400/50 hover:bg-green-400/5"
+                onClick={() => {
+                  setHostingModal(null);
+                  toast(isAr ? 'تم اختيار الاستضافة المحلية المجانية' : 'Free local hosting selected', 'ok');
+                }}
+              >
+                <div className="text-3xl">🏠</div>
+                <div>
+                  <div className="font-display text-lg font-bold text-green-400">
+                    {isAr ? 'استضافة محلية' : 'Local Hosting'}
+                  </div>
+                  <div className="text-sm text-muted mt-1">
+                    {isAr ? 'مجاني — تشغيل على جهازك' : 'Free — runs on your PC'}
+                  </div>
+                </div>
+                <div className="rounded-full bg-green-400/10 px-4 py-1.5 text-sm font-bold text-green-400">
+                  $0
+                </div>
+              </button>
+
+              {/* Cloud Hosting */}
+              <button
+                type="button"
+                className="glass group flex flex-col items-center gap-3 rounded-2xl border border-white/10 p-6 text-center transition-all hover:border-glow/50 hover:bg-glow/5"
+                onClick={() => {
+                  setHostingModal(null);
+                  if (!user) {
+                    navigate('/login');
+                    return;
+                  }
+                  toast(isAr ? 'تواصل معنا عبر التذاكر لتفعيل الاستضافة السحابية ($8/شهر)' : 'Contact us via tickets to activate cloud hosting ($8/mo)', 'ok');
+                }}
+              >
+                <div className="text-3xl">☁️</div>
+                <div>
+                  <div className="font-display text-lg font-bold text-glow">
+                    {isAr ? 'استضافة سحابية' : 'Cloud Hosting'}
+                  </div>
+                  <div className="text-sm text-muted mt-1">
+                    {isAr ? '24/7 — على سيرفرنا' : '24/7 — on our server'}
+                  </div>
+                </div>
+                <div className="rounded-full bg-glow/10 px-4 py-1.5 text-sm font-bold text-glow">
+                  $8<span className="text-xs font-normal text-muted">/mo</span>
+                </div>
+              </button>
+            </div>
+
+            <button
+              type="button"
+              className="mt-6 w-full text-sm text-muted hover:text-white transition-colors"
+              onClick={() => setHostingModal(null)}
+            >
+              {isAr ? 'إلغاء' : 'Cancel'}
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="mt-16 text-center text-sm text-muted">
         <p>
           🔒 {t('login.subtitle')} · 🎟 {t('dash.openTickets')} ·{' '}
@@ -149,4 +403,12 @@ export default function Pricing() {
       </div>
     </div>
   );
+}
+
+function toast(msg: string, kind?: string) {
+  const el = document.getElementById('toast');
+  if (!el) return;
+  el.textContent = msg;
+  el.className = 'toast ' + (kind || '');
+  setTimeout(() => el.classList.add('hidden'), 3500);
 }

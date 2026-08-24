@@ -18,8 +18,8 @@ export const PLANS: Plan[] = [
     key: 'starter',
     name: 'Starter',
     tagline: 'The foundation of your fleet',
-    monthly: 35,
-    yearly: Math.round(35 * 12 * YEARLY_DISCOUNT), // $336
+    monthly: 18,
+    yearly: Math.round(18 * 12 * YEARLY_DISCOUNT), // $172.80
     slots: 1,
     features: [
       '10 commands unlocked',
@@ -33,8 +33,8 @@ export const PLANS: Plan[] = [
     key: 'elite',
     name: 'Elite',
     tagline: 'Maximum power. 35+ commands.',
-    monthly: 45,
-    yearly: Math.round(45 * 12 * YEARLY_DISCOUNT), // $432
+    monthly: 22,
+    yearly: Math.round(22 * 12 * YEARLY_DISCOUNT), // $211.20
     slots: 6,
     badge: 'TOP TIER',
     isHighestTier: true,
