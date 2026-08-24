@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useI18n } from '../i18n';
 import { api, type StatusHistoryDto, type StatusSummaryDto } from '../api';
-import { Badge, Kicker, Spinner } from '../components/ui';
+import { Badge, Spinner } from '../components/ui';
 import UptimeChart from '../components/UptimeChart';
 
 export default function StatusPage() {
@@ -54,7 +54,6 @@ export default function StatusPage() {
   return (
     <div className="mx-auto max-w-4xl px-4 pb-24 sm:px-6">
       <div className="pt-12 text-center">
-        <Kicker>{t('dash.status')}</Kicker>
         <h1 className="font-display text-3xl font-black text-gradient">{t('status.title')}</h1>
         <p className="mt-2 text-muted">{t('status.subtitle')}</p>
       </div>

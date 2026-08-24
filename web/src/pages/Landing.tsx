@@ -1,5 +1,6 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useI18n } from '../i18n';
+import { useAuth } from '../AuthContext';
 import { Kicker } from '../components/ui';
 import FeaturesGrid from '../components/FeaturesGrid';
 import { useEffect, useState, useRef } from 'react';
@@ -61,6 +62,8 @@ function AnimatedCounter({ target, suffix = '' }: { target: number; suffix?: str
 
 export default function Landing() {
   const { t, lang } = useI18n();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const isAr = lang === 'ar';
   useScrollReveal();
   const [summary, setSummary] = useState<StatusSummaryDto | null>(null);
@@ -189,9 +192,15 @@ export default function Landing() {
               <Link to="/pricing" className="btn-primary w-full sm:w-auto">
                 {t('hero.cta1')}
               </Link>
-              <Link to="/login" className="btn-ghost w-full sm:w-auto">
-                {t('nav.login')}
-              </Link>
+              {user ? (
+                <button type="button" className="btn-ghost w-full sm:w-auto" onClick={() => navigate('/dashboard')}>
+                  {t('nav.dashboard')}
+                </button>
+              ) : (
+                <Link to="/login" className="btn-ghost w-full sm:w-auto">
+                  {t('nav.login')}
+                </Link>
+              )}
             </div>
           </div>
         </div>

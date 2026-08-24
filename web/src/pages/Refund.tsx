@@ -1,5 +1,4 @@
 import { useI18n } from '../i18n';
-import { Kicker } from '../components/ui';
 
 const SECTIONS = ['s1', 's2', 's3', 's4', 's5'];
 
@@ -8,7 +7,6 @@ export default function Refund() {
   return (
     <div className="mx-auto max-w-3xl px-4 pb-24 sm:px-6">
       <div className="pt-12 text-center">
-        <Kicker>{t('nav.refund')}</Kicker>
         <h1 className="font-display text-3xl font-black text-gradient">{t('refund.title')}</h1>
       </div>
 
