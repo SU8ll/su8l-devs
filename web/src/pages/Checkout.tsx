@@ -23,11 +23,24 @@ interface PromoInfo {
   yearlyPrice: number;
 }
 
+interface ProductInfo {
+  key: string;
+  name: string;
+  nameAr: string;
+  tagline: string;
+  taglineAr: string;
+  price: number;
+  icon: string;
+  features: string[];
+  featuresAr: string[];
+}
+
 export default function Checkout() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { user } = useAuth();
   const [params] = useSearchParams();
   const extra = params.get('extra') === '1';
+  const isAr = lang === 'ar';
 
   const [plans, setPlans] = useState<PlanDto[] | null>(null);
   const [dashboard, setDashboard] = useState<DashboardDto | null>(null);
@@ -42,20 +55,25 @@ export default function Checkout() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [isProduct, setIsProduct] = useState(false);
-  const [productName, setProductName] = useState('');
+  const [productInfo, setProductInfo] = useState<ProductInfo | null>(null);
 
   useEffect(() => {
+    const key = params.get('plan');
     api<PlansResponse>('/api/plans')
       .then((r) => {
         setPlans(r.plans);
-        const key = params.get('plan');
         const p = r.plans.find((x) => x.key === key);
         if (p) {
           setPlan(p);
           setIsProduct(false);
         } else {
           setIsProduct(true);
-          setProductName(key || '');
+          api<ProductInfo[]>('/api/plans/products')
+            .then((products) => {
+              const prod = products.find((x) => x.key === key);
+              if (prod) setProductInfo(prod);
+            })
+            .catch(() => {});
         }
       })
       .catch(() => setError('Failed to load plans'));
@@ -69,6 +87,7 @@ export default function Checkout() {
 
   const basePrice = (() => {
     if (extra) return extraSlotPrice;
+    if (isProduct && productInfo) return productInfo.price;
     if (!plan) return 0;
     return cycle === 'yearly' ? plan.yearly : plan.monthly;
   })();
@@ -104,11 +123,10 @@ export default function Checkout() {
         body: extra
           ? { extraSlot: true }
           : isProduct
-            ? { planKey: productName, cycle: 'monthly' }
+            ? { planKey: productInfo?.key || params.get('plan'), cycle: 'monthly' }
             : { planKey: plan!.key, cycle, promoCode: promoApplied ? promoInput.trim() : null },
       });
       if (res.free) {
-        // 100%-off promo: the order was already fulfilled server-side, no PayPal.
         window.location.href = `/success?order=${encodeURIComponent(res.orderId)}`;
       } else if (res.approvalUrl) {
         window.location.href = res.approvalUrl;
@@ -134,6 +152,10 @@ export default function Checkout() {
     );
   }
 
+  if (isProduct && !productInfo) {
+    return <div className="flex justify-center py-32"><Spinner size={36} /></div>;
+  }
+
   return (
     <div className="mx-auto max-w-3xl px-4 pb-24 sm:px-6">
       <div className="pt-12 text-center">
@@ -154,9 +176,9 @@ export default function Checkout() {
                 {t('checkout.extraNote')}
               </div>
             </div>
-          ) : isProduct ? (
+          ) : isProduct && productInfo ? (
             <div className="mt-6 space-y-4">
-              <Row label={t('checkout.plan')} value={productName} />
+              <Row label={t('checkout.plan')} value={isAr ? productInfo.nameAr : productInfo.name} />
               <Row label={t('checkout.type')} value={t('checkout.oneTime')} />
             </div>
           ) : !plan || !plans ? (

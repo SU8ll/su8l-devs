@@ -18,6 +18,7 @@ interface ProductDto {
   icon: string;
   features: string[];
   featuresAr: string[];
+  hasHostingChoice?: boolean;
 }
 
 export default function Pricing() {
@@ -29,6 +30,7 @@ export default function Pricing() {
   const [dashboard, setDashboard] = useState<DashboardDto | null>(null);
   const [cycle, setCycle] = useState<Cycle>('monthly');
   const [error, setError] = useState('');
+  const [hostingModal, setHostingModal] = useState<ProductDto | null>(null);
   const isAr = lang === 'ar';
   useScrollReveal();
 
@@ -202,6 +204,10 @@ export default function Pricing() {
                     className="btn-primary w-full text-sm"
                     onClick={() => {
                       if (loading) return;
+                      if (prod.hasHostingChoice) {
+                        setHostingModal(prod);
+                        return;
+                      }
                       if (!user) {
                         navigate('/login', { state: { from: `/checkout?plan=${prod.key}&cycle=monthly` } });
                         return;
@@ -214,6 +220,85 @@ export default function Pricing() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Hosting Choice Modal ────────────────────────────── */}
+      {hostingModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4" onClick={() => setHostingModal(null)}>
+          <div
+            className="glass-strong w-full max-w-lg rounded-3xl p-8 glow-border modal-panel"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="font-display text-2xl font-extrabold text-gradient text-center">
+              {hostingModal.icon} {isAr ? hostingModal.nameAr : hostingModal.name}
+            </h2>
+            <p className="mt-2 text-center text-sm text-muted">
+              {isAr ? 'اختر نوع الاستضافة' : 'Choose your hosting type'}
+            </p>
+
+            <div className="mt-8 grid gap-4 sm:grid-cols-2">
+              <button
+                type="button"
+                className="glass feature-card group flex flex-col items-center gap-3 rounded-2xl border border-white/8 p-6 text-center transition-all duration-300 hover:border-emerald-400/40 hover:bg-emerald-400/5"
+                onClick={() => {
+                  setHostingModal(null);
+                  if (!user) {
+                    navigate('/login', { state: { from: `/checkout?plan=${hostingModal.key}&cycle=monthly` } });
+                    return;
+                  }
+                  navigate(`/checkout?plan=${hostingModal.key}&cycle=monthly`);
+                }}
+              >
+                <div className="text-3xl transition-transform duration-300 group-hover:scale-110">🏠</div>
+                <div>
+                  <div className="font-display text-lg font-bold text-emerald-400">
+                    {isAr ? 'استضافة محلية' : 'Local Hosting'}
+                  </div>
+                  <div className="text-sm text-muted mt-1">
+                    {isAr ? 'مجاني — تشغيل على جهازك' : 'Free — runs on your PC'}
+                  </div>
+                </div>
+                <div className="rounded-full bg-emerald-400/10 px-4 py-1.5 text-sm font-bold text-emerald-400">
+                  $0
+                </div>
+              </button>
+
+              <button
+                type="button"
+                className="glass feature-card group flex flex-col items-center gap-3 rounded-2xl border border-white/8 p-6 text-center transition-all duration-300 hover:border-glow/40 hover:bg-glow/5"
+                onClick={() => {
+                  setHostingModal(null);
+                  if (!user) {
+                    navigate('/login', { state: { from: `/checkout?plan=${hostingModal.key}&cycle=monthly` } });
+                    return;
+                  }
+                  navigate(`/checkout?plan=${hostingModal.key}&cycle=monthly`);
+                }}
+              >
+                <div className="text-3xl transition-transform duration-300 group-hover:scale-110">☁️</div>
+                <div>
+                  <div className="font-display text-lg font-bold text-glow">
+                    {isAr ? 'استضافة سحابية' : 'Cloud Hosting'}
+                  </div>
+                  <div className="text-sm text-muted mt-1">
+                    {isAr ? '24/7 — على سيرفرنا' : '24/7 — on our server'}
+                  </div>
+                </div>
+                <div className="rounded-full bg-glow/10 px-4 py-1.5 text-sm font-bold text-glow">
+                  $8<span className="text-xs font-normal text-muted">/mo</span>
+                </div>
+              </button>
+            </div>
+
+            <button
+              type="button"
+              className="mt-6 w-full text-sm text-muted hover:text-white transition-colors"
+              onClick={() => setHostingModal(null)}
+            >
+              {isAr ? 'إلغاء' : 'Cancel'}
+            </button>
           </div>
         </div>
       )}

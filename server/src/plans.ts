@@ -56,6 +56,7 @@ export interface Product {
   icon: string;
   features: string[];
   featuresAr: string[];
+  hasHostingChoice?: boolean;
 }
 
 export const PRODUCTS: Product[] = [
@@ -67,6 +68,7 @@ export const PRODUCTS: Product[] = [
     taglineAr: 'نظام إدارة التحالف الكامل',
     price: 10,
     icon: '👑',
+    hasHostingChoice: true,
     features: [
       'Alliance Management',
       'Gift Code System',
@@ -92,6 +94,7 @@ export const PRODUCTS: Product[] = [
     taglineAr: 'بوت ترجمة متعدد اللغات',
     price: 10,
     icon: '🌐',
+    hasHostingChoice: true,
     features: [
       '9 Languages Supported',
       'Reaction Translation',
