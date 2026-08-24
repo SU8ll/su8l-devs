@@ -817,7 +817,6 @@ body[dir='rtl'] .section-kicker {
 /* ── Pricing card premium ─────────────────────────────────────────────── */
 .pricing-card {
   position: relative;
-  overflow: hidden;
 }
 .pricing-card::before {
   content: '';
@@ -829,6 +828,7 @@ body[dir='rtl'] .section-kicker {
   background: linear-gradient(90deg, transparent, var(--glow), transparent);
   opacity: 0;
   transition: opacity 0.4s ease;
+  border-radius: 20px 20px 0 0;
 }
 .pricing-card:hover::before {
   opacity: 1;
