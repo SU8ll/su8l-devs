@@ -57,6 +57,7 @@ export interface Product {
   features: string[];
   featuresAr: string[];
   hasHostingChoice?: boolean;
+  comingSoon?: boolean;
 }
 
 export const PRODUCTS: Product[] = [
@@ -120,6 +121,7 @@ export const PRODUCTS: Product[] = [
     taglineAr: 'إدارة الحروب بالذكاء الاصطناعي',
     price: 170,
     icon: '⚔️',
+    comingSoon: true,
     features: [
       'AI War Brain',
       'Live Threat Analysis',

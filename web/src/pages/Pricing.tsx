@@ -19,6 +19,7 @@ interface ProductDto {
   features: string[];
   featuresAr: string[];
   hasHostingChoice?: boolean;
+  comingSoon?: boolean;
 }
 
 export default function Pricing() {
@@ -199,6 +200,11 @@ export default function Pricing() {
                   ))}
                 </ul>
                 <div className="mt-6">
+                  {prod.comingSoon ? (
+                    <div className="btn-ghost w-full text-sm cursor-not-allowed opacity-60">
+                      {isAr ? 'قيد التطوير' : 'Coming Soon'}
+                    </div>
+                  ) : (
                   <button
                     type="button"
                     className="btn-primary w-full text-sm"
@@ -217,6 +223,7 @@ export default function Pricing() {
                   >
                     {isAr ? 'شراء' : 'Buy Now'}
                   </button>
+                  )}
                 </div>
               </div>
             ))}
