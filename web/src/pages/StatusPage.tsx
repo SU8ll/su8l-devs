@@ -58,6 +58,18 @@ export default function StatusPage() {
         <p className="mt-2 text-muted">{t('status.subtitle')}</p>
       </div>
 
+      {/* Maintenance banner */}
+      {summary.maintenance_mode === 1 && (
+        <div className="mt-8 rounded-2xl border border-amber-400/30 bg-amber-400/5 p-6 text-center backdrop-blur-sm">
+          <div className="flex items-center justify-center gap-2 text-amber-300 font-bold text-lg">
+            <span>🔧</span> {t('status.maintenance')}
+          </div>
+          {summary.maintenance_message && (
+            <p className="mt-2 text-sm text-amber-200/80">{summary.maintenance_message}</p>
+          )}
+        </div>
+      )}
+
       {/* Current status */}
       <div className="glass-strong glow-border mt-10 rounded-3xl p-6 sm:p-8">
         <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-between">

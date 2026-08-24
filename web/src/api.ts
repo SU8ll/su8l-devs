@@ -119,6 +119,8 @@ export interface StatusSummaryDto {
   uptime24h: number;
   uptime7d: number;
   uptime30d: number;
+  maintenance_mode?: number;
+  maintenance_message?: string;
 }
 
 export interface StatusHistoryDto {

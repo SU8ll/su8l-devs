@@ -63,6 +63,11 @@ export default function Landing() {
   const { t, lang } = useI18n();
   const isAr = lang === 'ar';
   useScrollReveal();
+  const [summary, setSummary] = useState<StatusSummaryDto | null>(null);
+
+  useEffect(() => {
+    api<StatusSummaryDto>('/api/status/summary').then(setSummary).catch(() => {});
+  }, []);
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6">
@@ -80,6 +85,18 @@ export default function Landing() {
         <div className="fade-up mb-8 flex items-center gap-3">
           <LiveBadge />
         </div>
+
+        {/* Maintenance banner */}
+        {summary?.maintenance_mode === 1 && (
+          <div className="relative z-10 mb-6 max-w-2xl rounded-2xl border border-amber-400/30 bg-amber-400/5 px-6 py-4 text-center backdrop-blur-sm">
+            <div className="flex items-center justify-center gap-2 text-amber-300 font-bold">
+              <span>🔧</span> {t('status.maintenance')}
+            </div>
+            {summary.maintenance_message && (
+              <p className="mt-1 text-sm text-amber-200/80">{summary.maintenance_message}</p>
+            )}
+          </div>
+        )}
 
         <div className="relative z-10">
           <Kicker>{t('hero.kicker')}</Kicker>

@@ -3,6 +3,7 @@ import { config } from '../config.js';
 import { MASTER_SCHEMA, SCHEMA_VERSION } from '../cloudSchema.js';
 import { openSse } from '../lib/sse.js';
 import { emitTicketEvent, subscribeTickets } from '../lib/ticketBus.js';
+import { getSiteStatus, setSiteStatus } from '../db.js';
 import {
   panelStats,
   panelSearchUsers,
@@ -209,6 +210,22 @@ router.get('/config-changes', async (req, res) => {
   const since = String(req.query.since ?? '').trim();
   const changes = await panelConfigChanges(since || undefined);
   res.json({ changes });
+});
+
+// GET /api/panel/status — get current site status
+router.get('/status', async (_req, res) => {
+  const status = await getSiteStatus();
+  res.json(status);
+});
+
+// PUT /api/panel/status — set maintenance mode
+router.put('/status', async (req, res) => {
+  const { maintenance, message } = req.body ?? {};
+  if (typeof maintenance !== 'boolean') {
+    return res.status(400).json({ error: 'maintenance must be boolean' });
+  }
+  await setSiteStatus(maintenance, typeof message === 'string' ? message : '');
+  res.json({ ok: true });
 });
 
 export default router;

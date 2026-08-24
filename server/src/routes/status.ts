@@ -1,18 +1,21 @@
 import { Router } from 'express';
 import { getStatusSummary, runProbe, uptimeDaily } from '../services/uptime.js';
+import { getSiteStatus } from '../db.js';
 
 const router = Router();
 
-// GET /api/status/summary — current status + uptime percentages
+// GET /api/status/summary — current status + uptime percentages + maintenance
 router.get('/summary', async (_req, res) => {
-  res.json(await getStatusSummary());
+  const [summary, siteStatus] = await Promise.all([getStatusSummary(), getSiteStatus()]);
+  res.json({ ...summary, ...siteStatus });
 });
 
 // GET /api/status/live — force a fresh probe and return results
 router.get('/live', async (_req, res) => {
   try {
     const check = await runProbe();
-    res.json({ ...(await getStatusSummary()), lastCheck: check });
+    const [summary, siteStatus] = await Promise.all([getStatusSummary(), getSiteStatus()]);
+    res.json({ ...summary, ...siteStatus, lastCheck: check });
   } catch {
     res.status(500).json({ error: 'probe failed' });
   }

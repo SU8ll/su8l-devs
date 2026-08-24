@@ -151,6 +151,13 @@ CREATE TABLE IF NOT EXISTS uptime_checks (
 );
 CREATE INDEX IF NOT EXISTS idx_uptime_time ON uptime_checks(checked_at);
 
+CREATE TABLE IF NOT EXISTS site_status (
+  id INTEGER PRIMARY KEY DEFAULT 1,
+  maintenance_mode INTEGER NOT NULL DEFAULT 0,
+  maintenance_message TEXT NOT NULL DEFAULT '',
+  updated_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS user_settings (
   user_id TEXT PRIMARY KEY,
   bot_config TEXT NOT NULL DEFAULT '{}',
@@ -735,6 +742,25 @@ export async function uptimeDaily(days = 30): Promise<{ day: string; ok: number;
 
 export async function pruneUptime(beforeMs: number): Promise<void> {
   await run('DELETE FROM uptime_checks WHERE checked_at < ?', new Date(Date.now() - beforeMs).toISOString());
+}
+
+// ── Site status (maintenance mode) ───────────────────────────────────────
+
+export interface SiteStatus {
+  maintenance_mode: number;
+  maintenance_message: string;
+}
+
+export async function getSiteStatus(): Promise<SiteStatus> {
+  const r = await get<SiteStatus>('SELECT maintenance_mode, maintenance_message FROM site_status WHERE id = 1');
+  return r ?? { maintenance_mode: 0, maintenance_message: '' };
+}
+
+export async function setSiteStatus(maintenance: boolean, message: string): Promise<void> {
+  await run(
+    'INSERT INTO site_status (id, maintenance_mode, maintenance_message, updated_at) VALUES (1, ?, ?, ?) ON CONFLICT (id) DO UPDATE SET maintenance_mode = ?, maintenance_message = ?, updated_at = ?',
+    maintenance ? 1 : 0, message, new Date().toISOString(), maintenance ? 1 : 0, message, new Date().toISOString()
+  );
 }
 
 // ── User settings (bot panel config) ────────────────────────────────────────

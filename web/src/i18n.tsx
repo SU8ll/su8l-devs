@@ -217,6 +217,8 @@ const en: Dict = {
   'status.checkNow': 'Probe Now',
   'status.day': 'Day',
 
+  'status.maintenance': 'Scheduled Maintenance in Progress',
+
   'tickets.title': 'Support Tickets',
   'tickets.subtitle': 'Dedicated support console — every ticket tracked, answered and resolved in one place.',
   'tickets.new': 'New Ticket',
@@ -591,6 +593,8 @@ const ar: Dict = {
   'status.notConfigured': 'هدف مراقبة الاستمرارية غير مُهيّأ.',
   'status.checkNow': 'فحص الآن',
   'status.day': 'اليوم',
+
+  'status.maintenance': 'صيانة مجدولة جارية',
 
   'tickets.title': 'تذاكر الدعم',
   'tickets.subtitle': 'وحدة دعم مخصصة — كل تذكرة تُتابَع وتُحلّ من مكان واحد.',
