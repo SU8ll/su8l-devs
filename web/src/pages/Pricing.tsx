@@ -5,6 +5,7 @@ import { useAuth } from '../AuthContext';
 import { api, type DashboardDto, type PlanDto, type PlansResponse } from '../api';
 import { Badge, Kicker, Spinner } from '../components/ui';
 import { useScrollReveal } from '../hooks/useScrollReveal';
+import { productImage, productFallback } from '../productImages';
 
 type Cycle = 'monthly' | 'yearly';
 
@@ -178,7 +179,20 @@ export default function Pricing() {
                 className="glass pricing-card card-hover fade-up relative flex flex-col rounded-3xl p-6"
                 style={{ animationDelay: `${idx * 0.1}s` }}
               >
-                <div className="text-4xl mb-4">{prod.icon}</div>
+                <div className="mb-4 flex h-16 w-16 items-center justify-center">
+                  {productImage(prod.key) ? (
+                    <img
+                      src={productImage(prod.key)!}
+                      alt={prod.name}
+                      className="h-16 w-16 rounded-2xl object-contain"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                        (e.target as HTMLImageElement).nextElementSibling!.textContent = productFallback(prod.key);
+                      }}
+                    />
+                  ) : null}
+                  <span className={`text-4xl ${productImage(prod.key) ? 'hidden' : ''}`}>{productFallback(prod.key)}</span>
+                </div>
                 <h3 className="font-display text-lg font-extrabold text-gradient">
                   {isAr ? prod.nameAr : prod.name}
                 </h3>
@@ -239,7 +253,12 @@ export default function Pricing() {
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="font-display text-2xl font-extrabold text-gradient text-center">
-              {hostingModal.icon} {isAr ? hostingModal.nameAr : hostingModal.name}
+              {productImage(hostingModal.key) ? (
+                <img src={productImage(hostingModal.key)!} alt={hostingModal.name} className="mx-auto mb-2 h-12 w-12 rounded-xl object-contain" />
+              ) : (
+                <span className="text-3xl">{hostingModal.icon}</span>
+              )}{' '}
+              {isAr ? hostingModal.nameAr : hostingModal.name}
             </h2>
             <p className="mt-2 text-center text-sm text-muted">
               {isAr ? 'اختر نوع الاستضافة' : 'Choose your hosting type'}

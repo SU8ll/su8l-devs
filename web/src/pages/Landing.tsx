@@ -2,6 +2,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useI18n } from '../i18n';
 import { useAuth } from '../AuthContext';
 import { Kicker } from '../components/ui';
+import { productImage, productFallback } from '../productImages';
 import FeaturesGrid from '../components/FeaturesGrid';
 import { useEffect, useState, useRef } from 'react';
 import { api, type StatusSummaryDto } from '../api';
@@ -161,18 +162,29 @@ export default function Landing() {
 
         <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { icon: '🏛️', title: isAr ? 'بوت المدينة السحابي' : 'Cloud City Bot', desc: isAr ? 'أتمتة شاملة للمدينة — بناء، تقنية، موارد 24/7' : 'Full city automation — build, tech, resources 24/7' },
-            { icon: '⚔️', title: isAr ? 'القيادة العسكرية' : 'Military Command', desc: isAr ? 'تدريب وتجمع ودفاع آلي — صفر توقف' : 'Auto train, gather, defend — zero downtime' },
-            { icon: '🌐', title: isAr ? 'أدوات الترجمة' : 'Translation Tools', desc: isAr ? 'OSotA Kutlu — ترجمة فورية لأكثر من 9 لغات' : 'OSotA Kutlu — instant translation for 9+ languages' },
-            { icon: '👑', title: isAr ? 'Kingshot Bot' : 'Kingshot Bot', desc: isAr ? 'نظام إدارةتحالف كامل مع التعرف الضوئي على الحروف والحضور' : 'Complete alliance management with OCR & attendance tracking' },
+            { icon: '🏛️', imageKey: '', title: isAr ? 'بوت المدينة السحابي' : 'Cloud City Bot', desc: isAr ? 'أتمتة شاملة للمدينة — بناء، تقنية، موارد 24/7' : 'Full city automation — build, tech, resources 24/7' },
+            { icon: '⚔️', imageKey: 'command-center', title: isAr ? 'القيادة العسكرية' : 'Military Command', desc: isAr ? 'تدريب وتجمع ودفاع آلي — صفر توقف' : 'Auto train, gather, defend — zero downtime' },
+            { icon: '🌐', imageKey: 'osota', title: isAr ? 'أدوات الترجمة' : 'Translation Tools', desc: isAr ? 'OSotA Kutlu — ترجمة فورية لأكثر من 9 لغات' : 'OSotA Kutlu — instant translation for 9+ languages' },
+            { icon: '👑', imageKey: 'kingshot', title: isAr ? 'Kingshot Bot' : 'Kingshot Bot', desc: isAr ? 'نظام إدارةتحالف كامل مع التعرف الضوئي على الحروف والحضور' : 'Complete alliance management with OCR & attendance tracking' },
           ].map((item, i) => (
             <div
               key={i}
               className="glass feature-card card-hover reveal p-6 sm:p-7"
               style={{ transitionDelay: `${i * 0.08}s` }}
             >
-              <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-glow/20 bg-glow/5 text-3xl transition-transform duration-300 group-hover:scale-110">
-                {item.icon}
+              <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-glow/20 bg-glow/5 transition-transform duration-300 group-hover:scale-110">
+                {item.imageKey && productImage(item.imageKey) ? (
+                  <img
+                    src={productImage(item.imageKey)!}
+                    alt={item.title}
+                    className="h-10 w-10 rounded-xl object-contain"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                      (e.target as HTMLImageElement).nextElementSibling!.textContent = productFallback(item.imageKey);
+                    }}
+                  />
+                ) : null}
+                <span className={`text-3xl ${item.imageKey && productImage(item.imageKey) ? 'hidden' : ''}`}>{item.imageKey ? productFallback(item.imageKey) : item.icon}</span>
               </div>
               <h3 className="font-display text-lg font-bold text-gradient">{item.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-muted">{item.desc}</p>
