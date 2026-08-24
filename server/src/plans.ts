@@ -25,7 +25,7 @@ export const PLANS: Plan[] = [
       '10 commands unlocked',
       '1 active bot slot',
       'Full Cloud Configurator',
-      'Discord identity sync',
+      'Cloud sync',
       '24/7 Ticket Support',
     ],
   },

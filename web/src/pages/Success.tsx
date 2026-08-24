@@ -44,7 +44,7 @@ export default function Success() {
         'I have successfully purchased the Cloud Bot Service.',
         `\u25A0 Order ID: #${order.id}`,
         `\u25A0 Plan: ${order.plan}`,
-        `\u25A0 Discord User: ${order.discordUsername ?? '—'}`,
+        `\u25A0 Username: ${order.discordUsername ?? '—'}`,
         'I am ready to provide my game account details securely.',
       ].join('\n')
     : '';
@@ -86,7 +86,7 @@ export default function Success() {
               <div className="mt-8 grid gap-3 text-start">
                 <DetailRow label={t('success.orderId')} value={`#${order.id}`} mono />
                 <DetailRow label={t('success.plan')} value={order.plan} />
-                <DetailRow label={t('success.discord')} value={order.discordUsername ?? '—'} />
+                <DetailRow label={t('success.user')} value={order.discordUsername ?? '—'} />
                 <DetailRow label={t('checkout.amount')} value={`$${order.amount} ${order.currency}`} />
               </div>
 
