@@ -150,9 +150,9 @@ export default function Landing() {
       {/* ═══ Products preview ═══════════════════════════════════════════════ */}
       <section className="py-16 sm:py-24">
         <div className="reveal text-center">
-          <Kicker>{isAr ? 'ール منتجاتنا' : 'OUR PRODUCTS'}</Kicker>
+          <Kicker>{isAr ? 'منتجاتنا' : 'OUR PRODUCTS'}</Kicker>
           <p className="mx-auto mt-3 max-w-2xl text-muted">
-            {isAr ? 'بوتات ديسكورد احترافية وأدوات على الحاسوب — مصممة للعمل دون توقف' : 'Professional Discord bots and desktop tools — engineered for non-stop performance'}
+            {isAr ? 'أدوات أتمتة احترافية وبرمجيات مكتبية — مصممة للعمل دون توقف' : 'Professional automation tools and desktop software — engineered for non-stop performance'}
           </p>
         </div>
 
@@ -160,8 +160,8 @@ export default function Landing() {
           {[
             { icon: '🏛️', title: isAr ? 'بوت المدينة السحابي' : 'Cloud City Bot', desc: isAr ? 'أتمتة شاملة للمدينة — بناء، تقنية، موارد 24/7' : 'Full city automation — build, tech, resources 24/7' },
             { icon: '⚔️', title: isAr ? 'القيادة العسكرية' : 'Military Command', desc: isAr ? 'تدريب وتجمع ودفاع آلي — صفر توقف' : 'Auto train, gather, defend — zero downtime' },
-            { icon: '🌐', title: isAr ? 'بوتات الترجمة' : 'Translation Bots', desc: isAr ? 'OSotA Kutlu — ترجمة فورية لـ 9 لغات في الديسكورد' : 'OSotA Kutlu — instant 9-language translation in Discord' },
-            { icon: '👑', title: isAr ? 'Kingshot Bot' : 'Kingshot Bot', desc: isAr ? 'نظام إدارةتحالف كامل مع OCR والحضور' : 'Complete alliance management with OCR & attendance' },
+            { icon: '🌐', title: isAr ? 'أدوات الترجمة' : 'Translation Tools', desc: isAr ? 'OSotA Kutlu — ترجمة فورية لأكثر من 9 لغات' : 'OSotA Kutlu — instant translation for 9+ languages' },
+            { icon: '👑', title: isAr ? 'Kingshot Bot' : 'Kingshot Bot', desc: isAr ? 'نظام إدارةتحالف كامل مع التعرف الضوئي على الحروف والحضور' : 'Complete alliance management with OCR & attendance tracking' },
           ].map((item, i) => (
             <div
               key={i}

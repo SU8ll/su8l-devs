@@ -105,7 +105,7 @@ export default function Success() {
                 </div>
               )}
 
-              <div className="mt-4 text-xs text-muted">🛡 {t('success.secure')}</div>
+              <div className="mt-4 text-xs text-muted">{t('success.secure')}</div>
 
               <Link to="/dashboard" className="btn-ghost mt-8 w-full">
                 {t('success.dashboard')}

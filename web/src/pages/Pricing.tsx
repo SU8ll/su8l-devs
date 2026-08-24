@@ -312,7 +312,7 @@ export default function Pricing() {
 
       <div className="mt-16 text-center text-sm text-muted">
         <p>
-          🔒 {t('login.subtitle')} · 🎟 {t('dash.openTickets')} ·{' '}
+          {t('login.subtitle')} · {t('dash.openTickets')} ·{' '}
           <Link to="/refund" className="nav-link underline decoration-glow/40 underline-offset-4">
             {t('nav.refund')}
           </Link>

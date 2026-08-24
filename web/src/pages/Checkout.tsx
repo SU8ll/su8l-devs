@@ -308,10 +308,10 @@ export default function Checkout() {
 
           <div className="mt-6 space-y-3 text-xs text-muted">
             <p className="flex items-start gap-2">
-              <span className="text-glow">🛡</span> {t('success.secure')}.
+              <span className="text-glow">✓</span> {t('success.secure')}.
             </p>
             <p className="flex items-start gap-2">
-              <span className="text-glow">✓</span> {t('footer.rights')}
+              <span className="text-glow">✓</span> {t('checkout.payPanel')}
             </p>
           </div>
         </div>
