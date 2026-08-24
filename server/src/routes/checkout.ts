@@ -10,6 +10,7 @@ import {
   EXTRA_SLOT_PRICE,
   getHighestTier,
   getPlan,
+  getProduct,
   promoPrice,
 } from '../plans.js';
 import {
@@ -58,28 +59,38 @@ router.post('/create', requireAuth, async (req: AuthedRequest, res) => {
     description = 'Permanent Extra Account Slot (+1 bot slot)';
   } else {
     if (!planKey || !cycle) return res.status(400).json({ error: 'planKey and cycle are required' });
-    plan = getPlan(planKey);
-    if (!plan) return res.status(400).json({ error: 'unknown plan' });
 
-    finalCycle = cycle;
-    finalPlanKey = plan.key;
-    finalPlanName = plan.name;
-
-    if (promoCode) {
-      const normalized = promoCode.trim();
-      if (!plan.isHighestTier) {
-        return res.status(400).json({ error: 'promo codes apply only to the Elite (highest tier) plan' });
-      }
-      const promo = await getPromoByCode(normalized);
-      if (!promo || promo.status !== 'unused') {
-        return res.status(400).json({ error: 'invalid or already used promo code' });
-      }
-      appliedPromo = normalized;
-      amount = promoPrice(plan, cycle, promo.discount ?? DEFAULT_PROMO_DISCOUNT);
-      description = `${plan.name} Cloud Bot Service (promo ${promo.discount ?? DEFAULT_PROMO_DISCOUNT}% applied)`;
+    // Check if it's a product (one-time purchase)
+    const product = getProduct(planKey);
+    if (product) {
+      amount = product.price;
+      description = product.name;
+      finalPlanKey = product.key;
+      finalPlanName = product.name;
     } else {
-      amount = cycle === 'yearly' ? plan.yearly : plan.monthly;
-      description = `${plan.name} Cloud Bot Service`;
+      plan = getPlan(planKey);
+      if (!plan) return res.status(400).json({ error: 'unknown plan' });
+
+      finalCycle = cycle;
+      finalPlanKey = plan.key;
+      finalPlanName = plan.name;
+
+      if (promoCode) {
+        const normalized = promoCode.trim();
+        if (!plan.isHighestTier) {
+          return res.status(400).json({ error: 'promo codes apply only to the Elite (highest tier) plan' });
+        }
+        const promo = await getPromoByCode(normalized);
+        if (!promo || promo.status !== 'unused') {
+          return res.status(400).json({ error: 'invalid or already used promo code' });
+        }
+        appliedPromo = normalized;
+        amount = promoPrice(plan, cycle, promo.discount ?? DEFAULT_PROMO_DISCOUNT);
+        description = `${plan.name} Cloud Bot Service (promo ${promo.discount ?? DEFAULT_PROMO_DISCOUNT}% applied)`;
+      } else {
+        amount = cycle === 'yearly' ? plan.yearly : plan.monthly;
+        description = `${plan.name} Cloud Bot Service`;
+      }
     }
   }
 

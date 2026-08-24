@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { PLANS } from '../plans.js';
+import { PLANS, PRODUCTS } from '../plans.js';
 
 const router = Router();
 
@@ -19,6 +19,11 @@ router.get('/', (_req, res) => {
     })),
     currency: 'USD',
   });
+});
+
+// GET /api/products — public product catalog (one-time purchases)
+router.get('/products', (_req, res) => {
+  res.json(PRODUCTS);
 });
 
 export default router;

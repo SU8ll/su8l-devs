@@ -8,20 +8,37 @@ import { useScrollReveal } from '../hooks/useScrollReveal';
 
 type Cycle = 'monthly' | 'yearly';
 
+interface ProductDto {
+  key: string;
+  name: string;
+  nameAr: string;
+  tagline: string;
+  taglineAr: string;
+  price: number;
+  icon: string;
+  features: string[];
+  featuresAr: string[];
+}
+
 export default function Pricing() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [plans, setPlans] = useState<PlanDto[] | null>(null);
+  const [products, setProducts] = useState<ProductDto[] | null>(null);
   const [dashboard, setDashboard] = useState<DashboardDto | null>(null);
   const [cycle, setCycle] = useState<Cycle>('monthly');
   const [error, setError] = useState('');
+  const isAr = lang === 'ar';
   useScrollReveal();
 
   useEffect(() => {
     api<PlansResponse>('/api/plans')
       .then((r) => setPlans(r.plans))
       .catch(() => setError('Failed to load plans'));
+    api<ProductDto[]>('/api/plans/products')
+      .then(setProducts)
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -138,6 +155,66 @@ export default function Pricing() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* ── Products Section ──────────────────────────────── */}
+      {products && products.length > 0 && (
+        <div className="mt-24">
+          <div className="reveal text-center">
+            <Kicker>{isAr ? 'منتجات أخرى' : 'OTHER PRODUCTS'}</Kicker>
+            <p className="mx-auto mt-3 max-w-2xl text-muted">
+              {isAr ? 'أدوات وأدوات احترافية — جاهزة للعمل' : 'Professional tools & bots — ready to deploy'}
+            </p>
+          </div>
+
+          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {products.map((prod, idx) => (
+              <div
+                key={prod.key}
+                className="glass pricing-card card-hover fade-up relative flex flex-col rounded-3xl p-6"
+                style={{ animationDelay: `${idx * 0.1}s` }}
+              >
+                <div className="text-4xl mb-4">{prod.icon}</div>
+                <h3 className="font-display text-lg font-extrabold text-gradient">
+                  {isAr ? prod.nameAr : prod.name}
+                </h3>
+                <p className="mt-1 text-sm text-muted min-h-[40px]">
+                  {isAr ? prod.taglineAr : prod.tagline}
+                </p>
+                <div className="mt-4 flex items-end gap-1">
+                  <span className="font-display text-3xl font-black text-gradient">${prod.price}</span>
+                  <span className="mb-1 text-xs text-muted">{isAr ? 'دفعة واحدة' : 'one-time'}</span>
+                </div>
+                <ul className="mt-4 flex-1 space-y-2 text-sm">
+                  {(isAr ? prod.featuresAr : prod.features).map((f) => (
+                    <li key={f} className="flex items-start gap-2">
+                      <svg className="mt-0.5 shrink-0 text-glow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                        <path d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="text-ink/80">{f}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-6">
+                  <button
+                    type="button"
+                    className="btn-primary w-full text-sm"
+                    onClick={() => {
+                      if (loading) return;
+                      if (!user) {
+                        navigate('/login', { state: { from: `/checkout?plan=${prod.key}&cycle=monthly` } });
+                        return;
+                      }
+                      navigate(`/checkout?plan=${prod.key}&cycle=monthly`);
+                    }}
+                  >
+                    {isAr ? 'شراء' : 'Buy Now'}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

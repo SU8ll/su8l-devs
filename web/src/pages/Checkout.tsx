@@ -41,14 +41,22 @@ export default function Checkout() {
   const [promoInfo, setPromoInfo] = useState<PromoInfo | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [isProduct, setIsProduct] = useState(false);
+  const [productName, setProductName] = useState('');
 
   useEffect(() => {
     api<PlansResponse>('/api/plans')
       .then((r) => {
         setPlans(r.plans);
         const key = params.get('plan');
-        const p = r.plans.find((x) => x.key === key) ?? r.plans.find((x) => x.isHighestTier) ?? r.plans[0]!;
-        setPlan(p);
+        const p = r.plans.find((x) => x.key === key);
+        if (p) {
+          setPlan(p);
+          setIsProduct(false);
+        } else {
+          setIsProduct(true);
+          setProductName(key || '');
+        }
       })
       .catch(() => setError('Failed to load plans'));
     api<DashboardDto>('/api/dashboard').then(setDashboard).catch(() => {});
@@ -95,7 +103,9 @@ export default function Checkout() {
         method: 'POST',
         body: extra
           ? { extraSlot: true }
-          : { planKey: plan!.key, cycle, promoCode: promoApplied ? promoInput.trim() : null },
+          : isProduct
+            ? { planKey: productName, cycle: 'monthly' }
+            : { planKey: plan!.key, cycle, promoCode: promoApplied ? promoInput.trim() : null },
       });
       if (res.free) {
         // 100%-off promo: the order was already fulfilled server-side, no PayPal.
@@ -143,6 +153,11 @@ export default function Checkout() {
               <div className="rounded-xl border border-glow/25 bg-glow/5 p-4 text-sm text-muted">
                 {t('checkout.extraNote')}
               </div>
+            </div>
+          ) : isProduct ? (
+            <div className="mt-6 space-y-4">
+              <Row label={t('checkout.plan')} value={productName} />
+              <Row label={t('checkout.type')} value={t('checkout.oneTime')} />
             </div>
           ) : !plan || !plans ? (
             <div className="flex justify-center py-16">
@@ -246,7 +261,7 @@ export default function Checkout() {
             <div className="mt-5 rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-3 text-sm text-red-300">{error}</div>
           )}
 
-          <button type="button" className="btn-primary mt-6 w-full !py-4" onClick={buy} disabled={busy || (!extra && !plan)}>
+          <button type="button" className="btn-primary mt-6 w-full !py-4" onClick={buy} disabled={busy || (!extra && !plan && !isProduct)}>
             {busy ? (
               <span className="inline-flex items-center gap-2">
                 <Spinner size={18} />
