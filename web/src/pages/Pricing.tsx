@@ -201,10 +201,10 @@ export default function Pricing() {
             return (
               <div
                 key={p.key}
-                className={`glass pricing-card card-hover reveal relative flex flex-col rounded-3xl p-8 ${
+                className={`glass pricing-card card-hover fade-up relative flex flex-col rounded-3xl p-8 ${
                   isElite ? 'glow-border lg:-translate-y-3' : ''
                 }`}
-                style={{ transitionDelay: `${idx * 0.12}s` }}
+                style={{ animationDelay: `${idx * 0.12}s` }}
               >
                 {p.badge && (
                   <div className="absolute -top-3 right-8">
@@ -274,8 +274,8 @@ export default function Pricing() {
           {BOT_PRODUCTS.map((bot, idx) => (
             <div
               key={bot.id}
-              className="glass pricing-card card-hover reveal relative flex flex-col rounded-3xl p-6"
-              style={{ transitionDelay: `${idx * 0.1}s` }}
+              className="glass pricing-card card-hover fade-up relative flex flex-col rounded-3xl p-6"
+              style={{ animationDelay: `${idx * 0.1}s` }}
             >
               <div className="text-4xl mb-4">{bot.icon}</div>
               <h3 className="font-display text-lg font-extrabold text-gradient">
