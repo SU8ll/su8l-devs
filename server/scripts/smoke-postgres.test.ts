@@ -24,7 +24,7 @@ assert.strictEqual(u.id, UID);
 await addAccount({ user_id: UID, provider: 'discord', provider_id: '111111111111', access_token: 'tok', refresh_token: null, expires_at: null });
 
 // Plan order -> fulfillment activates the Elite subscription (6 base slots)
-await insertOrder({ id: 'SU8L-SMOKE1', user_id: UID, plan_key: 'elite', plan_name: 'Elite', cycle: 'monthly', amount: 45, currency: 'USD', promo_code: null, extra_slot: 0, paypal_order_id: 'PP-1' });
+await insertOrder({ id: 'SU8L-SMOKE1', user_id: UID, plan_key: 'elite', plan_name: 'Elite', cycle: 'monthly', amount: 22, currency: 'USD', promo_code: null, extra_slot: 0, paypal_order_id: 'PP-1' });
 const done = await fulfillOrder('SU8L-SMOKE1', 'cap-1');
 assert.strictEqual(done, true);
 const subs = await getSubscriptions(UID);

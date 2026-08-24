@@ -176,7 +176,7 @@ client.on(Events.InteractionCreate, async (interaction: Interaction) => {
         `\`${code}\``,
         '',
         '• Status: `unused`',
-        '• Forces the **Elite** (highest tier) plan down to **$25/month**.',
+        '• Forces the **Elite** (highest tier) plan down to **$22/month**.',
         '• The **$15 Extra Account Slot** is never discounted.',
         '• Marked `used` instantly on successful PayPal capture.',
       ].join('\n'),

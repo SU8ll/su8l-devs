@@ -16,11 +16,11 @@ const en: Dict = {
   'nav.brand': 'SU8L DEVs',
   'nav.tagline': 'Cloud Bot Service',
 
-  'hero.kicker': 'Elite Cloud Infrastructure',
+  'hero.kicker': 'Cloud Bot Infrastructure',
   'hero.title1': 'Run your bot on',
   'hero.title2': 'majestic cloud power',
   'hero.subtitle':
-    'A high-performance, always-on home for your game bot. Discord-native authentication, institutional payment processing and a 24/7 status page — all in one elite platform.',
+    'A high-performance, always-on home for your game bot. Discord-native authentication, institutional payment processing and a 24/7 status page — all in one powerful platform.',
   'hero.cta1': 'Deploy Your Bot',
   'hero.cta2': 'Live Status',
 
@@ -363,7 +363,7 @@ const en: Dict = {
     'Questions about a payment should be raised via the internal ticket system within 14 days of the transaction. Refund policy decisions are final.',
   'refund.foot': 'This policy is part of the Terms of Service.',
 
-  'footer.tagline': 'Elite cloud bot infrastructure for serious operators.',
+  'footer.tagline': 'Cloud bot infrastructure for serious operators.',
   'footer.rights': 'All rights reserved.',
   'footer.legal': 'Legal',
   'footer.resources': 'Resources',
@@ -391,11 +391,11 @@ const ar: Dict = {
   'nav.brand': 'SU8L DEVs',
   'nav.tagline': 'خدمة بوت السحابة',
 
-  'hero.kicker': 'بنية سحابية عالمية فاخرة',
+  'hero.kicker': 'بنية بوت سحابية',
   'hero.title1': 'شغّل بوتك على',
   'hero.title2': 'قوة سحابية فاخرة',
   'hero.subtitle':
-    'منزل عالي الأداء يعمل على مدار الساعة لبوت اللعبة الخاص بك. دخول عبر ديسكورد، معالجة مدفوعات مؤسسية، وصفحة حالة 24/7 — كل ذلك في منصة واحدة راقية.',
+    'منزل عالي الأداء يعمل على مدار الساعة لبوت اللعبة الخاص بك. دخول عبر ديسكورد، معالجة مدفوعات مؤسسية، وصفحة حالة 24/7 — كل ذلك في منصة واحدة قوية.',
   'hero.cta1': 'فعّل بوتك',
   'hero.cta2': 'الحالة المباشرة',
 
@@ -727,7 +727,7 @@ const ar: Dict = {
     'تُرفع الأسئلة حول أي دفعة عبر نظام التذاكر الداخلي خلال 14 يومًا من المعاملة. قرارات سياسة الاسترداد نهائية.',
   'refund.foot': 'هذه السياسة جزء من شروط الخدمة.',
 
-  'footer.tagline': 'بنية بوت سحابية فاخرة للمشغّلين الجادين.',
+  'footer.tagline': 'بنية بوت سحابية للمشغّلين الجادين.',
   'footer.rights': 'جميع الحقوق محفوظة.',
   'footer.legal': 'قانوني',
   'footer.resources': 'موارد',
