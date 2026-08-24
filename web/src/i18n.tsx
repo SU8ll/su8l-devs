@@ -218,6 +218,7 @@ const en: Dict = {
   'status.day': 'Day',
 
   'status.maintenance': 'Scheduled Maintenance in Progress',
+  'status.underMaintenance': 'Under Maintenance',
 
   'tickets.title': 'Support Tickets',
   'tickets.subtitle': 'Dedicated support console — every ticket tracked, answered and resolved in one place.',
@@ -595,6 +596,7 @@ const ar: Dict = {
   'status.day': 'اليوم',
 
   'status.maintenance': 'صيانة مجدولة جارية',
+  'status.underMaintenance': 'تحت الصيانة',
 
   'tickets.title': 'تذاكر الدعم',
   'tickets.subtitle': 'وحدة دعم مخصصة — كل تذكرة تُتابَع وتُحلّ من مكان واحد.',

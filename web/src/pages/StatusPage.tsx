@@ -47,6 +47,7 @@ export default function StatusPage() {
   if (error) return <div className="mx-auto max-w-4xl px-4 py-24 text-center text-red-300">{error}</div>;
   if (!summary) return <div className="flex justify-center py-32"><Spinner size={36} /></div>;
 
+  const maintenance = summary.maintenance_mode === 1;
   const up = summary.current?.up;
   const ping = summary.current?.latencyMs;
 
@@ -59,7 +60,7 @@ export default function StatusPage() {
       </div>
 
       {/* Maintenance banner */}
-      {summary.maintenance_mode === 1 && (
+      {maintenance && (
         <div className="mt-8 rounded-2xl border border-amber-400/30 bg-amber-400/5 p-6 text-center backdrop-blur-sm">
           <div className="flex items-center justify-center gap-2 text-amber-300 font-bold text-lg">
             <span>🔧</span> {t('status.maintenance')}
@@ -74,52 +75,64 @@ export default function StatusPage() {
       <div className="glass-strong glow-border mt-10 rounded-3xl p-6 sm:p-8">
         <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
           <div className="flex items-center gap-4">
-            <span className={`h-4 w-4 rounded-full ${up ? 'pulse-dot' : 'bg-red-400'}`} />
+            <span className={`h-4 w-4 rounded-full ${maintenance ? 'bg-red-400' : up ? 'pulse-dot' : 'bg-red-400'}`} />
             <div className="text-start">
               <div className="font-display text-xl font-bold">
-                {up === undefined
-                  ? '…'
-                  : up
-                    ? t('status.operational')
-                    : summary.configured
-                      ? t('status.down')
-                      : t('status.notConfigured')}
+                {maintenance
+                  ? t('status.underMaintenance')
+                  : up === undefined
+                    ? '…'
+                    : up
+                      ? t('status.operational')
+                      : summary.configured
+                        ? t('status.down')
+                        : t('status.notConfigured')}
               </div>
-              <div className="text-sm text-muted">
-                {t('dash.livePing')}: {ping != null ? `${ping}${t('status.ms')}` : '—'} · {t('dash.lastCheck')}:{' '}
-                {summary.current ? new Date(summary.current.at).toLocaleTimeString() : '—'}
-              </div>
+              {!maintenance && (
+                <div className="text-sm text-muted">
+                  {t('dash.livePing')}: {ping != null ? `${ping}${t('status.ms')}` : '—'} · {t('dash.lastCheck')}:{' '}
+                  {summary.current ? new Date(summary.current.at).toLocaleTimeString() : '—'}
+                </div>
+              )}
             </div>
           </div>
-          <button type="button" className="btn-ghost shrink-0" onClick={probe} disabled={probing}>
-            {probing ? '…' : '⟳'} {t('status.checkNow')}
-          </button>
+          {!maintenance && (
+            <button type="button" className="btn-ghost shrink-0" onClick={probe} disabled={probing}>
+              {probing ? '…' : '⟳'} {t('status.checkNow')}
+            </button>
+          )}
         </div>
 
-        <div className="mt-8 grid grid-cols-3 gap-4">
-          <UptimeStat label={t('status.uptime24')} value={summary.uptime24h} />
-          <UptimeStat label={t('status.uptime7')} value={summary.uptime7d} />
-          <UptimeStat label={t('status.uptime30')} value={summary.uptime30d} />
-        </div>
+        {!maintenance && (
+          <>
+            <div className="mt-8 grid grid-cols-3 gap-4">
+              <UptimeStat label={t('status.uptime24')} value={summary.uptime24h} />
+              <UptimeStat label={t('status.uptime7')} value={summary.uptime7d} />
+              <UptimeStat label={t('status.uptime30')} value={summary.uptime30d} />
+            </div>
 
-        <div className="mt-4 flex flex-wrap gap-2 text-xs text-muted">
-          <Badge tone="slate">{t('status.target')}: {summary.target || t('status.notSet')}</Badge>
-        </div>
+            <div className="mt-4 flex flex-wrap gap-2 text-xs text-muted">
+              <Badge tone="slate">{t('status.target')}: {summary.target || t('status.notSet')}</Badge>
+            </div>
+          </>
+        )}
       </div>
 
       {/* 30-day history */}
-      <div className="glass mt-8 rounded-3xl p-6 sm:p-8">
-        <h2 className="font-display text-lg font-bold text-gradient">{t('status.history')}</h2>
-        {history ? (
-          <div className="mt-6">
-            <UptimeChart history={history.history} />
-          </div>
-        ) : (
-          <div className="flex justify-center py-12">
-            <Spinner size={28} />
-          </div>
-        )}
-      </div>
+      {!maintenance && (
+        <div className="glass mt-8 rounded-3xl p-6 sm:p-8">
+          <h2 className="font-display text-lg font-bold text-gradient">{t('status.history')}</h2>
+          {history ? (
+            <div className="mt-6">
+              <UptimeChart history={history.history} />
+            </div>
+          ) : (
+            <div className="flex justify-center py-12">
+              <Spinner size={28} />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
