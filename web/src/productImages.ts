@@ -3,6 +3,7 @@ const images: Record<string, string> = {
   osota: '/images/products/osota.png',
   'command-center': '/images/products/command-center.png',
   'auto-help': '/images/products/auto-help.png',
+  'cloud-city-bot': '/images/products/cloud-city-bot.png',
 };
 
 const fallbacks: Record<string, string> = {
@@ -10,6 +11,7 @@ const fallbacks: Record<string, string> = {
   osota: '🌐',
   'command-center': '⚔️',
   'auto-help': '⚡',
+  'cloud-city-bot': '🏛️',
 };
 
 export function productImage(key: string): string | null {

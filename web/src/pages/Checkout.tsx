@@ -63,6 +63,7 @@ export default function Checkout() {
     api<PlansResponse>('/api/plans')
       .then((r) => {
         setPlans(r.plans);
+        if (extra) return;
         const p = r.plans.find((x) => x.key === key);
         if (p) {
           setPlan(p);
@@ -79,7 +80,7 @@ export default function Checkout() {
       })
       .catch(() => setError('Failed to load plans'));
     api<DashboardDto>('/api/dashboard').then(setDashboard).catch(() => {});
-  }, [params]);
+  }, [params, extra]);
 
   const promoApplied = promoState === 'valid';
   const elite = plan?.isHighestTier;
