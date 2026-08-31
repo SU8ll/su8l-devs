@@ -1,11 +1,12 @@
 import { useEffect } from 'react';
-import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
+import { Navigate, Outlet, Route, Routes, useLocation, useOutletContext } from 'react-router-dom';
 import Background from './components/Background';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import { useAuth } from './AuthContext';
 import { Spinner } from './components/ui';
 import Landing from './pages/Landing';
+import LandingMobile from './mobile/LandingMobile';
 import Pricing from './pages/Pricing';
 import StatusPage from './pages/StatusPage';
 import Login from './pages/Login';
@@ -20,6 +21,7 @@ import NotFound from './pages/NotFound';
 import CheckoutCancel from './pages/CheckoutCancel';
 import DashboardLayout from './pages/dashboard/DashboardLayout';
 import DashboardOverview from './pages/dashboard/Overview';
+import OverviewMobile from './mobile/OverviewMobile';
 import CloudConfigurator from './pages/dashboard/CloudConfigurator';
 import DashboardStatus from './pages/dashboard/DashboardStatus';
 import Tickets from './pages/dashboard/Tickets';
@@ -27,6 +29,7 @@ import TicketDetail from './pages/dashboard/TicketDetail';
 import Referral from './pages/dashboard/Referral';
 import Chat from './pages/dashboard/Chat';
 import { useTicketNotifications } from './pages/dashboard/useTicketNotifications';
+import { useIsMobile } from './hooks/useIsMobile';
 
 function NotificationBridge() {
   const { user } = useAuth();
@@ -68,6 +71,27 @@ function ScrollToTop() {
   return null;
 }
 
+function OverviewSwitch() {
+  const isMobile = useIsMobile();
+  const ctx = useOutletContext<{ openAvatarPicker: () => void }>();
+  if (isMobile) return <OverviewMobile openAvatarPicker={ctx?.openAvatarPicker} />;
+  return <DashboardOverview />;
+}
+
+function HomeRoute() {
+  const isMobile = useIsMobile();
+  if (isMobile) return <LandingMobile />;
+  return (
+    <div className="flex min-h-screen flex-col">
+      <Navbar />
+      <main className="flex-1 pt-24">
+        <Landing />
+      </main>
+      <Footer />
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <>
@@ -75,8 +99,9 @@ export default function App() {
       <Background />
       <NotificationBridge />
       <Routes>
+        <Route path="/" element={<HomeRoute />} />
+
         <Route element={<PublicLayout />}>
-          <Route path="/" element={<Landing />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/status" element={<StatusPage />} />
           <Route path="/login" element={<Login />} />
@@ -100,7 +125,7 @@ export default function App() {
             </Protected>
           }
         >
-          <Route index element={<DashboardOverview />} />
+          <Route index element={<OverviewSwitch />} />
           <Route path="bot" element={<CloudConfigurator />} />
           <Route path="status" element={<DashboardStatus />} />
           <Route path="tickets" element={<Tickets />} />

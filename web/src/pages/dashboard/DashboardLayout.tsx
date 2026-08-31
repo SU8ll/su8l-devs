@@ -4,6 +4,8 @@ import { useI18n } from '../../i18n';
 import { useAuth } from '../../AuthContext';
 import AvatarPicker from '../../components/AvatarPicker';
 import NotificationBell from '../../components/NotificationBell';
+import MobileLayout, { type MobileNavItem } from '../../mobile/MobileLayout';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 export default function DashboardLayout() {
   const { t } = useI18n();
@@ -12,6 +14,7 @@ export default function DashboardLayout() {
   const location = useLocation();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [unread, setUnread] = useState(0);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const onReply = () => setUnread((n) => n + 1);
@@ -32,8 +35,30 @@ export default function DashboardLayout() {
     { to: '/dashboard/tickets', label: t('dash.tickets'), icon: '▤', end: false },
   ];
 
+  /* ─── Mobile: dedicated app-like shell (top bar + 5 bottom-nav slots) ─── */
+  if (isMobile) {
+    const nav: MobileNavItem[] = [
+      { to: '/dashboard', label: t('dash.overview'), icon: '◉', end: true },
+      { to: '/dashboard/bot', label: t('dash.cloudConfig'), icon: '⬢' },
+      { to: '/dashboard/chat', label: t('dash.chat'), icon: '✉', primary: true },
+      { to: '/dashboard/referral', label: t('dash.referral'), icon: '✚' },
+      { to: '/dashboard/tickets', label: t('dash.tickets'), icon: '▤', badge: unread },
+    ];
+    return (
+      <MobileLayout
+        title={user?.username ?? 'SU8L'}
+        subtitle={t('nav.dashboard')}
+        items={nav}
+        onAvatar={() => setPickerOpen(true)}
+        onHome={() => navigate('/')}
+      >
+        <Outlet context={{ openAvatarPicker: () => setPickerOpen(true) }} />
+      </MobileLayout>
+    );
+  }
+
   return (
-    <div className="m-dashboard-pad m-dash-container mx-auto w-full max-w-7xl px-3 pb-24 pt-14 sm:px-6 lg:pt-20">
+    <div className="m-dash-container mx-auto w-full max-w-7xl px-3 pb-24 pt-14 sm:px-6 lg:pt-20">
       {/* ── Mobile: compact top bar (avatar / bell / actions) ─────────────── */}
       <div className="mb-4 lg:hidden">
         <div className="glass-strong mb-3 flex items-center gap-2.5 rounded-2xl px-3 py-2.5">
@@ -77,25 +102,24 @@ export default function DashboardLayout() {
         </div>
       </div>
 
-      {/* ── Mobile: fixed bottom tab bar (app-like) ───────────────────────── */}
-      <nav className="m-tabbar m-safe-bottom lg:hidden" aria-label="Primary">
-        <div className="m-tabbar-inner">
-          {links.map((l) => (
-            <NavLink
-              key={l.to}
-              to={l.to}
-              end={l.end}
-              className={({ isActive }) => `m-tab ${isActive ? 'active' : ''}`}
-            >
-              <span className="m-tab-ic">{l.icon}</span>
-              <span>{l.label}</span>
-              {l.to === '/dashboard/tickets' && unread > 0 && (
-                <span className="m-tab-badge">{unread > 99 ? '99+' : unread}</span>
-              )}
-            </NavLink>
-          ))}
-        </div>
-      </nav>
+      {/* ── Mobile: clean horizontal nav pills (temporary while building
+               the dedicated mobile shell) ────────────────────────────────── */}
+      <div className="scrollbar-none -mx-1 mb-4 flex gap-1.5 overflow-x-auto px-1 lg:hidden">
+        {links.map((l) => (
+          <NavLink
+            key={l.to}
+            to={l.to}
+            end={l.end}
+            className={({ isActive }) =>
+              `m-chip ${isActive
+                ? 'bg-gradient-to-r from-primary/30 to-glow/20 text-white'
+                : 'border border-white/10 bg-white/[0.02] text-muted'}`
+            }
+          >
+            {l.label}
+          </NavLink>
+        ))}
+      </div>
 
       {/* ── Desktop: sidebar + content grid ───────────────────────────────── */}
       <div className="flex w-full gap-8 lg:flex-row">

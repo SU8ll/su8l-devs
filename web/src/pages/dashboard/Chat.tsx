@@ -297,20 +297,20 @@ export default function Chat() {
   const meta = chatLangMeta(chosenLanguage);
 
   return (
-    <div className="m-chat-screen flex h-[calc(100vh-9rem)] min-h-[480px] flex-col">
+    <div className="m-chat-screen mx-auto flex h-[calc(100vh-9rem)] min-h-[480px] max-w-3xl flex-col">
       {/* Header */}
-      <div className="glass-strong mb-3 flex flex-wrap items-center gap-3 rounded-2xl px-4 py-3">
-        <div className="flex items-center gap-2">
+      <div className="m-chat-head glass-strong mb-3 flex items-center gap-3 rounded-2xl px-4 py-3">
+        <div className="flex min-w-0 items-center gap-2.5">
           <span className="text-xl">{meta.flag}</span>
-          <div>
-            <div className="text-sm font-bold">{t('chat.title')}</div>
+          <div className="min-w-0">
+            <div className="truncate text-sm font-bold">{t('chat.title')}</div>
             <div className="flex items-center gap-2 text-[0.7rem] text-muted">
               <span>{activeUsers} {t('chat.online')}</span>
               <span className={`inline-block h-2 w-2 rounded-full ${wsConnected ? 'bg-emerald-400' : 'bg-amber-400'}`} />
             </div>
           </div>
         </div>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex shrink-0 items-center gap-1.5">
           <button type="button" onClick={() => setUsernameEdit((v) => !v)} className="btn-ghost text-xs">
             ✎ {t('chat.changeName')}
           </button>
@@ -349,7 +349,7 @@ export default function Chat() {
       )}
 
       {/* Messages */}
-      <div className="glass flex-1 space-y-3 overflow-y-auto rounded-2xl p-4">
+      <div className="glass flex-1 space-y-3 overflow-y-auto rounded-2xl px-3 py-4">
         {loading ? (
           <div className="flex justify-center py-16"><Spinner size={32} /></div>
         ) : messages.length === 0 ? (
@@ -366,8 +366,8 @@ export default function Chat() {
             return (
               <div key={m.id} id={`chat-${m.id}`} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
                 <div
-                  className={`group max-w-[82%] rounded-2xl px-4 py-2.5 ${
-                    mine ? 'bg-gradient-to-br from-primary/40 to-glow/30' : 'border border-white/5 bg-white/[0.04]'
+                  className={`max-w-[84%] rounded-2xl px-4 py-2.5 ${
+                    mine ? 'm-bubble-mine' : 'm-bubble-theirs'
                   } ${mentioned ? 'ring-1 ring-glow/50' : ''}`}
                 >
                   {m.replyTo && (
@@ -397,7 +397,6 @@ export default function Chat() {
                     {showTranslated ? translated : m.body}
                   </div>
 
-                  {/* Translation footers */}
                   {showTranslated && (
                     <div className="mt-1 border-t border-white/5 pt-1 text-[0.68rem] italic text-muted">
                       {t('chat.originalNote').replace('{lang}', chatLangMeta(src).name)}
@@ -505,10 +504,10 @@ export default function Chat() {
             }}
             rows={2}
             maxLength={2000}
-            className="neon-input flex-1 resize-none"
+            className="neon-input m-chat-input flex-1 resize-none"
             placeholder={`${t('chat.placeholder')} — ${meta.flag} ${meta.name}`}
           />
-          <button type="button" onClick={() => void send()} disabled={sending || !input.trim()} className="btn-primary shrink-0 disabled:opacity-40">
+          <button type="button" onClick={() => void send()} disabled={sending || !input.trim()} className="btn-primary m-send-btn shrink-0 disabled:opacity-40">
             {sending ? <Spinner size={16} /> : '➤'}
           </button>
         </div>
