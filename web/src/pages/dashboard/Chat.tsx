@@ -13,7 +13,7 @@ import {
   type ChatLang,
   type ChatMessageDto,
 } from '../../api';
-import { createTranslator } from '../../chatTranslate';
+import { createTranslator, detectLanguage } from '../../chatTranslate';
 import { Spinner } from '../../components/ui';
 
 const translate = createTranslator();
@@ -32,13 +32,36 @@ export default function Chat() {
   const [mentionQuery, setMentionQuery] = useState('');
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [notEntitled, setNotEntitled] = useState(false);
   const [wsConnected, setWsConnected] = useState(false);
   const [usernameEdit, setUsernameEdit] = useState(false);
   const [usernameDraft, setUsernameDraft] = useState(user?.username ?? '');
   const [usernameError, setUsernameError] = useState('');
   const [nameUpdated, setNameUpdated] = useState(false);
+  const [emojiOpen, setEmojiOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Curated iOS-style emoji set (rendered by the OS in native color-emoji font).
+  const iOS_EMOJIS = useMemo(
+    () => [
+      '😀','😁','😂','🤣','😊','😇','🥰','😍','🤩','😘','😗','😉','🙂','🤗','🤔','🫡','😐','😴','😴','🤤','😢','😭','🥺','😡','🤯','🥳','😎','🤓','🧐','🙃',
+      '👍','👍🏽','👎','👏','🙏','✌️','🤞','🤙','👌','🤝','💪','🫶','👋','🤚','🖐️','✋','👀','🧠','👅','👄',
+      '❤️','🧡','💛','💚','💙','💜','🖤','🤍','💔','💖','💫','✨','🔥','⚡','🌈','☀️','🌙','⭐','🌟','💥','🎉','🎊','🥂','🍻',
+      '🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🦄','🐝','🦋','🐢','🐙','🦀','🐬','🐳','🦈',
+      '🍎','🍐','🍊','🍋','🍌','🍉','🍇','🍓','🫐','🍈','🍒','🍑','🥭','🍍','🥥','🥝','🍅','🥕','🌽','🌶️','🥦','🍔','🍟','🍕','🌭','🥪','🌮','🌯','🥗','🍿','🍩','🍪','🎂','🍰','🧁','🥧','🍫','🍬','🍭','🍺','🥤','☕',
+      '⚽','🏀','🏈','⚾','🥎','🎾','🏐','🏉','🥏','🎱','🏓','🏸','🥊','🥋','⛳','🏹','🎣','🛹','🛼','🚴','🏋️','⛸️','🎿','🏂','🏄','🏊','🚣','🎯','🎲','🎮','🎰','🎳',
+    ],
+    []
+  );
+  const EMOJI_COLS = [
+    iOS_EMOJIS.slice(0, 36),
+    iOS_EMOJIS.slice(36, 52),
+    iOS_EMOJIS.slice(52, 76),
+    iOS_EMOJIS.slice(76, 104),
+    iOS_EMOJIS.slice(104, 128),
+    iOS_EMOJIS.slice(128),
+  ];
 
   const knownUsers = useMemo(() => {
     const set = new Set<string>([...(user?.username ? [user.username] : [])]);
@@ -68,8 +91,10 @@ export default function Chat() {
           setMessages(hist.messages);
           setActiveUsers(hist.activeUsers);
         }
-      } catch {
-        /* ignore */
+      } catch (e) {
+        // 403 = chat requires an active subscription or a completed purchase.
+        const status = (e as { status?: number })?.status;
+        if (status === 403 && !cancelled) setNotEntitled(true);
       }
       if (!cancelled) setLoading(false);
     })();
@@ -92,7 +117,8 @@ export default function Chat() {
   }, [chosenLanguage, messages]);
 
   async function runTranslation(m: ChatMessageDto, target: ChatLang) {
-    const src = (m.language as ChatLang) || 'en';
+    const declared = (m.language as ChatLang) || 'en';
+    const src = detectLanguage(m.body, declared);
     if (src === target) return;
     const translated = await translate.translate(m.body, src, target);
     setTranslations((prev) => (prev[m.id] === translated ? prev : { ...prev, [m.id]: translated }));
@@ -163,6 +189,23 @@ export default function Chat() {
     inputRef.current?.focus();
   }
 
+  function insertEmoji(emoji: string) {
+    const el = inputRef.current;
+    if (el) {
+      const start = el.selectionStart ?? input.length;
+      const end = el.selectionEnd ?? input.length;
+      const next = input.slice(0, start) + emoji + input.slice(end);
+      setInput(next);
+      requestAnimationFrame(() => {
+        el.focus();
+        const pos = start + emoji.length;
+        el.setSelectionRange(pos, pos);
+      });
+    } else {
+      setInput((v) => v + emoji);
+    }
+  }
+
   const mentionMatches = useMemo(() => {
     if (!mentionOpen || !mentionQuery) return [];
     return knownUsers
@@ -214,6 +257,18 @@ export default function Chat() {
   }
 
   // ── Language selection screen ─────────────────────────────────────────────
+  if (notEntitled) {
+    return (
+      <div className="mx-auto max-w-xl">
+        <section className="glass glow-border rounded-3xl p-8 text-center">
+          <div className="text-5xl">🔒</div>
+          <h1 className="mt-4 font-display text-2xl font-extrabold text-gradient text-glow">{t('chat.lockedTitle')}</h1>
+          <p className="mt-3 text-sm text-muted">{t('chat.lockedDesc')}</p>
+        </section>
+      </div>
+    );
+  }
+
   if (!chosenLanguage) {
     return (
       <div className="mx-auto max-w-2xl">
@@ -302,7 +357,8 @@ export default function Chat() {
         ) : (
           messages.map((m) => {
             const mine = m.user.id === user?.id;
-            const src = (m.language as ChatLang) || 'en';
+            const declared = (m.language as ChatLang) || 'en';
+            const src = detectLanguage(m.body, declared);
             const translated = translations[m.id];
             const origMode = !!showOriginal[m.id];
             const showTranslated = !!translated && !origMode;
@@ -403,10 +459,44 @@ export default function Chat() {
           </div>
         )}
         <div className="flex items-end gap-2">
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setEmojiOpen((v) => !v)}
+              className="btn-ghost flex h-[38px] w-[38px] shrink-0 items-center justify-center text-xl"
+              title="Emoji"
+            >
+              😊
+            </button>
+            {emojiOpen && (
+              <>
+                <div className="fixed inset-0 z-30" onClick={() => setEmojiOpen(false)} />
+                <div className="glass-strong absolute bottom-12 left-0 z-40 w-[300px] rounded-2xl p-2 shadow-xl">
+                  <div className="max-h-56 space-y-1 overflow-y-auto">
+                    {EMOJI_COLS.map((row, ri) => (
+                      <div key={ri} className="flex flex-wrap gap-0.5">
+                        {row.map((e) => (
+                          <button
+                            key={e}
+                            type="button"
+                            onClick={() => insertEmoji(e)}
+                            className="flex h-8 w-8 items-center justify-center rounded-lg text-xl transition-all hover:scale-110 hover:bg-white/10"
+                          >
+                            {e}
+                          </button>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
           <textarea
             ref={inputRef}
             value={input}
             onChange={(e) => handleInputChange(e.target.value)}
+            onClick={() => setEmojiOpen(false)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();

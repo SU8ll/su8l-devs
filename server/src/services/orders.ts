@@ -1,10 +1,8 @@
 import {
   activateSubscription,
-  countReferrals,
   getOrder,
   getPromoByCode,
   getReferralCodeOwner,
-  getReferralRewardRow,
   hasReferralByInvitee,
   insertExtraSlot,
   insertReferral,
@@ -66,20 +64,23 @@ export async function fulfillOrder(orderId: string, captureId: string | null): P
       // ── Friend referral recording ─────────────────────────────────────────
       // A referral is counted ONLY on the invitee's first paid Elite order
       // (highest tier). We record it here, inside the transaction, so it can
-      // never be double-counted, and we immediately grant the referrer a free
-      // Elite month when they reach 3 new subscribers.
+      // never be double-counted. Registered-but-not-paying signups NEVER count.
+      // The referrer claims their free month manually (see /api/referral/claim)
+      // once they reach the threshold of NEW Elite subscribers.
       if (fresh.referral_code) {
         const owner = await getReferralCodeOwner(fresh.referral_code);
         const elite = getHighestTier();
         const isEliteOrder = fresh.plan_key === elite.key;
         const alreadyCounted = await hasExistingReferral(fresh.user_id);
-        if (owner && isEliteOrder && !alreadyCounted) {
+        // A referrer's own order (their own code) grants a discount but never
+        // counts as a referral toward their own reward.
+        const isSelfReferral = !!owner && owner.user_id === fresh.user_id;
+        if (owner && isEliteOrder && !alreadyCounted && !isSelfReferral) {
           await insertReferral({
             referrerUserId: owner.user_id,
             inviteeUserId: fresh.user_id,
             eliteOrderId: fresh.id,
           });
-          await grantFreeMonthWhenEligible(owner.user_id);
         }
       }
     }
@@ -119,18 +120,11 @@ async function hasExistingReferral(inviteeUserId: string): Promise<boolean> {
 }
 
 /**
- * Records the referral and, once the referrer has brought in 3 NEW Elite
- * subscribers, grants them a free month of the highest tier. Idempotent: the
- * reward is only written once (tracked in referral_rewards). Must be called
- * inside the `withTransaction` from fulfillOrder.
+ * Grants the referrer a free month of the highest tier and records the reward
+ * row so it can never be claimed twice. The caller (/api/referral/claim) is
+ * responsible for verifying the referral threshold before invoking this.
  */
-async function grantFreeMonthWhenEligible(referrerUserId: string): Promise<void> {
-  const count = await countReferrals(referrerUserId);
-  if (count < 3) return;
-
-  const existingReward = await getReferralRewardRow(referrerUserId);
-  if (existingReward?.awarded) return; // already rewarded in a prior run
-
+export async function grantFreeEliteMonth(referrerUserId: string, count: number): Promise<void> {
   const elite = getHighestTier();
   await activateSubscription({
     userId: referrerUserId,
@@ -139,6 +133,5 @@ async function grantFreeMonthWhenEligible(referrerUserId: string): Promise<void>
     amount: 0,
     durationMs: planCycleMonths('monthly') * 30 * 24 * 60 * 60 * 1000,
   });
-  // Track how many referrals earned this reward so the UI can show progress.
   await setReferralReward(referrerUserId, count, nowIso());
 }

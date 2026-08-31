@@ -14,6 +14,7 @@ import {
   promoPrice,
 } from '../plans.js';
 import {
+  countReferrals,
   getOrder,
   getOrderByPaypalId,
   getPromoByCode,
@@ -21,6 +22,7 @@ import {
   getReferralCodeOwner,
   hasActiveBaseSubscription,
   insertOrder,
+  logReferrerDiscount,
   markOrderDenied,
 } from '../db.js';
 import { fulfillOrder } from '../services/orders.js';
@@ -56,11 +58,13 @@ router.post('/create', requireAuth, async (req: AuthedRequest, res) => {
       referralCode = cookieRef.trim().toUpperCase();
     }
   }
-  // The code must belong to another user and must not be your own.
+  // The code must belong to a real user (it may be your own code, which grants
+  // YOU the referrer's 8% discount instead of counting a new referral).
   const referralOwner = referralCode ? await getReferralCodeOwner(referralCode) : undefined;
-  if (referralCode && (!referralOwner || referralOwner.user_id === req.user.id)) {
+  if (referralCode && !referralOwner) {
     referralCode = null;
   }
+  const isOwnCode = !!referralCode && !!referralOwner && referralOwner.user_id === req.user.id;
 
   let amount: number;
   let description: string;
@@ -101,6 +105,13 @@ router.post('/create', requireAuth, async (req: AuthedRequest, res) => {
       if (referralCode && plan.isHighestTier) {
         referralDiscount = REFERRAL_DISCOUNT_8;
         appliedReferral = referralCode;
+        // If the referrer used their OWN code (their 8% discount) before
+        // completing the original 5-referral goal, this raises their free-month
+        // goal from 5 to 7. Log it once (idempotent) with the count at that time.
+        if (isOwnCode) {
+          const currentCount = await countReferrals(req.user.id);
+          await logReferrerDiscount(req.user.id, currentCount);
+        }
       }
 
       if (promoCode && referralDiscount > 0) {

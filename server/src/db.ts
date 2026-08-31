@@ -225,6 +225,15 @@ CREATE TABLE IF NOT EXISTS referral_rewards (
   UNIQUE(user_id)
 );
 
+-- Tracks when a referrer first used their 8% discount on an Elite order BEFORE
+-- completing the original 5-referral goal. Doing so raises their free-month
+-- goal from 5 to 7 (see referral logic). At most one row per user.
+CREATE TABLE IF NOT EXISTS referrer_discount_log (
+  user_id TEXT PRIMARY KEY,
+  used_at TEXT NOT NULL,
+  referral_count INTEGER NOT NULL DEFAULT 0
+);
+
 CREATE TABLE IF NOT EXISTS chat_messages (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL,
@@ -446,6 +455,22 @@ export function subscriptionDisplayStatus(s: Pick<Subscription, 'status' | 'curr
 export async function hasActiveBaseSubscription(userId: string): Promise<boolean> {
   return (await getActiveSubscriptions(userId)).length > 0;
 }
+
+/**
+ * Chat entitlement: a user may join the community chat only if they are a
+ * paying customer — that is, they currently hold an active subscription OR
+ * they have completed at least one real paid order (plan or product).
+ */
+export async function hasChatEntitlement(userId: string): Promise<boolean> {
+  if (await hasActiveBaseSubscription(userId)) return true;
+  const row = await get<{ ok: number }>(
+    'SELECT 1 AS ok FROM orders WHERE user_id = ? AND status = ? LIMIT 1',
+    userId,
+    'completed'
+  );
+  return !!row;
+}
+
 
 export async function activateSubscription(data: {
   userId: string;
@@ -1053,6 +1078,25 @@ export interface ReferralRewardRow {
 
 export async function getReferralRewardRow(userId: string): Promise<ReferralRewardRow | undefined> {
   return get<ReferralRewardRow>('SELECT * FROM referral_rewards WHERE user_id = ?', userId);
+}
+
+// ── Referrer discount log ─────────────────────────────────────────────────────
+
+export interface ReferrerDiscountLog {
+  user_id: string;
+  used_at: string;
+  referral_count: number;
+}
+
+export function getReferrerDiscountLog(userId: string): Promise<ReferrerDiscountLog | undefined> {
+  return get<ReferrerDiscountLog>('SELECT * FROM referrer_discount_log WHERE user_id = ?', userId);
+}
+
+export async function logReferrerDiscount(userId: string, referralCount: number): Promise<void> {
+  await run(
+    'INSERT INTO referrer_discount_log (user_id, used_at, referral_count) VALUES (?,?,?) ON CONFLICT (user_id) DO NOTHING',
+    userId, nowIso(), referralCount
+  );
 }
 
 // ── Chat messages ────────────────────────────────────────────────────────────

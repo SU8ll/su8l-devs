@@ -1,7 +1,7 @@
 import { WebSocketServer, WebSocket, type RawData } from 'ws';
 import type { Server } from 'node:http';
 import { config } from '../config.js';
-import { getUser } from '../db.js';
+import { getUser, hasChatEntitlement } from '../db.js';
 import jwt from 'jsonwebtoken';
 import { resolveAvatarUrl } from './avatars.js';
 
@@ -61,6 +61,8 @@ async function authenticate(token: string | undefined): Promise<ChatUser | undef
     if (!payload.sub) return undefined;
     const user = await getUser(payload.sub);
     if (!user) return undefined;
+    // Chat is for paying customers only (active subscriber or completed order).
+    if (!(await hasChatEntitlement(user.id))) return undefined;
     return { id: user.id, username: user.username, avatar: resolveAvatarUrl(user.avatar) };
   } catch {
     return undefined;

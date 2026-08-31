@@ -608,12 +608,22 @@ export interface ReferralDto {
   freePlanName: string;
   count: number;
   referralsRemaining: number;
+  goal: number;
+  eligible: boolean;
+  claimed: boolean;
+  canClaim: boolean;
   reward: { referralsEarned: number; awarded: string | null };
   invitees: ReferralInviteeDto[];
 }
 
 export async function getReferral(): Promise<ReferralDto> {
   return api<ReferralDto>('/api/referral');
+}
+
+export async function claimReferralReward(): Promise<{ ok: boolean; freePlanName: string }> {
+  return api<{ ok: boolean; freePlanName: string }>('/api/referral/claim', {
+    method: 'POST',
+  });
 }
 
 // ── Global chat ─────────────────────────────────────────────────────────────

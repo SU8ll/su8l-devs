@@ -8,6 +8,7 @@ import {
   getChatMessage,
   getChatPreference,
   getUser,
+  hasChatEntitlement,
   insertChatMessage,
   listChatMessages,
   setChatPreference,
@@ -78,8 +79,19 @@ function extractMentions(body: string): { names: string[]; replyTo: string | nul
   return { names, replyTo: null };
 }
 
+// Chat is for paying customers only: active subscriber OR completed any order.
+async function assertEntitled(req: AuthedRequest, res: { status(code: number): { json(body: unknown): unknown } }) {
+  const ok = await hasChatEntitlement(req.user.id);
+  if (!ok) {
+    res.status(403).json({ error: 'chat requires an active subscription or a purchase' });
+    return false;
+  }
+  return true;
+}
+
 // GET /api/chat — recent history + active user count
-router.get('/', requireAuth, async (_req: AuthedRequest, res) => {
+router.get('/', requireAuth, async (req: AuthedRequest, res) => {
+  if (!(await assertEntitled(req, res))) return;
   const messages = await listChatMessages(200);
   const payloads: ChatMessagePayload[] = [];
   for (const msg of messages) {
@@ -90,6 +102,7 @@ router.get('/', requireAuth, async (_req: AuthedRequest, res) => {
 
 // POST /api/chat — publish a new message (server inserts + broadcasts live)
 router.post('/', requireAuth, async (req: AuthedRequest, res) => {
+  if (!(await assertEntitled(req, res))) return;
   const parsed = postSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: 'invalid message' });
   const body = parsed.data.body;

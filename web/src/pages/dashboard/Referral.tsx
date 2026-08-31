@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useI18n } from '../../i18n';
-import { getReferral, type ReferralDto } from '../../api';
+import { claimReferralReward, getReferral, type ReferralDto } from '../../api';
 import { Badge, Kicker, Spinner, formatDate } from '../../components/ui';
 
 export default function Referral() {
@@ -8,31 +8,52 @@ export default function Referral() {
   const [data, setData] = useState<ReferralDto | null>(null);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [claiming, setClaiming] = useState(false);
+  const [claimMsg, setClaimMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const load = () => getReferral().then(setData).catch(() => setError('Failed to load referral'));
 
   useEffect(() => {
-    getReferral().then(setData).catch(() => setError('Failed to load referral'));
+    load();
   }, []);
+
+  const goal = data?.goal ?? data?.freeMonthThreshold ?? 5;
 
   const progress = useMemo(() => {
     if (!data) return 0;
-    return Math.min(100, (data.count / data.freeMonthThreshold) * 100);
-  }, [data]);
-
-  if (error) return <div className="text-red-300">{error}</div>;
-  if (!data) return <div className="flex justify-center py-24"><Spinner size={36} /></div>;
-
-  const referral = data;
-  const rewardEarned = referral.reward?.awarded != null && referral.count >= referral.freeMonthThreshold;
+    return Math.min(100, (data.count / goal) * 100);
+  }, [data, goal]);
 
   async function copy() {
     try {
-      await navigator.clipboard.writeText(referral.shareUrl);
+      await navigator.clipboard.writeText(data!.shareUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
       /* clipboard unavailable */
     }
   }
+
+  async function onClaim() {
+    if (claiming) return;
+    setClaiming(true);
+    setClaimMsg(null);
+    try {
+      const r = await claimReferralReward();
+      setClaimMsg({ ok: true, text: t('referral.claimSuccess').replace('{plan}', r.freePlanName) });
+      load();
+    } catch (e) {
+      setClaimMsg({ ok: false, text: t('referral.claimFailed') });
+    } finally {
+      setClaiming(false);
+    }
+  }
+
+  if (error) return <div className="text-red-300">{error}</div>;
+  if (!data) return <div className="flex justify-center py-24"><Spinner size={36} /></div>;
+
+  const referral = data;
+  const rewardEarned = referral.claimed;
 
   return (
     <div className="space-y-6">
@@ -45,7 +66,7 @@ export default function Referral() {
 
           <div className="mt-6 grid gap-4 sm:grid-cols-3">
             <StatBox label={t('referral.statDiscount')} value={`${data.discount}%`} />
-            <StatBox label={t('referral.statFriends')} value={`${data.count}/${data.freeMonthThreshold}`} />
+            <StatBox label={t('referral.statFriends')} value={`${data.count}/${goal}`} />
             <StatBox label={t('referral.statReward')} value={`1 ${t('referral.freeMonth')}`} />
           </div>
 
@@ -69,7 +90,7 @@ export default function Referral() {
             <div className="mb-2 flex items-end justify-between">
               <span className="text-sm font-semibold text-muted">{t('referral.progressTitle')}</span>
               <span className="text-sm font-bold text-glow">
-                {Math.max(0, data.count)} / {data.freeMonthThreshold}
+                {Math.max(0, data.count)} / {goal}
               </span>
             </div>
             <div className="h-3 overflow-hidden rounded-full bg-white/5">
@@ -79,11 +100,31 @@ export default function Referral() {
               />
             </div>
             <p className="mt-2 text-xs text-muted">
-              {rewardEarned
-                ? t('referral.rewardEarned')
-                : t('referral.rewardRemaining').replace('{n}', String(data.referralsRemaining))}
+              {data.canClaim
+                ? t('referral.rewardReady')
+                : rewardEarned
+                  ? t('referral.rewardEarned')
+                  : t('referral.rewardRemaining').replace('{n}', String(Math.max(0, goal - data.count)))}
             </p>
           </div>
+
+          {data.canClaim && (
+            <div className="mt-6 rounded-2xl border border-glow/40 bg-glow/10 p-5 text-center">
+              <p className="mb-3 text-sm font-semibold text-glow">{t('referral.rewardReadyTitle')}</p>
+              <button type="button" onClick={onClaim} disabled={claiming} className="btn-primary">
+                {claiming ? t('referral.claiming') : t('referral.claimButton')}
+              </button>
+              {claimMsg && (
+                <p className={`mt-3 text-xs ${claimMsg.ok ? 'text-emerald-300' : 'text-red-300'}`}>{claimMsg.text}</p>
+              )}
+            </div>
+          )}
+
+          {rewardEarned && !data.canClaim && (
+            <div className="mt-6 rounded-2xl border border-emerald-400/30 bg-emerald-400/5 p-5 text-center">
+              <p className="text-sm font-semibold text-emerald-300">{t('referral.claimedNotice')}</p>
+            </div>
+          )}
         </div>
       </section>
 
