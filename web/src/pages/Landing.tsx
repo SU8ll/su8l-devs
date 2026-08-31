@@ -76,7 +76,7 @@ export default function Landing() {
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6">
       {/* ═══ Hero ═══════════════════════════════════════════════════════════ */}
-      <section className="relative flex min-h-[90vh] flex-col items-center justify-center overflow-hidden py-20 text-center">
+      <section className="m-hero relative flex min-h-[90vh] flex-col items-center justify-center overflow-hidden py-20 text-center">
         {/* Floating orbs */}
         <div className="hero-orb hero-orb-1" aria-hidden="true" />
         <div className="hero-orb hero-orb-2" aria-hidden="true" />

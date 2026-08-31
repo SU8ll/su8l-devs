@@ -33,8 +33,8 @@ export default function DashboardLayout() {
   ];
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-3 pb-24 pt-14 sm:px-6 lg:pt-20">
-      {/* ── Mobile: compact top bar + horizontal scrollable tabs ──────────── */}
+    <div className="m-dashboard-pad m-dash-container mx-auto w-full max-w-7xl px-3 pb-24 pt-14 sm:px-6 lg:pt-20">
+      {/* ── Mobile: compact top bar (avatar / bell / actions) ─────────────── */}
       <div className="mb-4 lg:hidden">
         <div className="glass-strong mb-3 flex items-center gap-2.5 rounded-2xl px-3 py-2.5">
           <button
@@ -75,32 +75,27 @@ export default function DashboardLayout() {
             ⎋
           </button>
         </div>
+      </div>
 
-        <div className="scrollbar-none -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
+      {/* ── Mobile: fixed bottom tab bar (app-like) ───────────────────────── */}
+      <nav className="m-tabbar m-safe-bottom lg:hidden" aria-label="Primary">
+        <div className="m-tabbar-inner">
           {links.map((l) => (
             <NavLink
               key={l.to}
               to={l.to}
               end={l.end}
-              className={({ isActive }) =>
-                `relative flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl px-3.5 py-2 text-xs font-semibold transition-all ${
-                  isActive
-                    ? 'bg-gradient-to-r from-primary/40 to-glow/30 text-white shadow-glow'
-                    : 'border border-white/10 bg-white/[0.03] text-muted hover:bg-white/5 hover:text-white'
-                }`
-              }
+              className={({ isActive }) => `m-tab ${isActive ? 'active' : ''}`}
             >
-              <span className="text-[11px]">{l.icon}</span>
+              <span className="m-tab-ic">{l.icon}</span>
               <span>{l.label}</span>
               {l.to === '/dashboard/tickets' && unread > 0 && (
-                <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-glow px-1 text-[9px] font-bold text-black shadow-glow">
-                  {unread > 99 ? '99+' : unread}
-                </span>
+                <span className="m-tab-badge">{unread > 99 ? '99+' : unread}</span>
               )}
             </NavLink>
           ))}
         </div>
-      </div>
+      </nav>
 
       {/* ── Desktop: sidebar + content grid ───────────────────────────────── */}
       <div className="flex w-full gap-8 lg:flex-row">

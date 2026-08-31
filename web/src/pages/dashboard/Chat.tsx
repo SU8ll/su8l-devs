@@ -297,7 +297,7 @@ export default function Chat() {
   const meta = chatLangMeta(chosenLanguage);
 
   return (
-    <div className="flex h-[calc(100vh-9rem)] min-h-[480px] flex-col">
+    <div className="m-chat-screen flex h-[calc(100vh-9rem)] min-h-[480px] flex-col">
       {/* Header */}
       <div className="glass-strong mb-3 flex flex-wrap items-center gap-3 rounded-2xl px-4 py-3">
         <div className="flex items-center gap-2">

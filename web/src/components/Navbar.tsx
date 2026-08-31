@@ -39,7 +39,7 @@ export default function Navbar() {
 
   return (
     <header className="fixed top-0 inset-x-0 z-50">
-      <div className="mx-auto max-w-7xl px-3 sm:px-6">
+      <div className="navbar-shell mx-auto max-w-7xl px-3 sm:px-6">
         <div className="glass-strong mt-4 flex items-center justify-between gap-3 rounded-2xl px-3 py-3 sm:px-6">
           <Link to="/" className="flex min-w-0 items-center gap-2.5 sm:gap-3">
             {logoFailed ? (
@@ -115,24 +115,31 @@ export default function Navbar() {
         </div>
 
         {open && (
-          <div className="glass-strong mt-2 rounded-2xl p-4 lg:hidden">
-            <div className="flex flex-col gap-3">
-              <NavLink to="/" className="nav-link" onClick={() => setOpen(false)}>
-                {t('nav.home')}
-              </NavLink>
-              <NavLink to="/pricing" className="nav-link" onClick={() => setOpen(false)}>
-                {t('nav.pricing')}
-              </NavLink>
-              <NavLink to="/status" className="nav-link" onClick={() => setOpen(false)}>
-                {t('nav.status')}
-              </NavLink>
-              <NavLink to="/terms" className="nav-link" onClick={() => setOpen(false)}>
-                {t('nav.terms')}
-              </NavLink>
-              <NavLink to="/refund" className="nav-link" onClick={() => setOpen(false)}>
-                {t('nav.refund')}
-              </NavLink>
-              <div className="h-px bg-white/10" />
+          <div className="glass-strong mt-2 overflow-hidden rounded-2xl p-2 lg:hidden">
+            <div className="flex flex-col gap-1">
+              {[
+                { to: '/', label: t('nav.home') },
+                { to: '/pricing', label: t('nav.pricing') },
+                { to: '/status', label: t('nav.status') },
+                { to: '/terms', label: t('nav.terms') },
+                { to: '/refund', label: t('nav.refund') },
+              ].map((l) => (
+                <NavLink
+                  key={l.to}
+                  to={l.to}
+                  onClick={() => setOpen(false)}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-semibold transition-colors ${
+                      isActive
+                        ? 'bg-gradient-to-r from-primary/30 to-glow/20 text-white'
+                        : 'text-muted hover:bg-white/5 hover:text-white'
+                    }`
+                  }
+                >
+                  {l.label}
+                </NavLink>
+              ))}
+              <div className="my-1 h-px bg-white/10" />
               {user ? (
                 <button type="button" className="btn-primary" onClick={() => { setOpen(false); navigate('/dashboard'); }}>
                   {t('nav.dashboard')}

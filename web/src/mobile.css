@@ -1,0 +1,288 @@
+/* ════════════════════════════════════════════════════════════════════════════
+   MOBILE-SPECIFIC EXPERIENCE  (max-width: 767px)
+   Every rule here lives inside a `max-width` media query, so the DESKTOP
+   experience is completely untouched. This file powers a polished, app-like,
+   world-class mobile UI on top of the existing components.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Safe areas (iOS home indicator / notch) ─────────────────────────────── */
+@supports (padding: max(0px)) {
+  .m-safe-bottom {
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  }
+  .m-dashboard-pad {
+    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 767px) {
+  html {
+    font-size: 16px; /* keep 1rem predictable on mobile */
+  }
+
+  /* ── Root scroll damping + momentum for the whole page ─────────────────── */
+  html, body, #root {
+    overscroll-behavior-y: contain;
+  }
+
+  body {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ── Restrain decorative orbs / overlays so they never overflow ────────── */
+  .grid-overlay {
+    background-size: 48px 48px;
+  }
+
+  /* ── Fixed navbar: compact, sticky, ensure content has headroom ────────── */
+  .navbar-shell {
+    padding-top: 6px;
+  }
+  .navbar-shell .glass-strong {
+    border-radius: 18px;
+    margin-top: 6px;
+    padding-top: 0.65rem;
+    padding-bottom: 0.65rem;
+  }
+
+  /* Boxed, centered readable column on narrow screens */
+  .navbar-shell > div {
+    flex-wrap: nowrap;
+  }
+
+  /* ── Hero — tighter, punchier, full-width friendly ─────────────────────── */
+  .m-hero h1 {
+    font-size: clamp(2.1rem, 9vw, 3rem) !important;
+    line-height: 1.08 !important;
+    letter-spacing: -0.02em !important;
+  }
+  .m-hero p.hero-subtitle {
+    font-size: 1rem !important;
+    line-height: 1.7 !important;
+    padding-inline: 0.5rem;
+  }
+  .m-hero .hero-cta {
+    width: 100%;
+    max-width: 26rem;
+    margin-inline: auto;
+  }
+  .m-hero .hero-cta .btn-primary,
+  .m-hero .hero-cta .btn-ghost {
+    width: 100%;
+    min-height: 52px;
+    font-size: 1rem;
+  }
+
+  /* ── Universal touch-friendly buttons ───────────────────────────────────── */
+  .btn-ghost,
+  .btn-primary,
+  .btn-wa {
+    min-height: 48px;
+    border-radius: 14px;
+  }
+  .nav-link {
+    -webkit-tap-highlight-color: transparent;
+  }
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ── Cards — softer radii, comfortable padding ─────────────────────────── */
+  .glass,
+  .glass-strong {
+    border-radius: 22px;
+  }
+
+  /* ── Dashboard mobile layout ────────────────────────────────────────────── */
+  .m-dash-container {
+    padding-inline: 0.9rem;
+    padding-top: 0.5rem;
+  }
+
+  /* Bottom tab bar */
+  .m-tabbar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 50;
+    background: rgba(10, 8, 20, 0.82);
+    border-top: 1px solid rgba(168, 85, 247, 0.15);
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
+    box-shadow: 0 -12px 40px rgba(3, 3, 10, 0.6);
+  }
+  .m-tabbar-inner {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 2px;
+    padding: 8px 10px;
+  }
+  .m-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    border-radius: 14px;
+    padding: 6px 2px;
+    font-size: 0.62rem;
+    font-weight: 600;
+    color: var(--muted);
+    text-decoration: none;
+    transition: color 0.2s ease, background 0.2s ease, transform 0.15s ease;
+    position: relative;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .m-tab:active {
+    transform: scale(0.94);
+  }
+  .m-tab .m-tab-ic {
+    font-size: 1.45rem;
+    line-height: 1;
+    filter: drop-shadow(0 0 10px rgba(168, 85, 247, 0));
+    transition: filter 0.2s ease;
+  }
+  .m-tab.active {
+    color: var(--text);
+    background: linear-gradient(180deg, rgba(168, 85, 247, 0.14), rgba(168, 85, 247, 0.04));
+  }
+  .m-tab.active .m-tab-ic {
+    filter: drop-shadow(0 0 10px rgba(168, 85, 247, 0.7));
+  }
+  .m-tab .m-tab-badge {
+    position: absolute;
+    top: 2px;
+    right: calc(50% - 22px);
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #ec4899, #a855f7);
+    color: #fff;
+    font-size: 0.6rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 12px rgba(236, 72, 153, 0.6);
+  }
+
+  /* Scrollable section tabs (chat / referral / status) on mobile become
+     a clean chipped row */
+  .m-chip-row {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    margin-inline: -0.9rem;
+    padding-inline: 0.9rem;
+    padding-bottom: 0.25rem;
+  }
+  .m-chip-row::-webkit-scrollbar {
+    display: none;
+  }
+  .m-chip {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    border-radius: 14px;
+    padding: 0.6rem 1rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+  }
+
+  /* ── Chat on mobile — use full viewport height nicely ──────────────────── */
+  .m-chat-screen {
+    height: calc(100vh - 14.5rem - env(safe-area-inset-bottom));
+    min-height: 420px;
+  }
+
+  /* ── Stat grid → 2 columns with proper small cards ─────────────────────── */
+  .m-stats-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .m-stat-card {
+    border-radius: 18px;
+    padding: 0.9rem 0.7rem;
+  }
+
+  /* ── One-column stacking for desktop-only multi-column grids ───────────── */
+  .m-stack-cols {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ── Tables → become stacked blocks on mobile (avoid horizontal scroll) ── */
+  .m-stack-table {
+    display: block;
+    overflow: hidden;
+  }
+  .m-stack-table thead {
+    display: none;
+  }
+  .m-stack-table tbody,
+  .m-stack-table tr,
+  .m-stack-table td {
+    display: block;
+    width: 100%;
+  }
+  .m-stack-table tr {
+    padding: 0.9rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .m-stack-table tr:last-child {
+    border-bottom: none;
+  }
+  .m-stack-table td {
+    border: none !important;
+    padding: 0.15rem 0 !important;
+    text-align: start !important;
+  }
+  .m-stack-table td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 2px;
+  }
+
+  /* ── Section headings — tuned for small screens ────────────────────────── */
+  .m-h2 {
+    font-size: 1.4rem !important;
+    line-height: 1.15 !important;
+  }
+
+  /* ── Hide desktop-only elements, show mobile-only ones ─────────────────── */
+  .m-hidden {
+    display: none !important;
+  }
+  .m-only {
+    display: initial !important;
+  }
+
+  /* ── Inputs — comfortable touch height ─────────────────────────────────── */
+  .neon-input,
+  .neon-select {
+    min-height: 50px;
+  }
+
+  /* ── Skeleton of a clean modal on phones ───────────────────────────────── */
+  .modal-panel {
+    width: 92vw;
+    max-height: 85vh;
+    overflow-y: auto;
+  }
+
+  /* ── Full-width sticky CTA at bottom for landing conversions ───────────── */
+  .m-sticky-cta {
+    position: fixed;
+    left: 0.9rem;
+    right: 0.9rem;
+    bottom: 0.9rem;
+    z-index: 40;
+  }
+}
