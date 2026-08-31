@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useI18n } from '../i18n';
 import { useAuth } from '../AuthContext';
 import { productImage } from '../productImages';
-import MobileLayout, { type MobileNavItem } from './MobileLayout';
+import MobileLayout, { MIcons, type MobileNavItem } from './MobileLayout';
 import { api, type StatusSummaryDto } from '../api';
 
 export default function LandingMobile() {
@@ -12,7 +12,6 @@ export default function LandingMobile() {
   const navigate = useNavigate();
   const isAr = lang === 'ar';
   const [summary, setSummary] = useState<StatusSummaryDto | null>(null);
-  const [logoFailed, setLogoFailed] = useState(false);
 
   useEffect(() => {
     api<StatusSummaryDto>('/api/status/summary').then(setSummary).catch(() => {});
@@ -21,39 +20,20 @@ export default function LandingMobile() {
   const up = summary?.current?.up;
 
   const nav: MobileNavItem[] = [
-    { to: '/', label: t('nav.home'), icon: '⌂', end: true },
-    { to: '/pricing', label: t('nav.pricing'), icon: '♦', primary: true },
-    { to: '/status', label: t('nav.status'), icon: '◈' },
-    { to: '/terms', label: t('nav.terms'), icon: 'ℹ' },
-    { to: '/login', label: isAr ? 'دخول' : 'Login', icon: '→' },
+    { to: '/', label: t('nav.home'), icon: MIcons.home, end: true },
+    { to: '/pricing', label: t('nav.pricing'), icon: MIcons.pricing },
+    { to: '/status', label: t('nav.status'), icon: MIcons.status },
+    { to: '/terms', label: t('nav.terms'), icon: MIcons.terms },
+    { to: '/login', label: isAr ? 'دخول' : 'Login', icon: MIcons.login },
   ];
 
   return (
     <MobileLayout
-      title={logoFailed ? 'SU8L' : t('nav.brand')}
+      title={t('nav.brand')}
       subtitle={t('nav.tagline')}
       items={nav}
       onHome={() => navigate('/')}
     >
-      {/* Brand header */}
-      <div className="flex items-center gap-3 pb-1">
-        {logoFailed ? (
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-glow">
-            <span className="font-display text-sm font-black text-white">SU</span>
-          </div>
-        ) : (
-          <img
-            src="/logo.png"
-            alt=""
-            className="h-11 w-11 rounded-2xl object-contain"
-            onError={() => setLogoFailed(true)}
-          />
-        )}
-        <div>
-          <div className="font-display text-lg font-extrabold text-gradient">{t('nav.brand')}</div>
-          <div className="text-[0.68rem] font-medium uppercase tracking-[0.25em] text-muted">{t('nav.tagline')}</div>
-        </div>
-      </div>
 
       {/* Hero */}
       <section className="m-hero-pad">
@@ -99,19 +79,19 @@ export default function LandingMobile() {
             { icon: '🌐', imageKey: 'osota', title: isAr ? 'أدوات الترجمة' : 'Translation Tools', desc: isAr ? 'OSotA Kutlu — ترجمة فورية لأكثر من 9 لغات' : 'OSotA Kutlu — instant translation for 9+ languages' },
             { icon: '👑', imageKey: 'kingshot', title: isAr ? 'Kingshot Bot' : 'Kingshot Bot', desc: isAr ? 'إدارة تحالف كامل مع OCR والحضور' : 'Complete alliance management with OCR & attendance' },
           ].map((item, i) => (
-            <Link key={i} to="/pricing" className="m-product-row flex items-center gap-3 rounded-2xl border border-white/[0.05]">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-2xl">
+            <Link key={i} to="/pricing" className="m-product-row" style={{textDecoration:'none'}}>
+              <div style={{width:48,height:48,flexShrink:0,borderRadius:12,border:'1px solid rgba(255,255,255,0.07)',background:'rgba(255,255,255,0.03)',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden'}}>
                 {item.imageKey && productImage(item.imageKey) ? (
-                  <img src={productImage(item.imageKey)!} alt="" className="h-9 w-9 rounded-lg object-contain" />
+                  <img src={productImage(item.imageKey)!} alt="" style={{width:36,height:36,objectFit:'contain',display:'block'}} />
                 ) : (
-                  <span>{item.icon}</span>
+                  <span style={{fontSize:20}}>{item.icon}</span>
                 )}
               </div>
-              <div className="min-w-0">
-                <div className="truncate text-sm font-bold">{item.title}</div>
-                <div className="truncate text-xs text-muted">{item.desc}</div>
+              <div style={{minWidth:0, flex:1}}>
+                <div style={{fontSize:14, fontWeight:700, color:'#F5F5F7', lineHeight:1.2}}>{item.title}</div>
+                <div style={{fontSize:12.5, color:'#9A99A6', lineHeight:1.4, marginTop:3, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden'}}>{item.desc}</div>
               </div>
-              <span className="ml-auto text-muted">›</span>
+              <span style={{color:'#6B6A78', flexShrink:0, marginLeft:8}}>›</span>
             </Link>
           ))}
         </div>

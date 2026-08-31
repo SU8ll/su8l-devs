@@ -4,7 +4,7 @@ import { useI18n } from '../../i18n';
 import { useAuth } from '../../AuthContext';
 import AvatarPicker from '../../components/AvatarPicker';
 import NotificationBell from '../../components/NotificationBell';
-import MobileLayout, { type MobileNavItem } from '../../mobile/MobileLayout';
+import MobileLayout, { MIcons, type MobileNavItem } from '../../mobile/MobileLayout';
 import { useIsMobile } from '../../hooks/useIsMobile';
 
 export default function DashboardLayout() {
@@ -35,19 +35,28 @@ export default function DashboardLayout() {
     { to: '/dashboard/tickets', label: t('dash.tickets'), icon: '▤', end: false },
   ];
 
-  /* ─── Mobile: dedicated app-like shell (top bar + 5 bottom-nav slots) ─── */
+  /* ─── Mobile: dedicated app shell ─── */
   if (isMobile) {
     const nav: MobileNavItem[] = [
-      { to: '/dashboard', label: t('dash.overview'), icon: '◉', end: true },
-      { to: '/dashboard/bot', label: t('dash.cloudConfig'), icon: '⬢' },
-      { to: '/dashboard/chat', label: t('dash.chat'), icon: '✉', primary: true },
-      { to: '/dashboard/referral', label: t('dash.referral'), icon: '✚' },
-      { to: '/dashboard/tickets', label: t('dash.tickets'), icon: '▤', badge: unread },
+      { to: '/dashboard', label: 'Overview', icon: MIcons.overview, end: true },
+      { to: '/dashboard/bot', label: 'Cloud', icon: MIcons.bot },
+      { to: '/dashboard/chat', label: 'Chat', icon: MIcons.chat },
+      { to: '/dashboard/referral', label: 'Rewards', icon: MIcons.rewards },
+      { to: '/dashboard/tickets', label: 'Support', icon: MIcons.tickets, badge: unread },
     ];
+    const p = location.pathname;
+    let mTitle = t('dash.overview');
+    let mSub: string | undefined = user?.username ?? undefined;
+    if (p.startsWith('/dashboard/bot')) { mTitle = 'Cloud'; mSub = 'Configurator'; }
+    else if (p.startsWith('/dashboard/chat')) { mTitle = 'Community'; mSub = 'Chat • ' + (user?.username ?? ''); }
+    else if (p.startsWith('/dashboard/referral')) { mTitle = 'Rewards'; mSub = user?.username ?? undefined; }
+    else if (p.startsWith('/dashboard/tickets')) { mTitle = 'Support'; mSub = 'Tickets'; }
+    else if (p.startsWith('/dashboard/status')) { mTitle = 'Status'; mSub = user?.username ?? undefined; }
+    else { mTitle = user?.username ?? 'SU8L'; mSub = t('dash.overview'); }
     return (
       <MobileLayout
-        title={user?.username ?? 'SU8L'}
-        subtitle={t('nav.dashboard')}
+        title={mTitle}
+        subtitle={mSub}
         items={nav}
         onAvatar={() => setPickerOpen(true)}
         onHome={() => navigate('/')}
