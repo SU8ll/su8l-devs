@@ -13,6 +13,8 @@ import statusRoutes from './routes/status.js';
 import planRoutes from './routes/plans.js';
 import botRoutes from './routes/bot.js';
 import panelRoutes from './routes/panel.js';
+import referralRoutes from './routes/referral.js';
+import chatRoutes from './routes/chat.js';
 
 const app = express();
 
@@ -63,6 +65,8 @@ app.use('/api/status', statusRoutes);
 app.use('/api/plans', planRoutes);
 app.use('/api/bot', botRoutes);
 app.use('/api/panel', panelRoutes);
+app.use('/api/referral', referralRoutes);
+app.use('/api/chat', chatRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ error: 'not found' });

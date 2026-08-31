@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useI18n } from '../i18n';
 import { api } from '../api';
 
 export default function Register() {
   const { t } = useI18n();
+  const [params] = useSearchParams();
+  const refCode = params.get('ref') ?? undefined;
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -34,7 +36,7 @@ export default function Register() {
     try {
       const data = await api<{ ok: boolean; userId: string }>('/api/auth/register', {
         method: 'POST',
-        body: { email, username, password },
+        body: { email, username, password, ref: refCode },
       });
       if (data.ok) {
         window.location.href = '/login?registered=1';

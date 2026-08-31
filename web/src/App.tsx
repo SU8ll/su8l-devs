@@ -24,6 +24,8 @@ import CloudConfigurator from './pages/dashboard/CloudConfigurator';
 import DashboardStatus from './pages/dashboard/DashboardStatus';
 import Tickets from './pages/dashboard/Tickets';
 import TicketDetail from './pages/dashboard/TicketDetail';
+import Referral from './pages/dashboard/Referral';
+import Chat from './pages/dashboard/Chat';
 import { useTicketNotifications } from './pages/dashboard/useTicketNotifications';
 
 function NotificationBridge() {
@@ -103,6 +105,8 @@ export default function App() {
           <Route path="status" element={<DashboardStatus />} />
           <Route path="tickets" element={<Tickets />} />
           <Route path="tickets/:id" element={<TicketDetail />} />
+          <Route path="referral" element={<Referral />} />
+          <Route path="chat" element={<Chat />} />
         </Route>
       </Routes>
     </>

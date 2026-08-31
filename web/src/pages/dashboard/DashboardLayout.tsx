@@ -26,6 +26,8 @@ export default function DashboardLayout() {
   const links = [
     { to: '/dashboard', label: t('dash.overview'), icon: '◉', end: true },
     { to: '/dashboard/bot', label: t('dash.cloudConfig'), icon: '⬢', end: false },
+    { to: '/dashboard/chat', label: t('dash.chat'), icon: '✉', end: false },
+    { to: '/dashboard/referral', label: t('dash.referral'), icon: '✚', end: false },
     { to: '/dashboard/status', label: t('dash.status'), icon: '◈', end: false },
     { to: '/dashboard/tickets', label: t('dash.tickets'), icon: '▤', end: false },
   ];

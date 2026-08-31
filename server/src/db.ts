@@ -86,6 +86,7 @@ CREATE TABLE IF NOT EXISTS orders (
   promo_code TEXT,
   promo_conflict INTEGER NOT NULL DEFAULT 0,
   extra_slot INTEGER NOT NULL DEFAULT 0,
+  referral_code TEXT,
   status TEXT NOT NULL DEFAULT 'created',
   paypal_order_id TEXT,
   paypal_capture_id TEXT,
@@ -94,6 +95,8 @@ CREATE TABLE IF NOT EXISTS orders (
 );
 CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id);
 CREATE INDEX IF NOT EXISTS idx_orders_paypal ON orders(paypal_order_id);
+-- Migration: referral_code column added after orders table first shipped.
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS referral_code TEXT;
 
 CREATE TABLE IF NOT EXISTS promo_codes (
   id SERIAL PRIMARY KEY,
@@ -195,6 +198,49 @@ CREATE TABLE IF NOT EXISTS notifications (
   created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_notif_user ON notifications(user_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS referral_codes (
+  user_id TEXT PRIMARY KEY,
+  code TEXT NOT NULL UNIQUE,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_refcode_code ON referral_codes(code);
+
+CREATE TABLE IF NOT EXISTS referrals (
+  id SERIAL PRIMARY KEY,
+  referrer_user_id TEXT NOT NULL,
+  invitee_user_id TEXT NOT NULL,
+  elite_order_id TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  UNIQUE(invitee_user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_ref_referrer ON referrals(referrer_user_id);
+
+CREATE TABLE IF NOT EXISTS referral_rewards (
+  id SERIAL PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  referrals_earned INTEGER NOT NULL,
+  awarded TEXT,
+  created_at TEXT NOT NULL,
+  UNIQUE(user_id)
+);
+
+CREATE TABLE IF NOT EXISTS chat_messages (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  body TEXT NOT NULL,
+  language TEXT NOT NULL DEFAULT 'en',
+  reply_to TEXT,
+  mentions TEXT NOT NULL DEFAULT '[]',
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_chat_user ON chat_messages(user_id, created_at);
+
+CREATE TABLE IF NOT EXISTS chat_prefs (
+  user_id TEXT PRIMARY KEY,
+  language TEXT NOT NULL DEFAULT 'en',
+  updated_at TEXT NOT NULL
+);
 `);
 }
 
@@ -317,6 +363,8 @@ export async function createUser(data: {
     ts,
     ts
   );
+  // Every account gets a fixed referral code.
+  await getOrCreateReferralCode(data.id);
   return (await getUser(data.id))!;
 }
 
@@ -495,6 +543,7 @@ export interface Order {
   promo_code: string | null;
   promo_conflict: number;
   extra_slot: number;
+  referral_code: string | null;
   status: 'created' | 'approved' | 'captured' | 'completed' | 'denied';
   paypal_order_id: string | null;
   paypal_capture_id: string | null;
@@ -507,8 +556,8 @@ export async function insertOrder(
 ): Promise<Order> {
   const ts = nowIso();
   await run(
-    `INSERT INTO orders (id, user_id, plan_key, plan_name, cycle, amount, currency, promo_code, extra_slot, status, paypal_order_id, created_at, updated_at)
-     VALUES (?,?,?,?,?,?,?,?,?,'created',?,?,?)`,
+    `INSERT INTO orders (id, user_id, plan_key, plan_name, cycle, amount, currency, promo_code, extra_slot, referral_code, status, paypal_order_id, created_at, updated_at)
+     VALUES (?,?,?,?,?,?,?,?,?,?,'created',?,?,?)`,
     o.id,
     o.user_id,
     o.plan_key,
@@ -518,6 +567,7 @@ export async function insertOrder(
     o.currency,
     o.promo_code,
     o.extra_slot,
+    o.referral_code,
     o.paypal_order_id,
     ts,
     ts
@@ -895,4 +945,164 @@ export async function markNotificationRead(notifId: string, userId: string): Pro
 
 export async function markAllNotificationsRead(userId: string): Promise<void> {
   await run('UPDATE notifications SET read_at = ? WHERE user_id = ? AND read_at IS NULL', nowIso(), userId);
+}
+
+// ── Referrals (friend codes) ─────────────────────────────────────────────────
+
+const REFCODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+export interface ReferralCode {
+  user_id: string;
+  code: string;
+  created_at: string;
+}
+
+function generateReferralCode(): string {
+  let out = '';
+  for (let i = 0; i < 8; i++) out += REFCODE_ALPHABET[Math.floor(Math.random() * REFCODE_ALPHABET.length)]!;
+  return out;
+}
+
+/** Returns (or creates) the user's fixed referral code. */
+export async function getOrCreateReferralCode(userId: string): Promise<ReferralCode> {
+  let rc = await get<ReferralCode>('SELECT * FROM referral_codes WHERE user_id = ?', userId);
+  if (rc) return rc;
+  // Retry on the tiny chance of a collision.
+  for (let i = 0; i < 5; i++) {
+    const code = generateReferralCode();
+    try {
+      await run('INSERT INTO referral_codes (user_id, code, created_at) VALUES (?,?,?) ON CONFLICT (code) DO NOTHING', userId, code, nowIso());
+    } catch {
+      /* unique violation on code — retry */
+    }
+    rc = await get<ReferralCode>('SELECT * FROM referral_codes WHERE user_id = ?', userId);
+    if (rc) return rc;
+  }
+  // Fallback: reuse existing code path
+  throw new Error('unable to allocate referral code');
+}
+
+export function getReferralCode(userId: string): Promise<ReferralCode | undefined> {
+  return get<ReferralCode>('SELECT * FROM referral_codes WHERE user_id = ?', userId);
+}
+
+export async function getReferralCodeOwner(code: string): Promise<ReferralCode | undefined> {
+  return get<ReferralCode>('SELECT * FROM referral_codes WHERE code = ?', code.trim().toUpperCase());
+}
+
+export interface Referral {
+  id: number;
+  referrer_user_id: string;
+  invitee_user_id: string;
+  elite_order_id: string;
+  created_at: string;
+}
+
+export function listReferrals(referrerUserId: string): Promise<Referral[]> {
+  return all<Referral>('SELECT * FROM referrals WHERE referrer_user_id = ? ORDER BY created_at DESC', referrerUserId);
+}
+
+export async function countReferrals(referrerUserId: string): Promise<number> {
+  const r = await get<{ n: string }>('SELECT COUNT(*)::text AS n FROM referrals WHERE referrer_user_id = ?', referrerUserId);
+  return r ? Number(r.n) : 0;
+}
+
+export async function hasReferralByInvitee(inviteeUserId: string): Promise<boolean> {
+  const r = await get<Referral>('SELECT * FROM referrals WHERE invitee_user_id = ?', inviteeUserId);
+  return !!r;
+}
+
+export async function insertReferral(data: {
+  referrerUserId: string;
+  inviteeUserId: string;
+  eliteOrderId: string;
+}): Promise<void> {
+  await run(
+    'INSERT INTO referrals (referrer_user_id, invitee_user_id, elite_order_id, created_at) VALUES (?,?,?,?) ON CONFLICT (invitee_user_id) DO NOTHING',
+    data.referrerUserId, data.inviteeUserId, data.eliteOrderId, nowIso()
+  );
+}
+
+export interface ReferralReward {
+  id: number;
+  user_id: string;
+  referrals_earned: number;
+  awarded: string | null;
+  created_at: string;
+}
+
+export function getReferralReward(userId: string): Promise<ReferralReward | undefined> {
+  return get<ReferralReward>('SELECT * FROM referral_rewards WHERE user_id = ?', userId);
+}
+
+export async function setReferralReward(userId: string, referralsEarned: number, awarded: string): Promise<void> {
+  await run(
+    `INSERT INTO referral_rewards (user_id, referrals_earned, awarded, created_at) VALUES (?,?,?,?)
+     ON CONFLICT (user_id) DO UPDATE SET referrals_earned = excluded.referrals_earned, awarded = excluded.awarded`,
+    userId, referralsEarned, awarded, nowIso()
+  );
+}
+
+export interface ReferralRewardRow {
+  id: number;
+  user_id: string;
+  referrals_earned: number;
+  awarded: string | null;
+  created_at: string;
+}
+
+export async function getReferralRewardRow(userId: string): Promise<ReferralRewardRow | undefined> {
+  return get<ReferralRewardRow>('SELECT * FROM referral_rewards WHERE user_id = ?', userId);
+}
+
+// ── Chat messages ────────────────────────────────────────────────────────────
+
+export interface ChatMessage {
+  id: string;
+  user_id: string;
+  body: string;
+  language: string;
+  reply_to: string | null;
+  mentions: string;
+  created_at: string;
+}
+
+export async function insertChatMessage(msg: {
+  id: string;
+  userId: string;
+  body: string;
+  language: string;
+  replyTo: string | null;
+  mentions: string[];
+}): Promise<ChatMessage> {
+  await run(
+    'INSERT INTO chat_messages (id, user_id, body, language, reply_to, mentions, created_at) VALUES (?,?,?,?,?,?,?)',
+    msg.id, msg.userId, msg.body, msg.language, msg.replyTo, JSON.stringify(msg.mentions), nowIso()
+  );
+  return (await get<ChatMessage>('SELECT * FROM chat_messages WHERE id = ?', msg.id))!;
+}
+
+export async function getChatMessage(id: string): Promise<ChatMessage | undefined> {
+  return get<ChatMessage>('SELECT * FROM chat_messages WHERE id = ?', id);
+}
+
+export function listChatMessages(limit = 200): Promise<ChatMessage[]> {
+  return all<ChatMessage>('SELECT * FROM chat_messages ORDER BY created_at DESC LIMIT ?', limit).then((rows) => rows.reverse());
+}
+
+// ── Chat preferences ────────────────────────────────────────────────────────
+
+export async function getChatPreference(userId: string): Promise<string> {
+  const r = await get<{ language: string }>('SELECT language FROM chat_prefs WHERE user_id = ?', userId);
+  return r?.language ?? 'en';
+}
+
+export async function setChatPreference(userId: string, language: string): Promise<void> {
+  await run(
+    `INSERT INTO chat_prefs (user_id, language, updated_at) VALUES (?,?,?)
+     ON CONFLICT (user_id) DO UPDATE SET language = excluded.language, updated_at = excluded.updated_at`,
+    userId,
+    language,
+    nowIso()
+  );
 }

@@ -5,6 +5,21 @@ export function apiUrl(path: string): string {
   return `${BASE}${path}`;
 }
 
+/**
+ * Builds a WebSocket URL for `path` on the same origin as the API base. When
+ * `VITE_API_URL` is set (production on a separate origin from the frontend),
+ * the ws(s):// URL points at that API origin instead of the page origin.
+ */
+export function apiWsUrl(path: string): string {
+  if (BASE) {
+    const url = new URL(BASE);
+    url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${url.origin}${path}`;
+  }
+  const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  return `${proto}//${window.location.host}${path}`;
+}
+
 export class ApiError extends Error {
   status: number;
   detail?: unknown;
@@ -146,6 +161,8 @@ export interface CreateCheckoutDto {
   cycle?: 'monthly' | 'yearly';
   promoCode?: string | null;
   extraSlot?: boolean;
+  cloudHosting?: boolean;
+  refCode?: string | null;
 }
 
 export interface CreateCheckoutResponse {
@@ -574,3 +591,122 @@ export async function renameAccount(slotId: string, name: string): Promise<Renam
     body: { name },
   });
 }
+
+// ── Referral (friend codes) ─────────────────────────────────────────────────
+
+export interface ReferralInviteeDto {
+  username: string;
+  avatar: string | null;
+  joinedAt: string;
+}
+
+export interface ReferralDto {
+  code: string;
+  shareUrl: string;
+  discount: number;
+  freeMonthThreshold: number;
+  freePlanName: string;
+  count: number;
+  referralsRemaining: number;
+  reward: { referralsEarned: number; awarded: string | null };
+  invitees: ReferralInviteeDto[];
+}
+
+export async function getReferral(): Promise<ReferralDto> {
+  return api<ReferralDto>('/api/referral');
+}
+
+// ── Global chat ─────────────────────────────────────────────────────────────
+
+export interface ChatAuthorDto {
+  id: string;
+  username: string;
+  avatar: string | null;
+}
+
+export interface ChatMessageDto {
+  id: string;
+  user: ChatAuthorDto;
+  body: string;
+  language: string;
+  replyTo: {
+    id: string;
+    body: string;
+    username: string;
+  } | null;
+  mentions: string[];
+  createdAt: string;
+}
+
+export interface ChatHistoryDto {
+  messages: ChatMessageDto[];
+  activeUsers: number;
+}
+
+export async function getChatHistory(): Promise<ChatHistoryDto> {
+  return api<ChatHistoryDto>('/api/chat');
+}
+
+export async function postChatMessage(payload: {
+  body: string;
+  language: string;
+  replyTo?: string | null;
+}): Promise<ChatMessageDto> {
+  return api<ChatMessageDto>('/api/chat', { method: 'POST', body: payload });
+}
+
+export interface ChatPreferencesDto {
+  preferredLanguage: string;
+}
+
+export async function getChatPreferences(): Promise<ChatPreferencesDto> {
+  return api<ChatPreferencesDto>('/api/chat/preferences');
+}
+
+export async function setChatPreferences(language: string): Promise<{ ok: boolean }> {
+  return api<{ ok: boolean }>('/api/chat/preferences', { method: 'PUT', body: { language } });
+}
+
+export async function changeUsername(username: string): Promise<{ ok: boolean }> {
+  return api<{ ok: boolean }>('/api/chat/username', { method: 'PUT', body: { username } });
+}
+
+export type ChatLang =
+  | 'ar'
+  | 'en'
+  | 'tr'
+  | 'fr'
+  | 'de'
+  | 'zh'
+  | 'ko'
+  | 'it'
+  | 'hi';
+
+export const CHAT_LANGUAGES: { code: ChatLang; name: string; flag: string }[] = [
+  { code: 'ar', name: 'العربية', flag: '🇸🇦' },
+  { code: 'en', name: 'English', flag: '🇬🇧' },
+  { code: 'tr', name: 'Türkçe', flag: '🇹🇷' },
+  { code: 'fr', name: 'Français', flag: '🇫🇷' },
+  { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
+  { code: 'zh', name: '中文', flag: '🇨🇳' },
+  { code: 'ko', name: '한국어', flag: '🇰🇷' },
+  { code: 'it', name: 'Italiano', flag: '🇮🇹' },
+  { code: 'hi', name: 'हिन्दी', flag: '🇮🇳' },
+];
+
+export function chatLangMeta(code: ChatLang): { code: ChatLang; name: string; flag: string } {
+  return CHAT_LANGUAGES.find((l) => l.code === code) ?? CHAT_LANGUAGES[1];
+}
+
+// MyMemory API maps ISO 639-1 codes, which all chat languages use.
+export const CHAT_LANG_ISO: Record<ChatLang, string> = {
+  ar: 'ar',
+  en: 'en',
+  tr: 'tr',
+  fr: 'fr',
+  de: 'de',
+  zh: 'zh-CN',
+  ko: 'ko',
+  it: 'it',
+  hi: 'hi',
+};

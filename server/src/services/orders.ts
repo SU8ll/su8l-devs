@@ -1,13 +1,21 @@
 import {
   activateSubscription,
+  countReferrals,
   getOrder,
   getPromoByCode,
+  getReferralCodeOwner,
+  getReferralRewardRow,
+  hasReferralByInvitee,
   insertExtraSlot,
+  insertReferral,
   markOrderCompleted,
   markOrderPromoConflict,
   markPromoUsed,
+  nowIso,
+  setReferralReward,
   withTransaction,
 } from '../db.js';
+import { getHighestTier, planCycleMonths } from '../plans.js';
 import { dispatchToBot, getDiscordIdentity } from './dispatch.js';
 
 /**
@@ -54,6 +62,26 @@ export async function fulfillOrder(orderId: string, captureId: string | null): P
         amount: fresh.amount,
         maxMonths,
       });
+
+      // ── Friend referral recording ─────────────────────────────────────────
+      // A referral is counted ONLY on the invitee's first paid Elite order
+      // (highest tier). We record it here, inside the transaction, so it can
+      // never be double-counted, and we immediately grant the referrer a free
+      // Elite month when they reach 3 new subscribers.
+      if (fresh.referral_code) {
+        const owner = await getReferralCodeOwner(fresh.referral_code);
+        const elite = getHighestTier();
+        const isEliteOrder = fresh.plan_key === elite.key;
+        const alreadyCounted = await hasExistingReferral(fresh.user_id);
+        if (owner && isEliteOrder && !alreadyCounted) {
+          await insertReferral({
+            referrerUserId: owner.user_id,
+            inviteeUserId: fresh.user_id,
+            eliteOrderId: fresh.id,
+          });
+          await grantFreeMonthWhenEligible(owner.user_id);
+        }
+      }
     }
 
     await markOrderCompleted(fresh.id, captureId);
@@ -84,4 +112,33 @@ export async function promoConflictDetected(orderId: string): Promise<boolean> {
   // After fulfillment the promo row is 'used'; conflict means it was ALREADY
   // used by someone else (or by this user) before this order consumed it.
   return order.promo_conflict === 1;
+}
+
+async function hasExistingReferral(inviteeUserId: string): Promise<boolean> {
+  return hasReferralByInvitee(inviteeUserId);
+}
+
+/**
+ * Records the referral and, once the referrer has brought in 3 NEW Elite
+ * subscribers, grants them a free month of the highest tier. Idempotent: the
+ * reward is only written once (tracked in referral_rewards). Must be called
+ * inside the `withTransaction` from fulfillOrder.
+ */
+async function grantFreeMonthWhenEligible(referrerUserId: string): Promise<void> {
+  const count = await countReferrals(referrerUserId);
+  if (count < 3) return;
+
+  const existingReward = await getReferralRewardRow(referrerUserId);
+  if (existingReward?.awarded) return; // already rewarded in a prior run
+
+  const elite = getHighestTier();
+  await activateSubscription({
+    userId: referrerUserId,
+    plan: elite,
+    cycle: 'monthly',
+    amount: 0,
+    durationMs: planCycleMonths('monthly') * 30 * 24 * 60 * 60 * 1000,
+  });
+  // Track how many referrals earned this reward so the UI can show progress.
+  await setReferralReward(referrerUserId, count, nowIso());
 }

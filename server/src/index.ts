@@ -2,6 +2,7 @@ import app from './app.js';
 import { config } from './config.js';
 import { initDb } from './db.js';
 import { startUptimeChecker } from './services/uptime.js';
+import { attachChatSocket } from './services/chatHub.js';
 
 async function main(): Promise<void> {
   try {
@@ -14,9 +15,12 @@ async function main(): Promise<void> {
 
   startUptimeChecker();
 
-  app.listen(config.port, () => {
+  const server = app.listen(config.port, () => {
     console.log(`[SU8L API] listening on :${config.port} (${config.paypal.mode} mode)`);
   });
+
+  // Real-time global chat on the same HTTP server (WebSocket upgrade path /ws).
+  attachChatSocket(server);
 }
 
 void main();

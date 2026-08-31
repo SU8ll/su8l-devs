@@ -15,6 +15,8 @@ import {
   findUserByEmail,
   findUserByUsername,
   findUserByEmailOrUsername,
+  getOrCreateReferralCode,
+  getReferralCodeOwner,
   nowIso,
   run,
 } from '../db.js';
@@ -123,7 +125,12 @@ router.post('/test-ping', (_req, res) => {
 
 router.post('/register', async (req, res) => {
   try {
-    const { email, username, password } = req.body as Record<string, unknown>;
+    const { email, username, password, ref } = req.body as {
+      email?: string;
+      username?: string;
+      password?: string;
+      ref?: string;
+    };
 
     if (!email || !username || !password) {
       return res.status(400).json({ error: 'email, username and password are required' });
@@ -154,6 +161,25 @@ router.post('/register', async (req, res) => {
       ts,
       ts
     );
+
+    // Assign the new user a fixed referral code.
+    await getOrCreateReferralCode(userId);
+
+    // If this signup came from a friend's referral link, remember it in an
+    // httpOnly cookie so we can record the referral (and apply the invitee
+    // discount) the first time they hit Elite checkout.
+    if (ref && typeof ref === 'string' && ref.trim()) {
+      const owner = await getReferralCodeOwner(ref);
+      if (owner && owner.user_id !== userId) {
+        res.cookie('su8l_ref', ref.trim().toUpperCase(), {
+          httpOnly: true,
+          sameSite: config.isProd ? 'none' : 'lax',
+          secure: config.isProd,
+          maxAge: 30 * 24 * 60 * 60 * 1000,
+          path: '/',
+        });
+      }
+    }
 
     // Send welcome email in background (fire-and-forget)
     sendWelcomeEmail(String(email).toLowerCase().trim(), String(username).trim()).catch(() => {});

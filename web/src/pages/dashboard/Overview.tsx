@@ -154,6 +154,31 @@ export default function Overview() {
         </div>
       </section>
 
+      {/* Referral */}
+      <section>
+        <Kicker>{t('referral.title')}</Kicker>
+        <div className="glass glow-border rounded-3xl p-7">
+          <div className="flex flex-col items-start justify-between gap-5 sm:flex-row sm:items-center">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/30 to-glow/30 text-glow">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M19 8v6M22 11h-6" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-display text-base font-bold">{t('referral.headline')}</h3>
+                <p className="mt-1 max-w-md text-sm text-muted">{t('referral.subtitle')}</p>
+              </div>
+            </div>
+            <Link to="/dashboard/referral" className="btn-primary shrink-0">
+              {t('dash.referral')}
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* Quick actions */}
       <section>
         <Kicker>{t('dash.quick')}</Kicker>

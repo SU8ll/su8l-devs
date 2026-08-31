@@ -121,6 +121,7 @@ export default function Checkout() {
     if (busy) return;
     setBusy(true);
     setError('');
+    const refCode = params.get('ref') ?? undefined;
     try {
       const res = await api<CreateCheckoutResponse>('/api/checkout/create', {
         method: 'POST',
@@ -128,7 +129,7 @@ export default function Checkout() {
           ? { extraSlot: true }
           : isProduct
             ? { planKey: productInfo?.key || params.get('plan'), cycle: 'monthly', cloudHosting }
-            : { planKey: plan!.key, cycle, promoCode: promoApplied ? promoInput.trim() : null },
+            : { planKey: plan!.key, cycle, promoCode: promoApplied ? promoInput.trim() : null, refCode },
       });
       if (res.free) {
         window.location.href = `/success?order=${encodeURIComponent(res.orderId)}`;

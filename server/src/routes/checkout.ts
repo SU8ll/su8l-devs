@@ -18,12 +18,14 @@ import {
   getOrderByPaypalId,
   getPromoByCode,
   getUser,
+  getReferralCodeOwner,
   hasActiveBaseSubscription,
   insertOrder,
   markOrderDenied,
 } from '../db.js';
 import { fulfillOrder } from '../services/orders.js';
 import { resolveAvatarUrl } from '../services/avatars.js';
+import { REFERRAL_DISCOUNT as REFERRAL_DISCOUNT_8 } from './referral.js';
 
 const router = Router();
 
@@ -33,6 +35,7 @@ const createSchema = z.object({
   promoCode: z.string().trim().max(64).optional().nullable(),
   extraSlot: z.boolean().optional().default(false),
   cloudHosting: z.boolean().optional().default(false),
+  refCode: z.string().trim().max(16).optional().nullable(),
 });
 
 const captureSchema = z.object({ paypalOrderId: z.string().min(1) });
@@ -42,12 +45,28 @@ const promoValidateSchema = z.object({ promoCode: z.string().trim().min(1).max(6
 router.post('/create', requireAuth, async (req: AuthedRequest, res) => {
   const parsed = createSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: 'invalid request', detail: parsed.error.flatten() });
-  const { planKey, cycle, promoCode, extraSlot, cloudHosting } = parsed.data;
+  const { planKey, cycle, promoCode, extraSlot, cloudHosting, refCode } = parsed.data;
+
+  // Resolve the friend referral code from the explicit body param OR the cookie
+  // that was set when the user signed up via a friend's link.
+  let referralCode: string | null = refCode?.trim() ? refCode.trim().toUpperCase() : null;
+  if (!referralCode) {
+    const cookieRef = (req.cookies as Record<string, string> | undefined)?.['su8l_ref'];
+    if (cookieRef && typeof cookieRef === 'string' && cookieRef.trim()) {
+      referralCode = cookieRef.trim().toUpperCase();
+    }
+  }
+  // The code must belong to another user and must not be your own.
+  const referralOwner = referralCode ? await getReferralCodeOwner(referralCode) : undefined;
+  if (referralCode && (!referralOwner || referralOwner.user_id === req.user.id)) {
+    referralCode = null;
+  }
 
   let amount: number;
   let description: string;
   let plan: ReturnType<typeof getPlan>;
   let appliedPromo: string | null = null;
+  let appliedReferral: string | null = null;
   let finalCycle: 'monthly' | 'yearly' | null = null;
   let finalPlanKey: string | null = null;
   let finalPlanName: string | null = null;
@@ -76,7 +95,22 @@ router.post('/create', requireAuth, async (req: AuthedRequest, res) => {
       finalPlanKey = plan.key;
       finalPlanName = plan.name;
 
-      if (promoCode) {
+      // Referral discount: 8% off the Elite (highest tier) plan ONLY. It never
+      // applies to products, extra slots, or the Starter plan.
+      let referralDiscount = 0;
+      if (referralCode && plan.isHighestTier) {
+        referralDiscount = REFERRAL_DISCOUNT_8;
+        appliedReferral = referralCode;
+      }
+
+      if (promoCode && referralDiscount > 0) {
+        return res.status(400).json({ error: 'referral and promo codes cannot be combined' });
+      }
+
+      if (referralDiscount > 0) {
+        amount = Math.round((cycle === 'yearly' ? plan.yearly : plan.monthly) * (100 - referralDiscount) / 100);
+        description = `${plan.name} Cloud Bot Service (friend referral ${referralDiscount}% applied)`;
+      } else if (promoCode) {
         const normalized = promoCode.trim();
         if (!plan.isHighestTier) {
           return res.status(400).json({ error: 'promo codes apply only to the Elite (highest tier) plan' });
@@ -111,6 +145,7 @@ router.post('/create', requireAuth, async (req: AuthedRequest, res) => {
         currency: CURRENCY,
         promo_code: appliedPromo,
         extra_slot: extraSlot ? 1 : 0,
+        referral_code: appliedReferral,
         paypal_order_id: null,
       });
       await fulfillOrder(orderId, null);
@@ -146,6 +181,7 @@ router.post('/create', requireAuth, async (req: AuthedRequest, res) => {
       currency: CURRENCY,
       promo_code: appliedPromo,
       extra_slot: extraSlot ? 1 : 0,
+      referral_code: appliedReferral,
       paypal_order_id: pp.id,
     });
 
