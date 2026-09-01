@@ -3,6 +3,7 @@ import {
   getOrder,
   getPromoByCode,
   getReferralCodeOwner,
+  getUserReferralRef,
   hasReferralByInvitee,
   insertExtraSlot,
   insertReferral,
@@ -67,15 +68,22 @@ export async function fulfillOrder(orderId: string, captureId: string | null): P
       // never be double-counted. Registered-but-not-paying signups NEVER count.
       // The referrer claims their free month manually (see /api/referral/claim)
       // once they reach the threshold of NEW Elite subscribers.
-      if (fresh.referral_code) {
-        const owner = await getReferralCodeOwner(fresh.referral_code);
+      let refCodeOnOrder = fresh.referral_code;
+      if (!refCodeOnOrder) {
+        // The invitee may have paid from a path where the ref wasn't on the
+        // order (e.g. third-party cookies blocked, or a manual re-login). Fall
+        // back to the code persisted on the ACCOUNT at signup.
+        refCodeOnOrder = await getUserReferralRef(fresh.user_id);
+      }
+      if (refCodeOnOrder) {
+        const owner = await getReferralCodeOwner(refCodeOnOrder);
         const elite = getHighestTier();
         const isEliteOrder = fresh.plan_key === elite.key;
         const alreadyCounted = await hasExistingReferral(fresh.user_id);
         // A referrer's own order (their own code) grants a discount but never
         // counts as a referral toward their own reward.
         const isSelfReferral = !!owner && owner.user_id === fresh.user_id;
-        console.log(`[referral:fulfill] invitedUser=${fresh.user_id} refCode=${fresh.referral_code} owner=${owner?.user_id} isElite=${isEliteOrder} alreadyCounted=${alreadyCounted} isSelf=${isSelfReferral}`);
+        console.log(`[referral:fulfill] invitedUser=${fresh.user_id} refCode=${refCodeOnOrder} owner=${owner?.user_id} isElite=${isEliteOrder} alreadyCounted=${alreadyCounted} isSelf=${isSelfReferral}`);
         if (owner && isEliteOrder && !alreadyCounted && !isSelfReferral) {
           await insertReferral({
             referrerUserId: owner.user_id,

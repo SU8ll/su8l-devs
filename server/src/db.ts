@@ -46,6 +46,12 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at TEXT NOT NULL
 );
 
+-- Migration: persist the referral code (from a friend's link) ON the account
+-- so it survives any login / device / browser and doesn't rely on cookies or
+-- localStorage (third-party cookies are blocked cross-origin).
+ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_ref_code TEXT;
+CREATE INDEX IF NOT EXISTS idx_users_refcode ON users(referral_ref_code);
+
 CREATE TABLE IF NOT EXISTS accounts (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL,
@@ -1013,6 +1019,21 @@ export function getReferralCode(userId: string): Promise<ReferralCode | undefine
 
 export async function getReferralCodeOwner(code: string): Promise<ReferralCode | undefined> {
   return get<ReferralCode>('SELECT * FROM referral_codes WHERE code = ?', code.trim().toUpperCase());
+}
+
+/** Persist the friend's referral code on the invitee's account (once, never overwrite). */
+export async function setUserReferralRef(userId: string, code: string): Promise<void> {
+  const trimmed = code.trim().toUpperCase();
+  if (!trimmed) return;
+  const existing = await getUserReferralRef(userId);
+  if (existing) return; // keep the first one
+  await run('UPDATE users SET referral_ref_code = ?, updated_at = ? WHERE id = ?', trimmed, nowIso(), userId);
+}
+
+/** The referral code bound to the account, if any. */
+export async function getUserReferralRef(userId: string): Promise<string | null> {
+  const r = await get<{ referral_ref_code: string | null }>('SELECT referral_ref_code FROM users WHERE id = ?', userId);
+  return r?.referral_ref_code ?? null;
 }
 
 export interface Referral {

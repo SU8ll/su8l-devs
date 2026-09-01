@@ -20,6 +20,8 @@ import {
   getPromoByCode,
   getUser,
   getReferralCodeOwner,
+  getUserReferralRef,
+  setUserReferralRef,
   hasActiveBaseSubscription,
   insertOrder,
   logReferrerDiscount,
@@ -58,6 +60,12 @@ router.post('/create', requireAuth, async (req: AuthedRequest, res) => {
       referralCode = cookieRef.trim().toUpperCase();
     }
   }
+  if (!referralCode) {
+    // Fallback to the code persisted on the ACCOUNT at signup (survives any
+    // login/device/browser; third-party cookies are blocked cross-origin).
+    const acctRef = await getUserReferralRef(req.user.id);
+    if (acctRef) referralCode = acctRef;
+  }
   // The code must belong to a real user (it may be your own code, which grants
   // YOU the referrer's 8% discount instead of counting a new referral).
   const referralOwner = referralCode ? await getReferralCodeOwner(referralCode) : undefined;
@@ -65,6 +73,11 @@ router.post('/create', requireAuth, async (req: AuthedRequest, res) => {
     referralCode = null;
   }
   const isOwnCode = !!referralCode && !!referralOwner && referralOwner.user_id === req.user.id;
+  // Persist a valid friend referral code on the account so it survives even if
+  // the browser/cookie/localStorage clears later — enables the fulfill fallback.
+  if (referralCode && !isOwnCode && referralOwner && referralOwner.user_id !== req.user.id) {
+    await setUserReferralRef(req.user.id, referralCode);
+  }
   console.log(`[referral:create] user=${req.user.id} bodyRef=${JSON.stringify(refCode)} finalRef=${referralCode} owner=${referralOwner?.user_id} isOwn=${isOwnCode}`);
 
   let amount: number;

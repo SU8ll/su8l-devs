@@ -17,6 +17,7 @@ import {
   findUserByEmailOrUsername,
   getOrCreateReferralCode,
   getReferralCodeOwner,
+  setUserReferralRef,
   nowIso,
   run,
 } from '../db.js';
@@ -171,6 +172,9 @@ router.post('/register', async (req, res) => {
     if (ref && typeof ref === 'string' && ref.trim()) {
       const owner = await getReferralCodeOwner(ref);
       if (owner && owner.user_id !== userId) {
+        // Persist on the ACCOUNT (not just the cookie) so the referral survives
+        // any login/device/browser even though third-party cookies are blocked.
+        await setUserReferralRef(userId, ref);
         res.cookie('su8l_ref', ref.trim().toUpperCase(), {
           httpOnly: true,
           sameSite: config.isProd ? 'none' : 'lax',
