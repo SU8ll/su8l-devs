@@ -57,6 +57,7 @@ export default function Checkout() {
   const [error, setError] = useState('');
   const [isProduct, setIsProduct] = useState(false);
   const [productInfo, setProductInfo] = useState<ProductInfo | null>(null);
+  const [referralValid, setReferralValid] = useState(false);
 
   useEffect(() => {
     const key = params.get('plan');
@@ -82,6 +83,18 @@ export default function Checkout() {
     api<DashboardDto>('/api/dashboard').then(setDashboard).catch(() => {});
   }, [params, extra]);
 
+  // Validate the friend referral code (from localStorage / URL) so we only show
+  // the 8% discount when the code truly belongs to a real user.
+  useEffect(() => {
+    let cancelled = false;
+    const refToCheck = (() => { try { return localStorage.getItem('su8l_ref') ?? params.get('ref') ?? ''; } catch { return params.get('ref') ?? ''; } })();
+    if (!refToCheck.trim()) { setReferralValid(false); return; }
+    api<{ valid: boolean; discount: number }>('/api/referral/validate?ref=' + encodeURIComponent(refToCheck.trim().toUpperCase()))
+      .then((r) => { if (!cancelled) setReferralValid(!!r.valid); })
+      .catch(() => { if (!cancelled) setReferralValid(false); });
+    return () => { cancelled = true; };
+  }, [params]);
+
   const promoApplied = promoState === 'valid';
   const elite = plan?.isHighestTier;
 
@@ -96,7 +109,15 @@ export default function Checkout() {
     return cycle === 'yearly' ? plan.yearly : plan.monthly;
   })();
 
-  const effectivePrice = promoApplied && elite && promoInfo ? (cycle === 'yearly' ? promoInfo.yearlyPrice : promoInfo.monthlyPrice) : basePrice;
+  // Friend referral discount (8% off Elite). Reflected in the UI BEFORE paying.
+  // The server re-applies the same 8% at order creation; showing it here makes
+  // the discount visible instead of only appearing in the PayPal amount.
+  const REFERRAL_DISCOUNT = 8;
+  const referralRef = (() => { try { return localStorage.getItem('su8l_ref') ?? params.get('ref') ?? undefined; } catch { return params.get('ref') ?? undefined; } })();
+  const referralApplied = referralValid && !!referralRef && !!elite && !extra && !isProduct && !promoApplied;
+  const referralPrice = referralApplied ? Math.round((basePrice * (100 - REFERRAL_DISCOUNT)) / 100) : basePrice;
+
+  const effectivePrice = promoApplied && elite && promoInfo ? (cycle === 'yearly' ? promoInfo.yearlyPrice : promoInfo.monthlyPrice) : referralPrice;
 
   const applyPromo = async () => {
     if (!promoInput.trim() || promoState === 'applying') return;
@@ -268,7 +289,10 @@ export default function Checkout() {
                 {promoApplied && (
                   <div className="text-sm text-muted line-through">${basePrice}</div>
                 )}
-                {cycle === 'yearly' && !promoApplied && plan && (
+                {referralApplied && (
+                  <div className="text-sm text-muted line-through">${basePrice}</div>
+                )}
+                {!promoApplied && !referralApplied && cycle === 'yearly' && plan && (
                   <div className="text-sm text-muted line-through">${plan.monthly * 12}</div>
                 )}
                 <div className="font-display text-3xl font-black text-gradient">
@@ -277,6 +301,12 @@ export default function Checkout() {
                 </div>
               </div>
             </div>
+            {referralApplied && (
+              <div className="mt-2 flex items-center gap-2 rounded-xl border border-emerald-400/25 bg-emerald-400/10 px-3 py-2 text-xs font-medium text-emerald-300">
+                <span>🎁</span>
+                <span>{t('checkout.referralDiscount') || `Friend referral ${REFERRAL_DISCOUNT}% applied — ${referralRef}`}</span>
+              </div>
+            )}
           </div>
         </div>
 

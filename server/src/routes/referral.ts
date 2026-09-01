@@ -4,6 +4,7 @@ import { requireAuth, type AuthedRequest } from '../lib/auth.js';
 import {
   countReferrals,
   getOrCreateReferralCode,
+  getReferralCodeOwner,
   getReferralRewardRow,
   getReferrerDiscountLog,
   getUser,
@@ -104,6 +105,15 @@ router.post('/claim', requireAuth, async (req: AuthedRequest, res) => {
   await grantFreeEliteMonth(req.user.id, count);
 
   return res.json({ ok: true, freePlanName: getHighestTier().name });
+});
+
+// GET /api/referral/validate?ref=CODE — lightweight public check that a code is
+// real, so the checkout UI can truthfully show the 8% discount before paying.
+router.get('/validate', async (req, res) => {
+  const code = String(req.query.ref ?? '').trim().toUpperCase();
+  if (!code) return res.json({ valid: false });
+  const owner = await getReferralCodeOwner(code);
+  res.json({ valid: !!owner, discount: REFERRAL_DISCOUNT });
 });
 
 export default router;
