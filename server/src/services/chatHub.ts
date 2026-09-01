@@ -20,6 +20,7 @@ export interface ChatMessagePayload {
     id: string;
     body: string;
     username: string;
+    userId: string;
   } | null;
   mentionNames: string[];
   createdAt: string;

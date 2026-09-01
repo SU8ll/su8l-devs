@@ -121,7 +121,9 @@ export default function Checkout() {
     if (busy) return;
     setBusy(true);
     setError('');
-    const refCode = params.get('ref') ?? undefined;
+    const storedRef = (()=>{ try{ return localStorage.getItem('su8l_ref') ?? undefined; }catch{ return undefined; }})();
+    const refCode = params.get('ref') ?? storedRef ?? undefined;
+    if(refCode){ try{ localStorage.setItem('su8l_ref', refCode.toUpperCase()); }catch{} }
     try {
       const res = await api<CreateCheckoutResponse>('/api/checkout/create', {
         method: 'POST',

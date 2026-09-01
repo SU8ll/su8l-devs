@@ -190,7 +190,8 @@ export default function Chat() {
             const lang = chosenRef.current;
             if (lang) runTranslation(msg, lang);
             const me = userRef.current;
-            if (me && (msg as unknown as {replyTo?:{username?:string}}).replyTo?.username && (msg as unknown as {replyTo?:{username?:string}}).replyTo!.username!.toLowerCase()===me.username.toLowerCase() && msg.user.id!==me.id){
+            const isReplyToMe = !!(me && msg.replyTo && ( (msg.replyTo as unknown as {userId?:string}).userId ? (msg.replyTo as unknown as {userId?:string}).userId===me.id : msg.replyTo.username.toLowerCase()===me.username.toLowerCase()) && msg.user.id!==me.id);
+            if (isReplyToMe){
               playReplySound();
               setReplyToast({from: msg.user.username, body: msg.body});
               setTimeout(()=> setReplyToast(prev=> prev && prev.from===msg.user.username && prev.body===msg.body ? null : prev), 4200);
@@ -201,6 +202,8 @@ export default function Chat() {
                 }
                 if(navigator.vibrate) navigator.vibrate([80,40,80]);
               }catch{}
+              // Fallback: also trigger a global in-app event so even if WS handler is missed, toast shows
+              try{ window.dispatchEvent(new CustomEvent('su8l:reply-toast', {detail:{from: msg.user.username, body: msg.body}})); }catch{}
             }
           } else if (data.type === 'presence' && typeof data.active === 'number') {
             setActiveUsers(data.active);

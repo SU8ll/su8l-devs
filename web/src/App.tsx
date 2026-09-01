@@ -81,6 +81,15 @@ function ScrollToTop() {
   }, [pathname]);
   return null;
 }
+function RefCapture(){
+  const { search } = useLocation();
+  useEffect(()=>{
+    const p=new URLSearchParams(search);
+    const r=p.get('ref');
+    if(r){ try{ localStorage.setItem('su8l_ref', r.toUpperCase()); }catch{} }
+  },[search]);
+  return null;
+}
 
 function OverviewSwitch() {
   const isMobile = useIsMobile();
@@ -142,6 +151,7 @@ export default function App() {
   return (
     <>
       <ScrollToTop />
+      <RefCapture />
       <Background />
       <NotificationBridge />
       <Routes>

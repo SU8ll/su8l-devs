@@ -47,7 +47,7 @@ function toPayload(msg: Awaited<ReturnType<typeof insertChatMessage>>, me?: stri
       const r = await getChatMessage(msg.reply_to);
       if (r) {
         const au = await getUser(r.user_id);
-        replyTo = { id: r.id, body: r.body.slice(0, 120), username: au?.username ?? 'unknown' };
+        replyTo = { id: r.id, body: r.body.slice(0, 120), username: au?.username ?? 'unknown', userId: r.user_id };
       }
     }
     let mentions: string[] = [];

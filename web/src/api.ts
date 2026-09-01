@@ -643,6 +643,7 @@ export interface ChatMessageDto {
     id: string;
     body: string;
     username: string;
+    userId?: string;
   } | null;
   mentions: string[];
   createdAt: string;
