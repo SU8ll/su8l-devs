@@ -41,8 +41,20 @@ export default function Chat() {
   const [usernameError, setUsernameError] = useState('');
   const [nameUpdated, setNameUpdated] = useState(false);
   const [emojiOpen, setEmojiOpen] = useState(false);
+  const [disclaimerAccepted, setDisclaimerAccepted] = useState(()=>{ try{ return typeof window!=='undefined' && localStorage.getItem('su8l_chat_disclaimer')==='1'; }catch{ return false; }});
+  const [disclaimerChecked, setDisclaimerChecked] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  function playReplySound(){
+    try{
+      const ctx = new (window.AudioContext || (window as unknown as {webkitAudioContext: typeof AudioContext}).webkitAudioContext)();
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.type='sine'; o.frequency.value=880; g.gain.value=0.12;
+      o.connect(g); g.connect(ctx.destination); o.start(); o.stop(ctx.currentTime+0.18);
+      setTimeout(()=>{ const o2=ctx.createOscillator(); const g2=ctx.createGain(); o2.frequency.value=1320; g2.gain.value=0.09; o2.connect(g2); g2.connect(ctx.destination); o2.start(); o2.stop(ctx.currentTime+0.12); },90);
+    }catch{}
+  }
 
   // Curated iOS-style emoji set (rendered by the OS in native color-emoji font).
   const iOS_EMOJIS = useMemo(
@@ -73,6 +85,8 @@ export default function Chat() {
 
   const chosenRef = useRef<ChatLang | null>(null);
   chosenRef.current = chosenLanguage;
+  const userRef = useRef(user);
+  userRef.current = user;
 
   // ── Boot: fetch prefs + history ──────────────────────────────────────────
   useEffect(() => {
@@ -144,6 +158,17 @@ export default function Chat() {
             setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
             const lang = chosenRef.current;
             if (lang) runTranslation(msg, lang);
+            const me = userRef.current;
+            if (me && (msg as unknown as {replyTo?:{username?:string}}).replyTo?.username && (msg as unknown as {replyTo?:{username?:string}}).replyTo!.username!.toLowerCase()===me.username.toLowerCase() && msg.user.id!==me.id){
+              playReplySound();
+              try{
+                if(typeof Notification!=='undefined'){
+                  if(Notification.permission==='granted') new Notification(`رد من ${msg.user.username}`,{body: msg.body.slice(0,80), icon: msg.user.avatar || '/logo.png'});
+                  else if(Notification.permission!=='denied') Notification.requestPermission();
+                }
+                if(navigator.vibrate) navigator.vibrate([80,40,80]);
+              }catch{}
+            }
           } else if (data.type === 'presence' && typeof data.active === 'number') {
             setActiveUsers(data.active);
           } else if (data.type === 'hello' && typeof data.active === 'number') {
@@ -298,6 +323,33 @@ export default function Chat() {
 
   const meta = chatLangMeta(chosenLanguage);
 
+  if (chosenLanguage && !disclaimerAccepted) {
+    const discText = isMobile
+      ? 'SU8L DEVs لا تؤيد مشاركتك لمعلوماتك الخاصة — بما في ذلك رقم المملكة، اسم التحالف، أو أي معلومات حسابك داخل اللعبة. لا تُشارك كلمات المرور أو بيانات الدفع هنا. أنت مسؤول وحدك عن ما تكتبه. بالمتابعة أنت تؤكد فهمك وموافقتك.'
+      : 'SU8L DEVs does not endorse sharing personal information — including kingdom number, alliance name, or game account details. Do not share passwords or payment data here. You are solely responsible for what you post. By continuing you confirm you understand and agree.';
+    return (
+      <div style={{maxWidth: isMobile? '100%':'520px', margin:'0 auto', padding: isMobile? '16px':'24px'}}>
+        <div className="m-card" style={{padding:20, textAlign: isMobile? 'right':'left', direction: isMobile && chosenLanguage==='ar' ? 'rtl':'ltr'}}>
+          <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:12}}>
+            <span style={{width:36,height:36, borderRadius:10, background:'rgba(245,158,11,0.12)', border:'1px solid rgba(245,158,11,0.18)', display:'flex', alignItems:'center', justifyContent:'center'}}>⚠️</span>
+            <span style={{fontSize:16, fontWeight:800, color:'#F5F5F7'}}>{isMobile? 'إخلاء مسؤولية' : 'Disclaimer'}</span>
+          </div>
+          <div style={{fontSize:13, lineHeight:1.6, color:'#D1D1D6'}}>{discText}</div>
+          <div style={{marginTop:12, padding:'10px 12px', borderRadius:10, background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.06)', fontSize:12, lineHeight:1.5, color:'#9A99A6'}}>
+            ⏰ {isMobile? 'المحادثات تُحذف تلقائيًا كل 6 ساعات للحفاظ على خفة الموقع بالهواتف البسيطة.' : 'Chats are automatically deleted every 6 hours to keep the site light on low-end phones.'}
+          </div>
+          <label style={{display:'flex', gap:8, alignItems:'flex-start', marginTop:14, cursor:'pointer'}}>
+            <input type="checkbox" checked={disclaimerChecked} onChange={e=>setDisclaimerChecked(e.target.checked)} style={{marginTop:3, accentColor:'#7C3AED'}}/>
+            <span style={{fontSize:12.5, color:'#D1D1D6', lineHeight:1.4}}>{isMobile? 'أقر بأنني فهمت وأوافق على عدم مشاركة معلومات حساسة.' : 'I understand and agree not to share sensitive information.'}</span>
+          </label>
+          <button type="button" disabled={!disclaimerChecked} onClick={()=>{ try{ localStorage.setItem('su8l_chat_disclaimer','1'); }catch{} setDisclaimerAccepted(true); }} style={{width:'100%', marginTop:14, padding:'12px', borderRadius:12, border:'none', background: disclaimerChecked? '#7C3AED':'rgba(255,255,255,0.08)', color: disclaimerChecked? '#fff':'#6B6A78', fontWeight:700, opacity: disclaimerChecked?1:0.6}}>
+            {isMobile? 'موافق — دخول المحادثة' : 'I agree — Enter chat'}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // ── Mobile premium chat: conversational, airy, like Discord/Telegram — not boxed group ─────
   if (isMobile) {
     return (
@@ -307,8 +359,8 @@ export default function Chat() {
           <div style={{display:'flex', alignItems:'center', gap:8, flex:1, minWidth:0}}>
             <span style={{width:28,height:28,borderRadius:8, background:'rgba(16,185,129,0.12)', border:'1px solid rgba(16,185,129,0.18)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12}}>●</span>
             <div style={{minWidth:0}}>
-              <div style={{fontSize:13, fontWeight:700, color:'#F5F5F7'}}>{activeUsers} {t('chat.online')}</div>
-              <div style={{fontSize:11, color:'#6B6A78', display:'flex', alignItems:'center', gap:4}}><span style={{width:6,height:6,borderRadius:999, background: wsConnected? '#10B981':'#F59E0B', display:'inline-block'}}/>{meta.flag} {meta.name}</div>
+              <div style={{fontSize:13, fontWeight:700, color:'#F5F5F7'}}>{meta.flag} {meta.name}</div>
+              <div style={{fontSize:11, color:'#6B6A78'}}>Community</div>
             </div>
           </div>
           <button type="button" onClick={()=> setUsernameEdit(v=>!v)} style={{padding:'7px 10px', borderRadius:9, border:'1px solid rgba(255,255,255,0.07)', background:'rgba(255,255,255,0.03)', color:'#D1D1D6', fontSize:12, fontWeight:600}}>✎ {t('chat.changeName')}</button>
@@ -326,6 +378,7 @@ export default function Chat() {
             {nameUpdated && !usernameError && <div style={{marginTop:8, fontSize:12, color:'#6EE7B7'}}>{t('chat.nameSaved')}</div>}
           </div>
         )}
+        <div style={{padding:'8px 10px', borderRadius:10, background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.06)', fontSize:11, color:'#6B6A78', textAlign:'center', lineHeight:1.4}}>⏰ {chosenLanguage==='ar'? 'المحادثات تُحذف تلقائيًا كل 6 ساعات للحفاظ على خفة الموقع بالهواتف البسيطة.' : 'Chats are auto-deleted every 6 hours to keep the site light.'}</div>
 
         {/* Messages — airy rows, not boxed cards */}
         <div style={{flex:1, overflowY:'auto', display:'flex', flexDirection:'column', gap:14, padding:'4px 2px'}}>
@@ -338,28 +391,29 @@ export default function Chat() {
               const translated=translations[m.id];
               const origMode=!!showOriginal[m.id];
               const showTranslated=!!translated && !origMode;
-              const mentioned=isMentioned(m);
+              const isRtl = chosenLanguage==='ar';
+              const mineOnLeft = !isRtl;
+              const isLeft = mine ? mineOnLeft : !mineOnLeft;
               return (
-                <div key={m.id} id={`chat-${m.id}`} style={{display:'flex', gap:10, padding: mine? '10px 10px' : '0', borderRadius:12, background: mine? 'rgba(124,58,237,0.06)' : 'transparent', border: mine? '1px solid rgba(124,58,237,0.10)' : 'none'}}>
+                <div key={m.id} id={`chat-${m.id}`} style={{display:'flex', gap:10, flexDirection: isLeft? 'row':'row-reverse', justifyContent:'flex-start', padding: mine? '10px 10px' : '0', borderRadius:12, background: mine? 'rgba(124,58,237,0.06)' : 'transparent', border: mine? '1px solid rgba(124,58,237,0.10)' : 'none', textAlign: isLeft? 'left':'right'}}>
                   <div style={{width:32,height:32, borderRadius:9, overflow:'hidden', flexShrink:0, border:'1px solid rgba(255,255,255,0.06)', background: mine? '#7C3AED':'#1E1E24', display:'flex', alignItems:'center', justifyContent:'center'}}>
                     {m.user.avatar ? <img src={m.user.avatar} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/> : <span style={{fontWeight:800, color:'#fff', fontSize:11}}>{m.user.username[0]?.toUpperCase()??'?'}</span>}
                   </div>
                   <div style={{flex:1, minWidth:0}}>
-                    <div style={{display:'flex', alignItems:'baseline', gap:6, flexWrap:'wrap'}}>
-                      <span style={{fontSize:13, fontWeight:700, color: mentioned? '#A78BFA' : mine? '#A78BFA' : '#F5F5F7'}}>{mine? t('tickets.you') : m.user.username}</span>
+                    <div style={{display:'flex', alignItems:'baseline', gap:6, flexWrap:'wrap', justifyContent: isLeft? 'flex-start':'flex-end'}}>
+                      <span style={{fontSize:13, fontWeight:700, color: mine? '#A78BFA' : '#F5F5F7'}}>{mine? t('tickets.you') : m.user.username}</span>
                       <span style={{fontSize:11, color:'#6B6A78'}}>{new Date(m.createdAt).toLocaleTimeString([],{hour:'2-digit', minute:'2-digit'})}</span>
-                      {mentioned && <span style={{fontSize:10, fontWeight:700, padding:'2px 6px', borderRadius:999, background:'rgba(124,58,237,0.14)', color:'#A78BFA'}}>mention</span>}
                     </div>
                     {m.replyTo && (
-                      <div onClick={()=>{ const el=document.getElementById(`chat-${m.replyTo!.id}`); el?.scrollIntoView({behavior:'smooth', block:'center'}); }} style={{marginTop:6, padding:'7px 10px', borderLeft:'2px solid #7C3AED', background:'rgba(124,58,237,0.07)', borderRadius:8, fontSize:12, color:'#9A99A6', cursor:'pointer'}}>
+                      <div onClick={()=>{ const el=document.getElementById(`chat-${m.replyTo!.id}`); el?.scrollIntoView({behavior:'smooth', block:'center'}); }} style={{marginTop:6, padding:'7px 10px', borderLeft: isLeft? '2px solid #7C3AED' : 'none', borderRight: !isLeft? '2px solid #7C3AED' : 'none', background:'rgba(124,58,237,0.07)', borderRadius:8, fontSize:12, color:'#9A99A6', cursor:'pointer', textAlign: isLeft? 'left':'right'}}>
                         <span style={{fontWeight:700, color:'#A78BFA'}}>@{m.replyTo.username}</span> {m.replyTo.body.slice(0,80)}
                       </div>
                     )}
                     <div style={{marginTop:6, fontSize:14, lineHeight:1.55, color:'#E6E6E8', whiteSpace:'pre-wrap', wordBreak:'break-word'}}>{showTranslated? translated : m.body}</div>
-                    {showTranslated && <div style={{marginTop:6, fontSize:11, color:'#6B6A78', fontStyle:'italic'}}>{t('chat.originalNote').replace('{lang}', chatLangMeta(src).name)} <button type="button" onClick={()=>setShowOriginal(p=>({...p,[m.id]:true}))} style={{marginLeft:6, color:'#A78BFA', background:'none', border:'none', fontWeight:600, textDecoration:'underline'}}>{t('chat.viewOriginal')}</button></div>}
-                    {!showTranslated && m.body!==translated && src!==chosenLanguage && <div style={{marginTop:4, fontSize:11, color:'#6B6A78'}}>{t('chat.originalLang').replace('{lang}', chatLangMeta(src).name)}</div>}
-                    <div style={{marginTop:8, display:'flex', gap:10}}>
-                      <button type="button" onClick={()=>{ setReplyTo({id:m.id, body:m.body, username:m.user.username}); inputRef.current?.focus(); }} style={{fontSize:11, color:'#6B6A78', background:'none', border:'none', display:'flex', alignItems:'center', gap:4}}>↩ {t('chat.reply')}</button>
+                    {showTranslated && <div style={{marginTop:6, fontSize:11, color:'#6B6A78', fontStyle:'italic', textAlign: isLeft? 'left':'right'}}>{t('chat.originalNote').replace('{lang}', chatLangMeta(src).name)} <button type="button" onClick={()=>setShowOriginal(p=>({...p,[m.id]:true}))} style={{marginLeft:6, color:'#A78BFA', background:'none', border:'none', fontWeight:600, textDecoration:'underline'}}>{t('chat.viewOriginal')}</button></div>}
+                    {!showTranslated && m.body!==translated && src!==chosenLanguage && <div style={{marginTop:4, fontSize:11, color:'#6B6A78', textAlign: isLeft? 'left':'right'}}>{t('chat.originalLang').replace('{lang}', chatLangMeta(src).name)}</div>}
+                    <div style={{marginTop:8, display:'flex', gap:10, justifyContent: isLeft? 'flex-start':'flex-end'}}>
+                      {!mine && <button type="button" onClick={()=>{ setReplyTo({id:m.id, body:m.body, username:m.user.username}); inputRef.current?.focus(); }} style={{fontSize:11, color:'#6B6A78', background:'none', border:'none', display:'flex', alignItems:'center', gap:4}}>↩ {t('chat.reply')}</button>}
                       {showOriginal[m.id] && <button type="button" onClick={()=>setShowOriginal(p=>({...p,[m.id]:false}))} style={{fontSize:11, color:'#A78BFA', background:'none', border:'none'}}>↑ {t('chat.backToTranslated')}</button>}
                     </div>
                   </div>
@@ -378,11 +432,6 @@ export default function Chat() {
         )}
 
         <div style={{display:'flex', flexDirection:'column', gap:8, padding:'10px', borderRadius:14, background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.06)'}}>
-          {mentionOpen && mentionMatches.length>0 && (
-            <div style={{maxHeight:120, overflowY:'auto', display:'flex', flexDirection:'column', gap:4}}>
-              {mentionMatches.map(name=> <button key={name} type="button" onClick={()=>pickMention(name)} style={{textAlign:'left', padding:'8px 10px', borderRadius:8, background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.06)', color:'#D1D1D6', fontSize:13}}>@{name}</button>)}
-            </div>
-          )}
           <div style={{display:'flex', gap:8, alignItems:'flex-end'}}>
             <button type="button" onClick={()=>setEmojiOpen(v=>!v)} style={{width:40,height:40, borderRadius:10, border:'1px solid rgba(255,255,255,0.07)', background:'rgba(255,255,255,0.04)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>😊</button>
             <textarea ref={inputRef} value={input} onChange={e=>handleInputChange(e.target.value)} onClick={()=>setEmojiOpen(false)} onKeyDown={e=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); void send(); } }} rows={1} maxLength={2000} placeholder={`${t('chat.placeholder')} — ${meta.flag} ${meta.name}`} style={{flex:1, minHeight:40, maxHeight:100, padding:'11px 12px', borderRadius:11, border:'1px solid rgba(255,255,255,0.08)', background:'rgba(255,255,255,0.04)', color:'#F5F5F7', outline:'none', resize:'none'}}/>

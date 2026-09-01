@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 
@@ -67,6 +67,7 @@ export default function MobileLayout({
 }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [logoFailed, setLogoFailed] = useState(false);
   const navItems = items.slice(0, 5);
 
   return (
@@ -76,8 +77,10 @@ export default function MobileLayout({
           <button type="button" onClick={onAvatar} className="m-topbar-avatar" aria-label="profile">
             {user?.avatar ? <img src={user.avatar} alt="" /> : <span style={{display:'flex',alignItems:'center',justifyContent:'center',width:'100%',height:'100%',background:'linear-gradient(135deg,#7C3AED,#A78BFA)',color:'#fff',fontWeight:800,fontSize:13}}>{user?.username?.[0]?.toUpperCase() ?? 'S'}</span>}
           </button>
+        ) : logoFailed ? (
+          <div className="m-topbar-avatar" style={{display:'flex',alignItems:'center',justifyContent:'center',background:'#1A1A22',color:'#fff',fontWeight:900,letterSpacing:'-0.04em',fontSize:13}}>SU</div>
         ) : (
-          <div className="m-topbar-avatar" style={{display:'flex',alignItems:'center',justifyContent:'center',background:'#1A1A22',color:'#fff',fontWeight:900,letterSpacing:'-0.04em'}}>S</div>
+          <img src="/logo.png" alt="SU8L" className="m-topbar-avatar" style={{objectFit:'contain', background:'#0E0E12'}} onError={()=>setLogoFailed(true)} />
         )}
         <div className="m-topbar-title">
           <div className="m-topbar-title-main">{title}</div>

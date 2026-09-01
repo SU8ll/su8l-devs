@@ -1150,3 +1150,9 @@ export async function setChatPreference(userId: string, language: string): Promi
     nowIso()
   );
 }
+
+export async function pruneOldChatMessages(): Promise<number> {
+  const cutoff = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
+  const r = await run('DELETE FROM chat_messages WHERE created_at < ?', cutoff);
+  return r.changes;
+}
