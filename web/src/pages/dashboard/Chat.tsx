@@ -326,27 +326,52 @@ export default function Chat() {
   const meta = chatLangMeta(chosenLanguage);
 
   if (chosenLanguage && !disclaimerAccepted) {
-    const discText = siteIsAr
-      ? 'SU8L DEVs لا تؤيد مشاركتك لمعلوماتك الخاصة — بما في ذلك رقم المملكة، اسم التحالف، أو أي معلومات حسابك داخل اللعبة. لا تُشارك كلمات المرور أو بيانات الدفع هنا. أنت مسؤول وحدك عن ما تكتبه. بالمتابعة أنت تؤكد فهمك وموافقتك.'
-      : 'SU8L DEVs does not endorse sharing personal information — including kingdom number, alliance name, or game account details. Do not share passwords or payment data here. You are solely responsible for what you post. By continuing you confirm you understand and agree.';
     return (
-      <div style={{maxWidth: isMobile? '100%':'520px', margin:'0 auto', padding: isMobile? '16px':'24px'}}>
-        <div className="m-card" style={{padding:20, textAlign: siteIsAr? 'right':'left', direction: siteIsAr ? 'rtl':'ltr'}}>
-          <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:12, flexDirection: siteIsAr? 'row-reverse':'row'}}>
-            <span style={{width:36,height:36, borderRadius:10, background:'rgba(245,158,11,0.12)', border:'1px solid rgba(245,158,11,0.18)', display:'flex', alignItems:'center', justifyContent:'center'}}>⚠️</span>
-            <span style={{fontSize:16, fontWeight:800, color:'#F5F5F7'}}>{siteIsAr? 'إخلاء مسؤولية' : 'Disclaimer'}</span>
+      <div style={{minHeight: isMobile? 'calc(100dvh - 112px)':'60vh', display:'flex', alignItems:'center', justifyContent:'center', padding: isMobile? '16px':'24px', background: isMobile? 'transparent' : 'radial-gradient(900px 400px at 50% -10%, rgba(124,58,237,0.06), transparent)'}}>
+        <div style={{width:'100%', maxWidth:480, background:'#0F0F14', border:'1px solid rgba(255,255,255,0.08)', borderRadius:20, overflow:'hidden', boxShadow:'0 20px 60px rgba(0,0,0,0.55)'}}>
+          <div style={{height:3, background:'linear-gradient(90deg,#7C3AED,#A78BFA, #22D3EE)'}}/>
+          <div style={{padding:20, direction: siteIsAr? 'rtl':'ltr'}}>
+            <div style={{display:'flex', alignItems:'center', gap:12, marginBottom:10}}>
+              <img src="/logo.png" alt="" style={{width:40,height:40, borderRadius:11, objectFit:'contain', border:'1px solid rgba(255,255,255,0.06)', background:'#0E0E12'}} onError={e=>{ (e.target as HTMLImageElement).style.display='none'; }}/>
+              <div>
+                <div style={{fontSize:10, fontWeight:800, letterSpacing:'0.14em', textTransform:'uppercase', color:'#A78BFA'}}>SU8L DEVs • {siteIsAr? 'المجتمع العالمي' : 'Global Community'}</div>
+                <div style={{fontSize:17, fontWeight:800, letterSpacing:'-0.02em', color:'#F5F5F7', marginTop:2, textAlign: siteIsAr? 'right':'left'}}>{siteIsAr? 'إرشادات المجتمع' : 'Community Guidelines'}</div>
+              </div>
+            </div>
+            <div style={{fontSize:12.5, lineHeight:1.6, color:'#9A99A6', marginBottom:14, textAlign: siteIsAr? 'right':'left'}}>{siteIsAr? 'مرحبًا بك في المحادثة العالمية. للحفاظ على بيئة آمنة ومحترمة للجميع، يرجى الالتزام:' : 'Welcome to the global chat. To keep it safe and respectful for everyone, please follow:'}</div>
+
+            <div style={{display:'flex', flexDirection:'column', gap:10}}>
+              <div style={{display:'flex', gap:12, padding:12, borderRadius:12, background:'rgba(255,255,255,0.02)', border:'1px solid rgba(255,255,255,0.06)'}}>
+                <span style={{width:32,height:32, borderRadius:9, background:'rgba(239,68,68,0.09)', border:'1px solid rgba(239,68,68,0.14)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, fontSize:16}}>🛡️</span>
+                <div>
+                  <div style={{fontSize:13, fontWeight:700, color:'#F5F5F7', textAlign: siteIsAr? 'right':'left'}}>{siteIsAr? 'لا تشارك معلوماتك الخاصة' : 'Protect your privacy'}</div>
+                  <div style={{fontSize:12, lineHeight:1.5, color:'#9A99A6', marginTop:3, textAlign: siteIsAr? 'right':'left'}}>{siteIsAr? 'لا تنشر رقم المملكة، اسم التحالف، الإحداثيات أو أي تفاصيل تحدد هويتك.' : "Don't share kingdom number, alliance, coordinates or anything that identifies you."}</div>
+                </div>
+              </div>
+              <div style={{display:'flex', gap:12, padding:12, borderRadius:12, background:'rgba(255,255,255,0.02)', border:'1px solid rgba(255,255,255,0.06)'}}>
+                <span style={{width:32,height:32, borderRadius:9, background:'rgba(245,158,11,0.09)', border:'1px solid rgba(245,158,11,0.14)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, fontSize:16}}>🔒</span>
+                <div>
+                  <div style={{fontSize:13, fontWeight:700, color:'#F5F5F7', textAlign: siteIsAr? 'right':'left'}}>{siteIsAr? 'حافظ على أمان حسابك' : 'Keep your account safe'}</div>
+                  <div style={{fontSize:12, lineHeight:1.5, color:'#9A99A6', marginTop:3, textAlign: siteIsAr? 'right':'left'}}>{siteIsAr? 'لا تشارك كلمات المرور أو بيانات الدفع. SU8L DEVs لن تطلبها منك أبدًا هنا.' : 'Never share passwords or payment info. SU8L DEVs will never ask for them here.'}</div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{marginTop:14, display:'flex', gap:10, padding:12, borderRadius:12, background:'rgba(59,130,246,0.06)', border:'1px solid rgba(59,130,246,0.14)'}}>
+              <span style={{fontSize:16, flexShrink:0, marginTop:1}}>⏰</span>
+              <div style={{fontSize:12, lineHeight:1.5, color:'#93C5FD', textAlign: siteIsAr? 'right':'left'}}>{siteIsAr? 'المحادثات تُحذف تلقائيًا كل 6 ساعات للحفاظ على خفة الموقع — خاصة على الهواتف البسيطة.' : 'Chats auto-delete every 6 hours to keep the site fast — especially on low-end phones.'}</div>
+            </div>
+
+            <label style={{display:'flex', gap:10, alignItems:'flex-start', marginTop:16, cursor:'pointer', padding:12, borderRadius:12, border: disclaimerChecked? '1px solid rgba(124,58,237,0.28)' : '1px solid rgba(255,255,255,0.06)', background: disclaimerChecked? 'rgba(124,58,237,0.06)' : 'rgba(255,255,255,0.02)', flexDirection: siteIsAr? 'row-reverse':'row'}}>
+              <input type="checkbox" checked={disclaimerChecked} onChange={e=>setDisclaimerChecked(e.target.checked)} style={{marginTop:2, width:18, height:18, accentColor:'#7C3AED', flexShrink:0}}/>
+              <span style={{fontSize:12.5, lineHeight:1.5, color: disclaimerChecked? '#D1D1D6' : '#9A99A6', textAlign: siteIsAr? 'right':'left'}}>{siteIsAr? 'أقر بأنني قرأت وفهمت الإرشادات، وأتحمل مسؤولية ما أنشره، وأوافق على عدم مشاركة معلومات حساسة.' : 'I have read and understood the guidelines, take responsibility for what I post, and agree not to share sensitive information.'}</span>
+            </label>
+
+            <button type="button" disabled={!disclaimerChecked} onClick={()=>{ try{ localStorage.setItem(`su8l_chat_disclaimer_${lang}`,'1'); localStorage.setItem('su8l_chat_disclaimer','1'); }catch{} setDisclaimerAccepted(true); }} style={{width:'100%', marginTop:14, padding:'13px', borderRadius:12, border:'none', background: disclaimerChecked? '#7C3AED':'rgba(255,255,255,0.07)', color: disclaimerChecked? '#fff':'#6B6A78', fontWeight:800, fontSize:14, boxShadow: disclaimerChecked? '0 8px 20px rgba(124,58,237,0.28)' : 'none', transition:'all 0.15s'}}>
+              {siteIsAr? 'موافق — دخول المحادثة →' : 'Agree & Enter Chat →'}
+            </button>
+            <div style={{textAlign:'center', marginTop:10, fontSize:11, color:'#6B6A78'}}><a href="/terms" target="_blank" rel="noreferrer" style={{color:'#A78BFA', textDecoration:'none'}}>{siteIsAr? 'الشروط' : 'Terms'}</a> • <a href="/refund" target="_blank" rel="noreferrer" style={{color:'#A78BFA', textDecoration:'none'}}>{siteIsAr? 'سياسة الاسترجاع' : 'Refund'}</a></div>
           </div>
-          <div style={{fontSize:13, lineHeight:1.6, color:'#D1D1D6'}}>{discText}</div>
-          <div style={{marginTop:12, padding:'10px 12px', borderRadius:10, background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.06)', fontSize:12, lineHeight:1.5, color:'#9A99A6'}}>
-            ⏰ {siteIsAr? 'المحادثات تُحذف تلقائيًا كل 6 ساعات للحفاظ على خفة الموقع بالهواتف البسيطة.' : 'Chats are automatically deleted every 6 hours to keep the site light on low-end phones.'}
-          </div>
-          <label style={{display:'flex', gap:8, alignItems:'flex-start', marginTop:14, cursor:'pointer', flexDirection: siteIsAr? 'row-reverse':'row'}}>
-            <input type="checkbox" checked={disclaimerChecked} onChange={e=>setDisclaimerChecked(e.target.checked)} style={{marginTop:3, accentColor:'#7C3AED'}}/>
-            <span style={{fontSize:12.5, color:'#D1D1D6', lineHeight:1.4}}>{siteIsAr? 'أقر بأنني فهمت وأوافق على عدم مشاركة معلومات حساسة.' : 'I understand and agree not to share sensitive information.'}</span>
-          </label>
-          <button type="button" disabled={!disclaimerChecked} onClick={()=>{ try{ localStorage.setItem(`su8l_chat_disclaimer_${lang}`,'1'); localStorage.setItem('su8l_chat_disclaimer','1'); }catch{} setDisclaimerAccepted(true); }} style={{width:'100%', marginTop:14, padding:'12px', borderRadius:12, border:'none', background: disclaimerChecked? '#7C3AED':'rgba(255,255,255,0.08)', color: disclaimerChecked? '#fff':'#6B6A78', fontWeight:700, opacity: disclaimerChecked?1:0.6}}>
-            {siteIsAr? 'موافق — دخول المحادثة' : 'I agree — Enter chat'}
-          </button>
         </div>
       </div>
     );
