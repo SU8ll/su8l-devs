@@ -304,7 +304,7 @@ export default function Checkout() {
             {referralApplied && (
               <div className="mt-2 flex items-center gap-2 rounded-xl border border-emerald-400/25 bg-emerald-400/10 px-3 py-2 text-xs font-medium text-emerald-300">
                 <span>🎁</span>
-                <span>{t('checkout.referralDiscount') || `Friend referral ${REFERRAL_DISCOUNT}% applied — ${referralRef}`}</span>
+                <span>{t('checkout.referralDiscount').replace('{pct}', String(REFERRAL_DISCOUNT)) || `Friend referral ${REFERRAL_DISCOUNT}% applied — ${referralRef}`}</span>
               </div>
             )}
           </div>
