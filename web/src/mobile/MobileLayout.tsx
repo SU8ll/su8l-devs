@@ -84,13 +84,15 @@ export default function MobileLayout({
           {subtitle && <div className="m-topbar-title-sub">{subtitle}</div>}
         </div>
         {onHome && (
-          <button type="button" onClick={onHome} className="m-topbar-icon-btn" aria-label="home">
+          <button type="button" onClick={onHome} className="m-topbar-icon-btn" aria-label="home" style={{borderColor: 'rgba(255,255,255,0.09)'}}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M5 10 12 4l7 6v8a1 1 0 0 1-1 1h-4v-5H10v5H6a1 1 0 0 1-1-1v-8Z"/></svg>
           </button>
         )}
-        <button type="button" onClick={async () => { await logout(); navigate('/'); }} className="m-topbar-icon-btn" aria-label="logout">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17 15 12 10 7"/><path d="M15 12H3"/></svg>
-        </button>
+        {user && (
+          <button type="button" onClick={async () => { if(window.confirm('تسجيل خروج؟')){ await logout(); navigate('/'); } }} className="m-topbar-icon-btn" aria-label="logout" style={{opacity:0.92}}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17 15 12 10 7"/><path d="M15 12H3"/></svg>
+          </button>
+        )}
       </header>
 
       <main style={{padding:'16px', flex:1}}>{children}</main>

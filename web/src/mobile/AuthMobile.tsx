@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useI18n } from '../i18n';
+import { useAuth } from '../AuthContext';
 import { api, apiUrl } from '../api';
 import MobileLayout, { MIcons } from './MobileLayout';
 
 export function LoginMobile(){
   const { t, lang } = useI18n();
+  const { user } = useAuth();
   const isAr=lang==='ar';
   const location=useLocation();
   const navigate=useNavigate();
@@ -18,13 +20,21 @@ export function LoginMobile(){
   const [password,setPassword]=useState('');
   const [loading,setLoading]=useState(false);
   const [formError,setFormError]=useState('');
-  const nav=[
-    {to:'/', label:t('nav.home'), icon:MIcons.home, end:true},
-    {to:'/pricing', label:t('nav.pricing'), icon:MIcons.pricing},
-    {to:'/status', label:t('nav.status'), icon:MIcons.status},
-    {to:'/terms', label:t('nav.terms'), icon:MIcons.terms},
-    {to:'/login', label:isAr?'دخول':'Login', icon:MIcons.login},
-  ];
+  const nav = user
+    ? [
+        {to:'/', label:t('nav.home'), icon:MIcons.home, end:true},
+        {to:'/pricing', label:t('nav.pricing'), icon:MIcons.pricing},
+        {to:'/status', label:t('nav.status'), icon:MIcons.status},
+        {to:'/dashboard', label:t('nav.dashboard'), icon:MIcons.overview},
+        {to:'/terms', label:t('nav.terms'), icon:MIcons.terms},
+      ]
+    : [
+        {to:'/', label:t('nav.home'), icon:MIcons.home, end:true},
+        {to:'/pricing', label:t('nav.pricing'), icon:MIcons.pricing},
+        {to:'/status', label:t('nav.status'), icon:MIcons.status},
+        {to:'/terms', label:t('nav.terms'), icon:MIcons.terms},
+        {to:'/login', label:isAr?'دخول':'Login', icon:MIcons.login},
+      ];
   const handleEmailLogin=async(e:React.FormEvent)=>{
     e.preventDefault(); setFormError(''); setLoading(true);
     try{
@@ -89,19 +99,28 @@ export function LoginMobile(){
 
 export function RegisterMobile(){
   const { t, lang } = useI18n();
+  const { user } = useAuth();
   const isAr=lang==='ar';
   const [params]=useSearchParams();
   const refCode=params.get('ref')??undefined;
   const navigate=useNavigate();
   const [email,setEmail]=useState(''); const [username,setUsername]=useState(''); const [password,setPassword]=useState(''); const [confirmPassword,setConfirmPassword]=useState('');
   const [loading,setLoading]=useState(false); const [formError,setFormError]=useState('');
-  const nav=[
-    {to:'/', label:t('nav.home'), icon:MIcons.home, end:true},
-    {to:'/pricing', label:t('nav.pricing'), icon:MIcons.pricing},
-    {to:'/status', label:t('nav.status'), icon:MIcons.status},
-    {to:'/terms', label:t('nav.terms'), icon:MIcons.terms},
-    {to:'/login', label:isAr?'دخول':'Login', icon:MIcons.login},
-  ];
+  const nav = user
+    ? [
+        {to:'/', label:t('nav.home'), icon:MIcons.home, end:true},
+        {to:'/pricing', label:t('nav.pricing'), icon:MIcons.pricing},
+        {to:'/status', label:t('nav.status'), icon:MIcons.status},
+        {to:'/dashboard', label:t('nav.dashboard'), icon:MIcons.overview},
+        {to:'/terms', label:t('nav.terms'), icon:MIcons.terms},
+      ]
+    : [
+        {to:'/', label:t('nav.home'), icon:MIcons.home, end:true},
+        {to:'/pricing', label:t('nav.pricing'), icon:MIcons.pricing},
+        {to:'/status', label:t('nav.status'), icon:MIcons.status},
+        {to:'/terms', label:t('nav.terms'), icon:MIcons.terms},
+        {to:'/login', label:isAr?'دخول':'Login', icon:MIcons.login},
+      ];
   const handleSubmit=async(e:React.FormEvent)=>{
     e.preventDefault(); setFormError('');
     if(password!==confirmPassword){ setFormError(t('register.error.passwordMismatch')); return; }

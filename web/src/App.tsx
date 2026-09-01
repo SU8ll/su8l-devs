@@ -14,6 +14,7 @@ import StatusMobile from './mobile/StatusMobile';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import { LoginMobile, RegisterMobile } from './mobile/AuthMobile';
+import { TermsMobile, RefundMobile } from './mobile/TermsMobile';
 import AuthCallback from './pages/AuthCallback';
 import Checkout from './pages/Checkout';
 import CheckoutReturn from './pages/CheckoutReturn';
@@ -105,6 +106,8 @@ function PricingSwitch(){ const isMobile=useIsMobile(); if(isMobile) return <Pri
 function StatusSwitch(){ const isMobile=useIsMobile(); if(isMobile) return <StatusMobile/>; return (<div className="flex min-h-screen flex-col"><Navbar/><main className="flex-1 pt-24"><StatusPage/></main><Footer/></div>); }
 function LoginSwitch(){ const isMobile=useIsMobile(); if(isMobile) return <LoginMobile/>; return (<div className="flex min-h-screen flex-col"><Navbar/><main className="flex-1 pt-24"><Login/></main><Footer/></div>); }
 function RegisterSwitch(){ const isMobile=useIsMobile(); if(isMobile) return <RegisterMobile/>; return (<div className="flex min-h-screen flex-col"><Navbar/><main className="flex-1 pt-24"><Register/></main><Footer/></div>); }
+function TermsSwitch(){ const isMobile=useIsMobile(); if(isMobile) return <TermsMobile/>; return (<div className="flex min-h-screen flex-col"><Navbar/><main className="flex-1 pt-24"><Terms/></main><Footer/></div>); }
+function RefundSwitch(){ const isMobile=useIsMobile(); if(isMobile) return <RefundMobile/>; return (<div className="flex min-h-screen flex-col"><Navbar/><main className="flex-1 pt-24"><Refund/></main><Footer/></div>); }
 
 function CloudSwitch(){ const isMobile=useIsMobile(); if(isMobile) return <CloudMobile/>; return <CloudConfigurator/>; }
 function TicketsSwitch(){ const isMobile=useIsMobile(); if(isMobile) return <TicketsMobile/>; return <Tickets/>; }
@@ -147,11 +150,11 @@ export default function App() {
         <Route path="/status" element={<StatusSwitch />} />
         <Route path="/login" element={<LoginSwitch />} />
         <Route path="/register" element={<RegisterSwitch />} />
+        <Route path="/terms" element={<TermsSwitch />} />
+        <Route path="/refund" element={<RefundSwitch />} />
 
         <Route element={<PublicLayout />}>
           <Route path="/auth/callback" element={<AuthCallback />} />
-          <Route path="/terms" element={<Terms />} />
-          <Route path="/refund" element={<Refund />} />
           <Route path="*" element={<NotFound />} />
         </Route>
 

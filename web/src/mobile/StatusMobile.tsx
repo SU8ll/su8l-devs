@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../i18n';
+import { useAuth } from '../AuthContext';
 import { api, type StatusHistoryDto, type StatusSummaryDto } from '../api';
 import { Spinner } from '../components/ui';
 import UptimeChart from '../components/UptimeChart';
@@ -8,6 +9,7 @@ import MobileLayout, { MIcons } from './MobileLayout';
 
 export default function StatusMobile(){
   const { t, lang } = useI18n();
+  const { user } = useAuth();
   const navigate=useNavigate();
   const isAr=lang==='ar';
   const [summary,setSummary]=useState<StatusSummaryDto|null>(null);
@@ -20,13 +22,21 @@ export default function StatusMobile(){
   useEffect(()=>{ void load(); const timer=window.setInterval(()=>void load(),30000); return()=>window.clearInterval(timer); },[load]);
   const probe=async()=>{ setProbing(true); try{ const s=await api<StatusSummaryDto>('/api/status/live'); setSummary(s); const h=await api<StatusHistoryDto>('/api/status/history?days=30'); setHistory(h);}catch{} finally{ setProbing(false);} };
 
-  const nav=[
-    {to:'/', label:t('nav.home'), icon:MIcons.home, end:true},
-    {to:'/pricing', label:t('nav.pricing'), icon:MIcons.pricing},
-    {to:'/status', label:t('nav.status'), icon:MIcons.status},
-    {to:'/terms', label:t('nav.terms'), icon:MIcons.terms},
-    {to:'/login', label:isAr?'دخول':'Login', icon:MIcons.login},
-  ];
+  const nav = user
+    ? [
+        {to:'/', label:t('nav.home'), icon:MIcons.home, end:true},
+        {to:'/pricing', label:t('nav.pricing'), icon:MIcons.pricing},
+        {to:'/status', label:t('nav.status'), icon:MIcons.status},
+        {to:'/dashboard', label:t('nav.dashboard'), icon:MIcons.overview},
+        {to:'/terms', label:t('nav.terms'), icon:MIcons.terms},
+      ]
+    : [
+        {to:'/', label:t('nav.home'), icon:MIcons.home, end:true},
+        {to:'/pricing', label:t('nav.pricing'), icon:MIcons.pricing},
+        {to:'/status', label:t('nav.status'), icon:MIcons.status},
+        {to:'/terms', label:t('nav.terms'), icon:MIcons.terms},
+        {to:'/login', label:isAr?'دخول':'Login', icon:MIcons.login},
+      ];
 
   if(!summary) return <MobileLayout title={t('status.title')} subtitle={t('status.subtitle')} items={nav} onHome={()=>navigate('/')}><div className="flex justify-center py-20"><Spinner size={28}/></div></MobileLayout>;
 

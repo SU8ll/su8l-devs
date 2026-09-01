@@ -27,13 +27,21 @@ export default function PricingMobile() {
   useEffect(()=>{ if(user) api<DashboardDto>('/api/dashboard').then(setDashboard).catch(()=>{}); },[user]);
 
   const activeKeys = new Set((dashboard?.subscriptions??[]).filter(s=>s.status==='active').map(s=>s.planKey));
-  const nav = [
-    {to:'/', label:t('nav.home'), icon:MIcons.home, end:true},
-    {to:'/pricing', label:t('nav.pricing'), icon:MIcons.pricing},
-    {to:'/status', label:t('nav.status'), icon:MIcons.status},
-    {to:'/terms', label:t('nav.terms'), icon:MIcons.terms},
-    {to:'/login', label:isAr?'دخول':'Login', icon:MIcons.login},
-  ];
+  const nav = user
+    ? [
+        {to:'/', label:t('nav.home'), icon:MIcons.home, end:true},
+        {to:'/pricing', label:t('nav.pricing'), icon:MIcons.pricing},
+        {to:'/status', label:t('nav.status'), icon:MIcons.status},
+        {to:'/dashboard', label:t('nav.dashboard'), icon:MIcons.overview},
+        {to:'/terms', label:t('nav.terms'), icon:MIcons.terms},
+      ]
+    : [
+        {to:'/', label:t('nav.home'), icon:MIcons.home, end:true},
+        {to:'/pricing', label:t('nav.pricing'), icon:MIcons.pricing},
+        {to:'/status', label:t('nav.status'), icon:MIcons.status},
+        {to:'/terms', label:t('nav.terms'), icon:MIcons.terms},
+        {to:'/login', label:isAr?'دخول':'Login', icon:MIcons.login},
+      ];
 
   if(!plans) return <MobileLayout title={t('nav.pricing')} subtitle={t('pricing.subtitle')} items={nav} onHome={()=>navigate('/')}><div className="flex justify-center py-20"><Spinner size={28}/></div></MobileLayout>;
 

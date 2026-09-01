@@ -19,13 +19,21 @@ export default function LandingMobile() {
 
   const up = summary?.current?.up;
 
-  const nav: MobileNavItem[] = [
-    { to: '/', label: t('nav.home'), icon: MIcons.home, end: true },
-    { to: '/pricing', label: t('nav.pricing'), icon: MIcons.pricing },
-    { to: '/status', label: t('nav.status'), icon: MIcons.status },
-    { to: '/terms', label: t('nav.terms'), icon: MIcons.terms },
-    { to: '/login', label: isAr ? 'دخول' : 'Login', icon: MIcons.login },
-  ];
+  const nav: MobileNavItem[] = user
+    ? [
+        { to: '/', label: t('nav.home'), icon: MIcons.home, end: true },
+        { to: '/pricing', label: t('nav.pricing'), icon: MIcons.pricing },
+        { to: '/status', label: t('nav.status'), icon: MIcons.status },
+        { to: '/dashboard', label: t('nav.dashboard'), icon: MIcons.overview },
+        { to: '/terms', label: t('nav.terms'), icon: MIcons.terms },
+      ]
+    : [
+        { to: '/', label: t('nav.home'), icon: MIcons.home, end: true },
+        { to: '/pricing', label: t('nav.pricing'), icon: MIcons.pricing },
+        { to: '/status', label: t('nav.status'), icon: MIcons.status },
+        { to: '/terms', label: t('nav.terms'), icon: MIcons.terms },
+        { to: '/login', label: isAr ? 'دخول' : 'Login', icon: MIcons.login },
+      ];
 
   return (
     <MobileLayout

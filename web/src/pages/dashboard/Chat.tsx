@@ -15,12 +15,14 @@ import {
 } from '../../api';
 import { createTranslator, detectLanguage } from '../../chatTranslate';
 import { Spinner } from '../../components/ui';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 const translate = createTranslator();
 
 export default function Chat() {
   const { t } = useI18n();
   const { user, refresh } = useAuth();
+  const isMobile = useIsMobile();
   const [chosenLanguage, setChosenLanguage] = useState<ChatLang | null>(null);
   const [messages, setMessages] = useState<ChatMessageDto[]>([]);
   const [translations, setTranslations] = useState<Record<string, string>>({});
@@ -295,6 +297,107 @@ export default function Chat() {
   }
 
   const meta = chatLangMeta(chosenLanguage);
+
+  // ── Mobile premium chat: conversational, airy, like Discord/Telegram — not boxed group ─────
+  if (isMobile) {
+    return (
+      <div style={{display:'flex', flexDirection:'column', gap:10, minHeight:'calc(100dvh - 112px)'}}>
+        {/* Sub-header: presence + actions as text, not pill */}
+        <div style={{display:'flex', alignItems:'center', gap:10, padding:'10px 12px', borderRadius:12, background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.06)'}}>
+          <div style={{display:'flex', alignItems:'center', gap:8, flex:1, minWidth:0}}>
+            <span style={{width:28,height:28,borderRadius:8, background:'rgba(16,185,129,0.12)', border:'1px solid rgba(16,185,129,0.18)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12}}>●</span>
+            <div style={{minWidth:0}}>
+              <div style={{fontSize:13, fontWeight:700, color:'#F5F5F7'}}>{activeUsers} {t('chat.online')}</div>
+              <div style={{fontSize:11, color:'#6B6A78', display:'flex', alignItems:'center', gap:4}}><span style={{width:6,height:6,borderRadius:999, background: wsConnected? '#10B981':'#F59E0B', display:'inline-block'}}/>{meta.flag} {meta.name}</div>
+            </div>
+          </div>
+          <button type="button" onClick={()=> setUsernameEdit(v=>!v)} style={{padding:'7px 10px', borderRadius:9, border:'1px solid rgba(255,255,255,0.07)', background:'rgba(255,255,255,0.03)', color:'#D1D1D6', fontSize:12, fontWeight:600}}>✎ {t('chat.changeName')}</button>
+          <button type="button" onClick={()=> setChosenLanguage(null)} style={{padding:'7px 10px', borderRadius:9, border:'1px solid rgba(255,255,255,0.07)', background:'rgba(255,255,255,0.03)', color:'#D1D1D6', fontSize:12, fontWeight:600}}>🌐</button>
+        </div>
+
+        {usernameEdit && (
+          <div className="m-card" style={{padding:12}}>
+            <div style={{display:'flex', gap:8}}>
+              <input value={usernameDraft} onChange={e=>{setUsernameDraft(e.target.value); setNameUpdated(false);}} maxLength={24} placeholder={t('chat.namePlaceholder')} style={{flex:1, padding:'11px 12px', borderRadius:11, border:'1px solid rgba(255,255,255,0.08)', background:'rgba(255,255,255,0.04)', color:'#F5F5F7', outline:'none'}}/>
+              <button type="button" onClick={()=>void saveUsername()} style={{padding:'11px 14px', borderRadius:11, background:'#7C3AED', color:'#fff', fontWeight:700, border:'none'}}>OK</button>
+              <button type="button" onClick={()=>setUsernameEdit(false)} style={{padding:'11px 12px', borderRadius:11, border:'1px solid rgba(255,255,255,0.07)', background:'rgba(255,255,255,0.04)', color:'#9A99A6'}}>✕</button>
+            </div>
+            {usernameError && <div style={{marginTop:8, fontSize:12, color:'#F87171'}}>{usernameError}</div>}
+            {nameUpdated && !usernameError && <div style={{marginTop:8, fontSize:12, color:'#6EE7B7'}}>{t('chat.nameSaved')}</div>}
+          </div>
+        )}
+
+        {/* Messages — airy rows, not boxed cards */}
+        <div style={{flex:1, overflowY:'auto', display:'flex', flexDirection:'column', gap:14, padding:'4px 2px'}}>
+          {loading ? <div className="flex justify-center py-16"><Spinner size={28}/></div>
+          : messages.length===0 ? <div style={{textAlign:'center', padding:'48px 0', color:'#6B6A78', fontSize:13}}>{t('chat.empty')}</div>
+          : messages.map(m=>{
+              const mine = m.user.id===user?.id;
+              const declared=(m.language as ChatLang)||'en';
+              const src=detectLanguage(m.body, declared);
+              const translated=translations[m.id];
+              const origMode=!!showOriginal[m.id];
+              const showTranslated=!!translated && !origMode;
+              const mentioned=isMentioned(m);
+              return (
+                <div key={m.id} id={`chat-${m.id}`} style={{display:'flex', gap:10, padding: mine? '10px 10px' : '0', borderRadius:12, background: mine? 'rgba(124,58,237,0.06)' : 'transparent', border: mine? '1px solid rgba(124,58,237,0.10)' : 'none'}}>
+                  <div style={{width:32,height:32, borderRadius:9, overflow:'hidden', flexShrink:0, border:'1px solid rgba(255,255,255,0.06)', background: mine? '#7C3AED':'#1E1E24', display:'flex', alignItems:'center', justifyContent:'center'}}>
+                    {m.user.avatar ? <img src={m.user.avatar} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/> : <span style={{fontWeight:800, color:'#fff', fontSize:11}}>{m.user.username[0]?.toUpperCase()??'?'}</span>}
+                  </div>
+                  <div style={{flex:1, minWidth:0}}>
+                    <div style={{display:'flex', alignItems:'baseline', gap:6, flexWrap:'wrap'}}>
+                      <span style={{fontSize:13, fontWeight:700, color: mentioned? '#A78BFA' : mine? '#A78BFA' : '#F5F5F7'}}>{mine? t('tickets.you') : m.user.username}</span>
+                      <span style={{fontSize:11, color:'#6B6A78'}}>{new Date(m.createdAt).toLocaleTimeString([],{hour:'2-digit', minute:'2-digit'})}</span>
+                      {mentioned && <span style={{fontSize:10, fontWeight:700, padding:'2px 6px', borderRadius:999, background:'rgba(124,58,237,0.14)', color:'#A78BFA'}}>mention</span>}
+                    </div>
+                    {m.replyTo && (
+                      <div onClick={()=>{ const el=document.getElementById(`chat-${m.replyTo!.id}`); el?.scrollIntoView({behavior:'smooth', block:'center'}); }} style={{marginTop:6, padding:'7px 10px', borderLeft:'2px solid #7C3AED', background:'rgba(124,58,237,0.07)', borderRadius:8, fontSize:12, color:'#9A99A6', cursor:'pointer'}}>
+                        <span style={{fontWeight:700, color:'#A78BFA'}}>@{m.replyTo.username}</span> {m.replyTo.body.slice(0,80)}
+                      </div>
+                    )}
+                    <div style={{marginTop:6, fontSize:14, lineHeight:1.55, color:'#E6E6E8', whiteSpace:'pre-wrap', wordBreak:'break-word'}}>{showTranslated? translated : m.body}</div>
+                    {showTranslated && <div style={{marginTop:6, fontSize:11, color:'#6B6A78', fontStyle:'italic'}}>{t('chat.originalNote').replace('{lang}', chatLangMeta(src).name)} <button type="button" onClick={()=>setShowOriginal(p=>({...p,[m.id]:true}))} style={{marginLeft:6, color:'#A78BFA', background:'none', border:'none', fontWeight:600, textDecoration:'underline'}}>{t('chat.viewOriginal')}</button></div>}
+                    {!showTranslated && m.body!==translated && src!==chosenLanguage && <div style={{marginTop:4, fontSize:11, color:'#6B6A78'}}>{t('chat.originalLang').replace('{lang}', chatLangMeta(src).name)}</div>}
+                    <div style={{marginTop:8, display:'flex', gap:10}}>
+                      <button type="button" onClick={()=>{ setReplyTo({id:m.id, body:m.body, username:m.user.username}); inputRef.current?.focus(); }} style={{fontSize:11, color:'#6B6A78', background:'none', border:'none', display:'flex', alignItems:'center', gap:4}}>↩ {t('chat.reply')}</button>
+                      {showOriginal[m.id] && <button type="button" onClick={()=>setShowOriginal(p=>({...p,[m.id]:false}))} style={{fontSize:11, color:'#A78BFA', background:'none', border:'none'}}>↑ {t('chat.backToTranslated')}</button>}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          <div ref={bottomRef}/>
+        </div>
+
+        {replyTo && (
+          <div style={{display:'flex', alignItems:'center', gap:8, padding:'8px 10px', borderRadius:10, background:'rgba(124,58,237,0.08)', border:'1px solid rgba(124,58,237,0.14)'}}>
+            <span style={{fontWeight:700, color:'#A78BFA', fontSize:12}}>↩ @{replyTo.username}</span>
+            <span style={{flex:1, fontSize:12, color:'#9A99A6', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{replyTo.body}</span>
+            <button type="button" onClick={()=>setReplyTo(null)} style={{color:'#9A99A6', background:'none', border:'none'}}>✕</button>
+          </div>
+        )}
+
+        <div style={{display:'flex', flexDirection:'column', gap:8, padding:'10px', borderRadius:14, background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.06)'}}>
+          {mentionOpen && mentionMatches.length>0 && (
+            <div style={{maxHeight:120, overflowY:'auto', display:'flex', flexDirection:'column', gap:4}}>
+              {mentionMatches.map(name=> <button key={name} type="button" onClick={()=>pickMention(name)} style={{textAlign:'left', padding:'8px 10px', borderRadius:8, background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.06)', color:'#D1D1D6', fontSize:13}}>@{name}</button>)}
+            </div>
+          )}
+          <div style={{display:'flex', gap:8, alignItems:'flex-end'}}>
+            <button type="button" onClick={()=>setEmojiOpen(v=>!v)} style={{width:40,height:40, borderRadius:10, border:'1px solid rgba(255,255,255,0.07)', background:'rgba(255,255,255,0.04)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>😊</button>
+            <textarea ref={inputRef} value={input} onChange={e=>handleInputChange(e.target.value)} onClick={()=>setEmojiOpen(false)} onKeyDown={e=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); void send(); } }} rows={1} maxLength={2000} placeholder={`${t('chat.placeholder')} — ${meta.flag} ${meta.name}`} style={{flex:1, minHeight:40, maxHeight:100, padding:'11px 12px', borderRadius:11, border:'1px solid rgba(255,255,255,0.08)', background:'rgba(255,255,255,0.04)', color:'#F5F5F7', outline:'none', resize:'none'}}/>
+            <button type="button" onClick={()=>void send()} disabled={sending||!input.trim()} style={{width:40,height:40, borderRadius:11, border:'none', background: input.trim()?'#7C3AED':'rgba(255,255,255,0.08)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, opacity: sending||!input.trim()?0.6:1}}>{sending? '…':'➤'}</button>
+          </div>
+          {emojiOpen && (
+            <div style={{display:'grid', gridTemplateColumns:'repeat(8,1fr)', gap:4, padding:8, borderRadius:12, background:'rgba(15,15,20,0.9)', border:'1px solid rgba(255,255,255,0.06)', maxHeight:200, overflowY:'auto'}}>
+              {iOS_EMOJIS.map(e=> <button key={e} type="button" onClick={()=>insertEmoji(e)} style={{width:32,height:32, display:'flex', alignItems:'center', justifyContent:'center', borderRadius:8, background:'transparent', border:'none', fontSize:18}}>{e}</button>)}
+            </div>
+          )}
+          <div style={{fontSize:10, color:'#6B6A78', textAlign:'right'}}>{t('chat.autoTranslate')}</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="m-chat-screen mx-auto flex h-[calc(100vh-9rem)] min-h-[480px] max-w-3xl flex-col">
