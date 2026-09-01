@@ -130,10 +130,20 @@ router.post('/create', requireAuth, async (req: AuthedRequest, res) => {
       }
 
       if (promoCode && referralDiscount > 0) {
-        return res.status(400).json({ error: 'referral and promo codes cannot be combined' });
+        // Combination is normally forbidden, but we allow it when the promo is a
+        // 100%-off code. Only the owner/admin can create 100% codes (panel), so
+        // this is a safe way for the owner to test the referral flow for free
+        // without opening an exploit for regular customers.
+        const normalizedPromo = promoCode.trim();
+        const promoCombined = await getPromoByCode(normalizedPromo);
+        const isOwnerFreeCode = !!promoCombined && promoCombined.discount === 100;
+        if (!isOwnerFreeCode) {
+          return res.status(400).json({ error: 'referral and promo codes cannot be combined' });
+        }
       }
 
-      if (referralDiscount > 0) {
+      const combiningOwnerFreePromo = !!promoCode && referralDiscount > 0;
+      if (referralDiscount > 0 && !combiningOwnerFreePromo) {
         amount = Math.round((cycle === 'yearly' ? plan.yearly : plan.monthly) * (100 - referralDiscount) / 100);
         description = `${plan.name} Cloud Bot Service (friend referral ${referralDiscount}% applied)`;
       } else if (promoCode) {

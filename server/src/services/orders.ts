@@ -83,8 +83,18 @@ export async function fulfillOrder(orderId: string, captureId: string | null): P
         // A referrer's own order (their own code) grants a discount but never
         // counts as a referral toward their own reward.
         const isSelfReferral = !!owner && owner.user_id === fresh.user_id;
-        console.log(`[referral:fulfill] invitedUser=${fresh.user_id} refCode=${refCodeOnOrder} owner=${owner?.user_id} isElite=${isEliteOrder} alreadyCounted=${alreadyCounted} isSelf=${isSelfReferral}`);
-        if (owner && isEliteOrder && !alreadyCounted && !isSelfReferral) {
+        // A referral normally requires a REAL paid Elite order. The only promo
+        // that still counts is a 100%-off owner-only code (created via the admin
+        // panel) — this lets the owner test the referral flow for free without
+        // opening an exploit for regular customers.
+        let allowWithPromo = false;
+        if (fresh.promo_code) {
+          const promo = await getPromoByCode(fresh.promo_code);
+          allowWithPromo = !!promo && promo.discount === 100;
+        }
+        const promoBlocks = !!fresh.promo_code && !allowWithPromo;
+        console.log(`[referral:fulfill] invitedUser=${fresh.user_id} refCode=${refCodeOnOrder} owner=${owner?.user_id} isElite=${isEliteOrder} alreadyCounted=${alreadyCounted} isSelf=${isSelfReferral} promoBlocks=${promoBlocks}`);
+        if (owner && isEliteOrder && !alreadyCounted && !isSelfReferral && !promoBlocks) {
           await insertReferral({
             referrerUserId: owner.user_id,
             inviteeUserId: fresh.user_id,
