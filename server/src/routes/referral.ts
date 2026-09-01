@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { config } from '../config.js';
 import { getSessionUser, requireAuth, type AuthedRequest } from '../lib/auth.js';
 import {
+  clearUserReferralRef,
   countReferrals,
   getOrCreateReferralCode,
   getReferralCodeOwner,
@@ -105,6 +106,14 @@ router.post('/claim', requireAuth, async (req: AuthedRequest, res) => {
   await grantFreeEliteMonth(req.user.id, count);
 
   return res.json({ ok: true, freePlanName: getHighestTier().name });
+});
+
+// POST /api/referral/unlink — removes the friend referral code bound to MY
+// account. Used to fix accounts that were wrongly bound (e.g. a stale code
+// leaked from an older account on the same browser).
+router.post('/unlink', requireAuth, async (req: AuthedRequest, res) => {
+  await clearUserReferralRef(req.user.id);
+  res.json({ ok: true });
 });
 
 // GET /api/referral/validate?ref=CODE — lightweight public check that a code is

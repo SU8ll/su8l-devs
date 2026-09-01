@@ -52,18 +52,12 @@ router.post('/create', requireAuth, async (req: AuthedRequest, res) => {
   if (!parsed.success) return res.status(400).json({ error: 'invalid request', detail: parsed.error.flatten() });
   const { planKey, cycle, promoCode, extraSlot, cloudHosting, refCode } = parsed.data;
 
-  // Resolve the friend referral code from the explicit body param OR the cookie
-  // that was set when the user signed up via a friend's link.
+  // Resolve the friend referral code from the explicit body param (the user just
+  // clicked a link with ?ref=) OR the code persisted on the ACCOUNT at signup.
+  // No browser cookie/localStorage is trusted here: those can leak a stale code
+  // from an older account into a new one.
   let referralCode: string | null = refCode?.trim() ? refCode.trim().toUpperCase() : null;
   if (!referralCode) {
-    const cookieRef = (req.cookies as Record<string, string> | undefined)?.['su8l_ref'];
-    if (cookieRef && typeof cookieRef === 'string' && cookieRef.trim()) {
-      referralCode = cookieRef.trim().toUpperCase();
-    }
-  }
-  if (!referralCode) {
-    // Fallback to the code persisted on the ACCOUNT at signup (survives any
-    // login/device/browser; third-party cookies are blocked cross-origin).
     const acctRef = await getUserReferralRef(req.user.id);
     if (acctRef) referralCode = acctRef;
   }

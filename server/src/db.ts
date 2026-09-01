@@ -1036,6 +1036,11 @@ export async function getUserReferralRef(userId: string): Promise<string | null>
   return r?.referral_ref_code ?? null;
 }
 
+/** Remove the friend referral code bound to the account (self-service unlink). */
+export async function clearUserReferralRef(userId: string): Promise<void> {
+  await run('UPDATE users SET referral_ref_code = NULL, updated_at = ? WHERE id = ?', nowIso(), userId);
+}
+
 export interface Referral {
   id: number;
   referrer_user_id: string;

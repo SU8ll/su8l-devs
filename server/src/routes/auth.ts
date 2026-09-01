@@ -166,22 +166,15 @@ router.post('/register', async (req, res) => {
     // Assign the new user a fixed referral code.
     await getOrCreateReferralCode(userId);
 
-    // If this signup came from a friend's referral link, remember it in an
-    // httpOnly cookie so we can record the referral (and apply the invitee
-    // discount) the first time they hit Elite checkout.
+    // If this signup came from a friend's referral link, persist it on the
+    // ACCOUNT so the referral survives any login/device/browser even though
+    // third-party cookies are blocked. We intentionally do NOT set a browser
+    // cookie here: a cookie leaks a stale code into accounts created later on
+    // the same browser.
     if (ref && typeof ref === 'string' && ref.trim()) {
       const owner = await getReferralCodeOwner(ref);
       if (owner && owner.user_id !== userId) {
-        // Persist on the ACCOUNT (not just the cookie) so the referral survives
-        // any login/device/browser even though third-party cookies are blocked.
         await setUserReferralRef(userId, ref);
-        res.cookie('su8l_ref', ref.trim().toUpperCase(), {
-          httpOnly: true,
-          sameSite: config.isProd ? 'none' : 'lax',
-          secure: config.isProd,
-          maxAge: 30 * 24 * 60 * 60 * 1000,
-          path: '/',
-        });
       }
     }
 

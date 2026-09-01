@@ -6,8 +6,11 @@ import { api } from '../api';
 export default function Register() {
   const { t } = useI18n();
   const [params] = useSearchParams();
+  // ONLY an actual ?ref=CODE in the URL counts as a referral. We never read a
+  // persisted code from localStorage: those leak from older accounts/sessions
+  // and wrongly mark brand-new accounts as "invited" (granting a discount).
   const refCode = params.get('ref') ?? undefined;
-  useEffect(()=>{ if(refCode){ try{ localStorage.setItem('su8l_ref', refCode.toUpperCase()); }catch{} } },[refCode]);
+  useEffect(()=>{ try{ localStorage.removeItem('su8l_ref'); }catch{} },[refCode]);
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -33,8 +36,9 @@ export default function Register() {
       return;
     }
 
-    const effectiveRef = refCode ?? (()=>{ try{ return localStorage.getItem('su8l_ref') ?? undefined; }catch{ return undefined; }})();
-    if(effectiveRef){ try{ localStorage.setItem('su8l_ref', effectiveRef.toUpperCase()); }catch{} }
+    // Only the URL ?ref= code is sent; no localStorage fallback (prevents stale
+    // codes from older accounts being written onto this new account).
+    const effectiveRef = refCode;
     setLoading(true);
     try {
       const data = await api<{ ok: boolean; userId: string }>('/api/auth/register', {

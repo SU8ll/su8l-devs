@@ -90,7 +90,7 @@ export default function Checkout() {
   // discount — the server enforces this too).
   useEffect(() => {
     let cancelled = false;
-    const refToCheck = (() => { try { return localStorage.getItem('su8l_ref') ?? params.get('ref') ?? ''; } catch { return params.get('ref') ?? ''; } })();
+    const refToCheck = params.get('ref') ?? '';
     if (refToCheck.trim()) {
       api<{ valid: boolean; discount: number; own?: boolean }>('/api/referral/validate?ref=' + encodeURIComponent(refToCheck.trim().toUpperCase()))
         .then((r) => { if (!cancelled) { setReferralValid(!!r.valid); setReferralOwn(!!r.valid && !!r.own); } })
@@ -158,9 +158,7 @@ export default function Checkout() {
     if (busy) return;
     setBusy(true);
     setError('');
-    const storedRef = (()=>{ try{ return localStorage.getItem('su8l_ref') ?? undefined; }catch{ return undefined; }})();
-    const refCode = params.get('ref') ?? storedRef ?? undefined;
-    if(refCode){ try{ localStorage.setItem('su8l_ref', refCode.toUpperCase()); }catch{} }
+    const refCode = params.get('ref') ?? undefined;
     try {
       const res = await api<CreateCheckoutResponse>('/api/checkout/create', {
         method: 'POST',

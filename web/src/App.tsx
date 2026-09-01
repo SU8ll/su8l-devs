@@ -84,9 +84,10 @@ function ScrollToTop() {
 function RefCapture(){
   const { search } = useLocation();
   useEffect(()=>{
-    const p=new URLSearchParams(search);
-    const r=p.get('ref');
-    if(r){ try{ localStorage.setItem('su8l_ref', r.toUpperCase()); }catch{} }
+    // The referral code now only ever lives in the CURRENT url (?ref=CODE).
+    // We never persist it to localStorage: a persisted copy leaks from older
+    // accounts/sessions and wrongly marks new accounts as invited.
+    try{ localStorage.removeItem('su8l_ref'); }catch{}
   },[search]);
   return null;
 }
