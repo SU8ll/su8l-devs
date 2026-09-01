@@ -223,7 +223,6 @@ const en: Dict = {
   'referral.howTitle': 'How it works',
   'referral.howInvitee': 'A friend who joins via your link gets {pct}% off Elite at checkout.',
   'referral.howOwner': 'After ONE paid referral, YOU also get {pct}% off Elite automatically at checkout.',
-  'referral.howFresh': 'A new account that registered without any link gets no discount.',
 
   'chat.title': 'Community Chat',
   'chat.introTitle': 'Welcome to the Community',
@@ -664,7 +663,6 @@ const ar: Dict = {
   'referral.howTitle': 'كيف يعمل؟',
   'referral.howInvitee': 'الصديق الذي يدخل عبر رابطك يحصل على {pct}% خصم من Elite عند الدفع.',
   'referral.howOwner': 'بعد أول اشتراك مدفوع من رابطك، تحصل أنت أيضًا على {pct}% تلقائيًا عند الدفع.',
-  'referral.howFresh': 'الحساب الجديد الذي سجّل بدون أي رابط لا يحصل على أي خصم.',
 
   'chat.title': 'شات المجتمع',
   'chat.introTitle': 'مرحبًا بك في المجتمع',

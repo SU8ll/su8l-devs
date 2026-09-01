@@ -64,17 +64,14 @@ export default function Referral() {
           <h1 className="mt-2 font-display text-2xl font-extrabold text-gradient text-glow">{t('referral.headline')}</h1>
           <p className="mt-2 max-w-2xl text-sm text-muted">{t('referral.subtitle')}</p>
 
-          <div className="mt-5 grid gap-2 text-left sm:grid-cols-3">
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-xs text-muted">
-              <span className="mb-1 block font-semibold text-emerald-300">🟢 {t('referral.howInvitee').replace('{pct}', String(data.discount))}</span>
+          <div className="mt-5 grid gap-2 text-left sm:grid-cols-2">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-xs text-muted">
+                <span className="mb-1 block font-semibold text-emerald-300">🟢 {t('referral.howInvitee').replace('{pct}', String(data.discount))}</span>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-xs text-muted">
+                <span className="mb-1 block font-semibold text-purple-300">🟣 {t('referral.howOwner').replace('{pct}', String(data.discount))}</span>
+              </div>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-xs text-muted">
-              <span className="mb-1 block font-semibold text-purple-300">🟣 {t('referral.howOwner').replace('{pct}', String(data.discount))}</span>
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-xs text-muted">
-              <span className="mb-1 block font-semibold text-zinc-400">⚪ {t('referral.howFresh')}</span>
-            </div>
-          </div>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-3">
             <StatBox label={t('referral.statDiscount')} value={`${data.discount}%`} />

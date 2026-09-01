@@ -29,7 +29,6 @@ export default function ReferralMobile(){
         <div style={{display:'flex', flexDirection:'column', gap:8, marginTop:14}}>
           <div style={{padding:'11px 13px', borderRadius:12, background:'rgba(16,185,129,0.06)', border:'1px solid rgba(16,185,129,0.16)', fontSize:12.5, lineHeight:1.5, color:'#86EFAC'}}>{t('referral.howInvitee').replace('{pct}', String(data.discount))}</div>
           <div style={{padding:'11px 13px', borderRadius:12, background:'rgba(124,58,237,0.07)', border:'1px solid rgba(124,58,237,0.18)', fontSize:12.5, lineHeight:1.5, color:'#C4B5FD'}}>{t('referral.howOwner').replace('{pct}', String(data.discount))}</div>
-          <div style={{padding:'11px 13px', borderRadius:12, background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.07)', fontSize:12.5, lineHeight:1.5, color:'#9A99A6'}}>{t('referral.howFresh')}</div>
         </div>
 
         <div className="m-stats" style={{marginTop:14, gridTemplateColumns:'repeat(3,1fr)', gap:8}}>
