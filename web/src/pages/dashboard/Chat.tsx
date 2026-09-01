@@ -43,11 +43,19 @@ export default function Chat() {
   const [usernameError, setUsernameError] = useState('');
   const [nameUpdated, setNameUpdated] = useState(false);
   const [emojiOpen, setEmojiOpen] = useState(false);
-  const [disclaimerAccepted, setDisclaimerAccepted] = useState(()=>{ try{ const k= typeof window!=='undefined' ? localStorage.getItem(`su8l_chat_disclaimer_${lang}`) : null; const legacy= typeof window!=='undefined' ? localStorage.getItem('su8l_chat_disclaimer') : null; return k==='1' || legacy==='1'; }catch{ return false; }});
+  const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
   const [disclaimerChecked, setDisclaimerChecked] = useState(false);
   const [replyToast, setReplyToast] = useState<{from:string; body:string}|null>(null);
   const audioCtxRef = useRef<AudioContext|null>(null);
-  useEffect(()=>{ try{ const k=`su8l_chat_disclaimer_${lang}`; const ok = localStorage.getItem(k)==='1' || localStorage.getItem('su8l_chat_disclaimer')==='1'; setDisclaimerAccepted(ok); setDisclaimerChecked(false);}catch{} },[lang]);
+  // The guidelines are shown automatically ONCE per user/account (not per
+  // browser), so a brand-new account always sees them before chatting.
+  useEffect(()=>{
+    try{
+      const ok = user ? localStorage.getItem(`su8l_chat_agree_${user.id}`)==='1' : false;
+      setDisclaimerAccepted(ok);
+    }catch{}
+    setDisclaimerChecked(false);
+  },[user?.id]);
   useEffect(()=>{
     if(chosenLanguage && disclaimerAccepted && typeof Notification!=='undefined' && Notification.permission==='default'){
       Notification.requestPermission().catch(()=>{});
@@ -409,7 +417,7 @@ export default function Chat() {
               <span style={{fontSize:12.5, lineHeight:1.5, color: disclaimerChecked? '#D1D1D6' : '#9A99A6', textAlign: siteIsAr? 'right':'left'}}>{siteIsAr? 'أقر بأنني قرأت وفهمت الإرشادات، وأتحمل مسؤولية ما أنشره، وأوافق على عدم مشاركة معلومات حساسة.' : 'I have read and understood the guidelines, take responsibility for what I post, and agree not to share sensitive information.'}</span>
             </label>
 
-            <button type="button" disabled={!disclaimerChecked} onClick={()=>{ try{ localStorage.setItem(`su8l_chat_disclaimer_${lang}`,'1'); localStorage.setItem('su8l_chat_disclaimer','1'); }catch{} setDisclaimerAccepted(true); }} style={{width:'100%', marginTop:14, padding:'13px', borderRadius:12, border:'none', background: disclaimerChecked? '#7C3AED':'rgba(255,255,255,0.07)', color: disclaimerChecked? '#fff':'#6B6A78', fontWeight:800, fontSize:14, boxShadow: disclaimerChecked? '0 8px 20px rgba(124,58,237,0.28)' : 'none', transition:'all 0.15s'}}>
+            <button type="button" disabled={!disclaimerChecked} onClick={()=>{ try{ if(user) localStorage.setItem(`su8l_chat_agree_${user.id}`,'1'); }catch{} setDisclaimerAccepted(true); }} style={{width:'100%', marginTop:14, padding:'13px', borderRadius:12, border:'none', background: disclaimerChecked? '#7C3AED':'rgba(255,255,255,0.07)', color: disclaimerChecked? '#fff':'#6B6A78', fontWeight:800, fontSize:14, boxShadow: disclaimerChecked? '0 8px 20px rgba(124,58,237,0.28)' : 'none', transition:'all 0.15s'}}>
               {siteIsAr? 'موافق — دخول المحادثة →' : 'Agree & Enter Chat →'}
             </button>
             <div style={{textAlign:'center', marginTop:10, fontSize:11, color:'#6B6A78'}}><a href="/terms" target="_blank" rel="noreferrer" style={{color:'#A78BFA', textDecoration:'none'}}>{siteIsAr? 'الشروط' : 'Terms'}</a> • <a href="/refund" target="_blank" rel="noreferrer" style={{color:'#A78BFA', textDecoration:'none'}}>{siteIsAr? 'سياسة الاسترجاع' : 'Refund'}</a></div>
@@ -433,7 +441,6 @@ export default function Chat() {
             </div>
           </div>
           <button type="button" onClick={()=> setUsernameEdit(v=>!v)} style={{padding:'7px 10px', borderRadius:9, border:'1px solid rgba(255,255,255,0.07)', background:'rgba(255,255,255,0.03)', color:'#D1D1D6', fontSize:12, fontWeight:600}}>✎ {t('chat.changeName')}</button>
-          <button type="button" title={siteIsAr? 'إرشادات المجتمع':'Community guidelines'} onClick={()=>{ setDisclaimerAccepted(false); setDisclaimerChecked(false); }} style={{padding:'7px 10px', borderRadius:9, border:'1px solid rgba(255,255,255,0.07)', background:'rgba(255,255,255,0.03)', color:'#D1D1D6', fontSize:12, fontWeight:600}}>📋</button>
           <button type="button" onClick={()=> setChosenLanguage(null)} style={{padding:'7px 10px', borderRadius:9, border:'1px solid rgba(255,255,255,0.07)', background:'rgba(255,255,255,0.03)', color:'#D1D1D6', fontSize:12, fontWeight:600}}>🌐</button>
         </div>
         {replyToast && (
@@ -544,9 +551,6 @@ export default function Chat() {
         <div className="ml-auto flex shrink-0 items-center gap-1.5">
           <button type="button" onClick={() => setUsernameEdit((v) => !v)} className="btn-ghost text-xs">
             ✎ {t('chat.changeName')}
-          </button>
-          <button type="button" title={siteIsAr? 'إرشادات المجتمع':'Community guidelines'} onClick={()=>{ setDisclaimerAccepted(false); setDisclaimerChecked(false); }} className="btn-ghost text-xs">
-            📋
           </button>
           <button type="button" onClick={() => setChosenLanguage(null)} className="btn-ghost text-xs">
             🌐 {t('chat.switchLang')}

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { config } from '../config.js';
-import { requireAuth, type AuthedRequest } from '../lib/auth.js';
+import { getSessionUser, requireAuth, type AuthedRequest } from '../lib/auth.js';
 import {
   countReferrals,
   getOrCreateReferralCode,
@@ -109,22 +109,39 @@ router.post('/claim', requireAuth, async (req: AuthedRequest, res) => {
 
 // GET /api/referral/validate?ref=CODE — lightweight public check that a code is
 // real, so the checkout UI can truthfully show the 8% discount before paying.
+// If the code is the caller's OWN, it only grants the discount once they have at
+// least one real referral (a fresh account with an empty link gets nothing).
 router.get('/validate', async (req, res) => {
   const code = String(req.query.ref ?? '').trim().toUpperCase();
   if (!code) return res.json({ valid: false });
   const owner = await getReferralCodeOwner(code);
-  res.json({ valid: !!owner, discount: REFERRAL_DISCOUNT });
+  if (!owner) return res.json({ valid: false });
+
+  const me = (await getSessionUser(req))?.id;
+  const isOwn = owner.user_id === me;
+  if (isOwn) {
+    const count = await countReferrals(owner.user_id);
+    if (count < 1) return res.json({ valid: false });
+    return res.json({ valid: true, discount: REFERRAL_DISCOUNT, own: true });
+  }
+
+  res.json({ valid: true, discount: REFERRAL_DISCOUNT, own: false });
 });
 
 // GET /api/referral/self-discount — check if the logged-in user qualifies for
-// the automatic own-code 8% discount (referrers get 8% off Elite automatically).
+// the automatic own-code 8% discount. It only applies once they have at least
+// one real referral (referrers with an actual invited friend), NOT for any
+// brand-new account.
 router.get('/self-discount', requireAuth, async (req: AuthedRequest, res) => {
+  const count = await countReferrals(req.user.id);
+  if (count < 1) return res.json({ valid: false });
   const own = await getOrCreateReferralCode(req.user.id);
   if (own?.code) {
     return res.json({
       valid: true,
       discount: REFERRAL_DISCOUNT,
       ownCode: own.code,
+      own: true,
       referrerName: 'Link owner discount',
     });
   }

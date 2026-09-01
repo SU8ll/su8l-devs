@@ -118,24 +118,35 @@ router.post('/create', requireAuth, async (req: AuthedRequest, res) => {
       // applies to products, extra slots, or the Starter plan.
       let referralDiscount = 0;
       if (!referralCode && plan.isHighestTier) {
-        // Auto-apply the user's own referral code so they get 8% off Elite as
-        // a perk for being a referrer (link owner), without needing to enter it.
-        const ownCode = await getOrCreateReferralCode(req.user.id);
-        if (ownCode?.code) {
-          referralCode = ownCode.code;
-          // isOwnCode will be set correctly below (owner matches self).
+        // Auto-apply a referrer's own code so they get 8% off Elite as a perk —
+        // but ONLY after they have at least one real referral. A brand-new
+        // account whose link nobody joined gets no discount.
+        const ownCount = await countReferrals(req.user.id);
+        if (ownCount >= 1) {
+          const ownCode = await getOrCreateReferralCode(req.user.id);
+          if (ownCode?.code) referralCode = ownCode.code;
         }
       }
       if (referralCode && plan.isHighestTier) {
-        referralDiscount = REFERRAL_DISCOUNT_8;
-        appliedReferral = referralCode;
-        console.log(`[referral:create] applying 8% to user=${req.user.id} plan=${planKey} ref=${referralCode}`);
-        // If the referrer used their OWN code (their 8% discount) before
-        // completing the original 5-referral goal, this raises their free-month
-        // goal from 5 to 7. Log it once (idempotent) with the count at that time.
-        if (isOwnCode) {
+        const owner = await getReferralCodeOwner(referralCode);
+        const self = !!owner && owner.user_id === req.user.id;
+        if (self) {
           const currentCount = await countReferrals(req.user.id);
-          await logReferrerDiscount(req.user.id, currentCount);
+          if (currentCount < 1) {
+            // Own code on a fresh account with no real referral → no discount.
+            referralCode = null;
+          } else {
+            referralDiscount = REFERRAL_DISCOUNT_8;
+            appliedReferral = referralCode;
+            console.log(`[referral:create] applying 8% to user=${req.user.id} plan=${planKey} ref=${referralCode}`);
+            // Referrer used their own 8% discount before completing the original
+            // 5-referral goal → raise their free-month goal from 5 to 7 (idempotent).
+            await logReferrerDiscount(req.user.id, currentCount);
+          }
+        } else {
+          referralDiscount = REFERRAL_DISCOUNT_8;
+          appliedReferral = referralCode;
+          console.log(`[referral:create] applying 8% to user=${req.user.id} plan=${planKey} ref=${referralCode}`);
         }
       }
 
