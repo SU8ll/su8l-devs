@@ -29,6 +29,7 @@ export default function Chat() {
   const [translations, setTranslations] = useState<Record<string, string>>({});
   const [showOriginal, setShowOriginal] = useState<Record<string, boolean>>({});
   const [activeUsers, setActiveUsers] = useState(0);
+  void activeUsers;
   const [input, setInput] = useState('');
   const [replyTo, setReplyTo] = useState<{ id: string; body: string; username: string } | null>(null);
   const [mentionOpen, setMentionOpen] = useState(false);
@@ -44,17 +45,45 @@ export default function Chat() {
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(()=>{ try{ const k= typeof window!=='undefined' ? localStorage.getItem(`su8l_chat_disclaimer_${lang}`) : null; const legacy= typeof window!=='undefined' ? localStorage.getItem('su8l_chat_disclaimer') : null; return k==='1' || legacy==='1'; }catch{ return false; }});
   const [disclaimerChecked, setDisclaimerChecked] = useState(false);
+  const [replyToast, setReplyToast] = useState<{from:string; body:string}|null>(null);
+  const audioCtxRef = useRef<AudioContext|null>(null);
   useEffect(()=>{ try{ const k=`su8l_chat_disclaimer_${lang}`; const ok = localStorage.getItem(k)==='1' || localStorage.getItem('su8l_chat_disclaimer')==='1'; setDisclaimerAccepted(ok); setDisclaimerChecked(false);}catch{} },[lang]);
+  useEffect(()=>{
+    if(chosenLanguage && disclaimerAccepted && typeof Notification!=='undefined' && Notification.permission==='default'){
+      Notification.requestPermission().catch(()=>{});
+    }
+    if(chosenLanguage && disclaimerAccepted){
+      const ensure=()=>{
+        try{
+          if(!audioCtxRef.current) audioCtxRef.current = new (window.AudioContext || (window as unknown as {webkitAudioContext: typeof AudioContext}).webkitAudioContext)();
+          if(audioCtxRef.current.state==='suspended') void audioCtxRef.current.resume();
+        }catch{}
+      };
+      ensure();
+      const onFirst=()=>{ ensure(); document.removeEventListener('click', onFirst); document.removeEventListener('touchstart', onFirst); };
+      document.addEventListener('click', onFirst, {once:true});
+      document.addEventListener('touchstart', onFirst, {once:true});
+      return ()=>{ document.removeEventListener('click', onFirst); document.removeEventListener('touchstart', onFirst); };
+    }
+  },[chosenLanguage, disclaimerAccepted]);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
+  function ensureAudio():AudioContext|null{
+    try{
+      if(!audioCtxRef.current) audioCtxRef.current = new (window.AudioContext || (window as unknown as {webkitAudioContext: typeof AudioContext}).webkitAudioContext)();
+      if(audioCtxRef.current.state==='suspended') void audioCtxRef.current.resume();
+      return audioCtxRef.current;
+    }catch{ return null; }
+  }
   function playReplySound(){
     try{
-      const ctx = new (window.AudioContext || (window as unknown as {webkitAudioContext: typeof AudioContext}).webkitAudioContext)();
+      const ctx = ensureAudio();
+      if(!ctx) return;
       const o = ctx.createOscillator(); const g = ctx.createGain();
-      o.type='sine'; o.frequency.value=880; g.gain.value=0.12;
+      o.type='sine'; o.frequency.value=880; g.gain.value=0.13;
       o.connect(g); g.connect(ctx.destination); o.start(); o.stop(ctx.currentTime+0.18);
-      setTimeout(()=>{ const o2=ctx.createOscillator(); const g2=ctx.createGain(); o2.frequency.value=1320; g2.gain.value=0.09; o2.connect(g2); g2.connect(ctx.destination); o2.start(); o2.stop(ctx.currentTime+0.12); },90);
+      setTimeout(()=>{ try{ const o2=ctx.createOscillator(); const g2=ctx.createGain(); o2.frequency.value=1320; g2.gain.value=0.10; o2.connect(g2); g2.connect(ctx.destination); o2.start(); o2.stop(ctx.currentTime+0.12);}catch{} },90);
     }catch{}
   }
 
@@ -163,9 +192,11 @@ export default function Chat() {
             const me = userRef.current;
             if (me && (msg as unknown as {replyTo?:{username?:string}}).replyTo?.username && (msg as unknown as {replyTo?:{username?:string}}).replyTo!.username!.toLowerCase()===me.username.toLowerCase() && msg.user.id!==me.id){
               playReplySound();
+              setReplyToast({from: msg.user.username, body: msg.body});
+              setTimeout(()=> setReplyToast(prev=> prev && prev.from===msg.user.username && prev.body===msg.body ? null : prev), 4200);
               try{
                 if(typeof Notification!=='undefined'){
-                  if(Notification.permission==='granted') new Notification(`رد من ${msg.user.username}`,{body: msg.body.slice(0,80), icon: msg.user.avatar || '/logo.png'});
+                  if(Notification.permission==='granted') new Notification(siteIsAr? `رد من ${msg.user.username}` : `Reply from ${msg.user.username}`,{body: msg.body.slice(0,80), icon: msg.user.avatar || '/logo.png'});
                   else if(Notification.permission!=='denied') Notification.requestPermission();
                 }
                 if(navigator.vibrate) navigator.vibrate([80,40,80]);
@@ -393,6 +424,16 @@ export default function Chat() {
           <button type="button" onClick={()=> setUsernameEdit(v=>!v)} style={{padding:'7px 10px', borderRadius:9, border:'1px solid rgba(255,255,255,0.07)', background:'rgba(255,255,255,0.03)', color:'#D1D1D6', fontSize:12, fontWeight:600}}>✎ {t('chat.changeName')}</button>
           <button type="button" onClick={()=> setChosenLanguage(null)} style={{padding:'7px 10px', borderRadius:9, border:'1px solid rgba(255,255,255,0.07)', background:'rgba(255,255,255,0.03)', color:'#D1D1D6', fontSize:12, fontWeight:600}}>🌐</button>
         </div>
+        {replyToast && (
+          <div onClick={()=>setReplyToast(null)} style={{display:'flex', gap:10, alignItems:'center', padding:'10px 12px', borderRadius:12, background:'#1A1628', border:'1px solid rgba(124,58,237,0.24)', boxShadow:'0 8px 24px rgba(0,0,0,0.35)', cursor:'pointer'}}>
+            <span style={{width:28,height:28, borderRadius:8, background:'#7C3AED', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:14}}>↩</span>
+            <div style={{flex:1, minWidth:0}}>
+              <div style={{fontSize:12, fontWeight:700, color:'#A78BFA'}}>{siteIsAr? `رد من ${replyToast.from}` : `Reply from ${replyToast.from}`}</div>
+              <div style={{fontSize:12, color:'#D1D1D6', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{replyToast.body}</div>
+            </div>
+            <span style={{color:'#6B6A78'}}>✕</span>
+          </div>
+        )}
 
         {usernameEdit && (
           <div className="m-card" style={{padding:12}}>
@@ -483,8 +524,7 @@ export default function Chat() {
           <span className="text-xl">{meta.flag}</span>
           <div className="min-w-0">
             <div className="truncate text-sm font-bold">{t('chat.title')}</div>
-            <div className="flex items-center gap-2 text-[0.7rem] text-muted">
-              <span>{activeUsers} {t('chat.online')}</span>
+            <div className="flex items-center gap-1 text-[0.7rem] text-muted">
               <span className={`inline-block h-2 w-2 rounded-full ${wsConnected ? 'bg-emerald-400' : 'bg-amber-400'}`} />
             </div>
           </div>
@@ -498,6 +538,16 @@ export default function Chat() {
           </button>
         </div>
       </div>
+      {replyToast && (
+        <div onClick={()=>setReplyToast(null)} style={{display:'flex', gap:10, alignItems:'center', padding:'10px 12px', borderRadius:12, background:'#1A1628', border:'1px solid rgba(124,58,237,0.24)', boxShadow:'0 8px 24px rgba(0,0,0,0.25)', cursor:'pointer', marginBottom:12}}>
+          <span style={{width:28,height:28, borderRadius:8, background:'#7C3AED', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff'}}>↩</span>
+          <div style={{flex:1, minWidth:0}}>
+            <div style={{fontSize:12, fontWeight:700, color:'#A78BFA'}}>{siteIsAr? `رد من ${replyToast.from}` : `Reply from ${replyToast.from}`}</div>
+            <div style={{fontSize:12, color:'#D1D1D6', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{replyToast.body}</div>
+          </div>
+          <span style={{color:'#6B6A78'}}>✕</span>
+        </div>
+      )}
 
       {/* Username editor */}
       {usernameEdit && (
