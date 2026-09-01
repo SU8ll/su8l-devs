@@ -59,6 +59,7 @@ export default function Checkout() {
   const [productInfo, setProductInfo] = useState<ProductInfo | null>(null);
   const [referralValid, setReferralValid] = useState(false);
   const [referralOwn, setReferralOwn] = useState(false);
+  const [referrerName, setReferrerName] = useState<string | null>(null);
 
   useEffect(() => {
     const key = params.get('plan');
@@ -84,31 +85,34 @@ export default function Checkout() {
     api<DashboardDto>('/api/dashboard').then(setDashboard).catch(() => {});
   }, [params, extra]);
 
-  // Validate the friend referral code (from localStorage / URL) so we only show
-  // the 8% discount when the code truly belongs to a real user. Your own code
-  // only counts once you actually have a real referral (fresh accounts get no
-  // discount — the server enforces this too).
+  // Single source of truth: the server computes the referral discount the same
+// way it charges it (friend code from the URL or from the account; or the
+// link-owner perk once you have a real referral). Fresh accounts get nothing.
   useEffect(() => {
-    let cancelled = false;
-    const refToCheck = params.get('ref') ?? '';
-    if (refToCheck.trim()) {
-      api<{ valid: boolean; discount: number; own?: boolean }>('/api/referral/validate?ref=' + encodeURIComponent(refToCheck.trim().toUpperCase()))
-        .then((r) => { if (!cancelled) { setReferralValid(!!r.valid); setReferralOwn(!!r.valid && !!r.own); } })
-        .catch(() => { if (!cancelled) { setReferralValid(false); setReferralOwn(false); } });
-      return () => { cancelled = true; };
-    }
-    // No friend ref → a referrer with at least one REAL referral gets their
-    // own-code 8% automatically. Only relevant for the Elite plan.
-    if (plan?.isHighestTier && !extra) {
-      api<{ valid: boolean; discount: number }>('/api/referral/self-discount')
-        .then((r) => { if (!cancelled) { setReferralValid(!!r.valid); setReferralOwn(!!r.valid); } })
-        .catch(() => { if (!cancelled) { setReferralValid(false); setReferralOwn(false); } });
-    } else {
+    if (!plan || !plan.isHighestTier || extra || isProduct) {
       setReferralValid(false);
       setReferralOwn(false);
+      setReferrerName(null);
+      return;
     }
+    let cancelled = false;
+    api<{ apply: boolean; own: boolean; discount: number; referrerName: string | null }>(
+      '/api/referral/checkout?plan=' + encodeURIComponent(plan.key) + '&ref=' + encodeURIComponent(params.get('ref') ?? '')
+    )
+      .then((r) => {
+        if (cancelled) return;
+        setReferralValid(!!r.apply);
+        setReferralOwn(!!r.apply && !!r.own);
+        setReferrerName(r.referrerName ?? null);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setReferralValid(false);
+        setReferralOwn(false);
+        setReferrerName(null);
+      });
     return () => { cancelled = true; };
-  }, [params, plan, extra]);
+  }, [params, plan, extra, isProduct]);
 
   const promoApplied = promoState === 'valid';
   const elite = plan?.isHighestTier;
@@ -318,7 +322,11 @@ export default function Checkout() {
             {referralApplied && (
               <div className="mt-2 flex items-center gap-2 rounded-xl border border-emerald-400/25 bg-emerald-400/10 px-3 py-2 text-xs font-medium text-emerald-300">
                 <span>🎁</span>
-                <span>{referralOwn ? t('checkout.ownerDiscount').replace('{pct}', String(REFERRAL_DISCOUNT)) : t('checkout.referralDiscount').replace('{pct}', String(REFERRAL_DISCOUNT))}</span>
+                <span>{referralOwn
+                  ? t('checkout.ownerDiscount').replace('{pct}', String(REFERRAL_DISCOUNT))
+                  : referrerName
+                    ? t('checkout.referralBy').replace('{pct}', String(REFERRAL_DISCOUNT)).replace('{name}', referrerName)
+                    : t('checkout.referralDiscount').replace('{pct}', String(REFERRAL_DISCOUNT))}</span>
               </div>
             )}
           </div>

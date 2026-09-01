@@ -14,6 +14,7 @@ import {
 import { getHighestTier } from '../plans.js';
 import { resolveAvatarUrl } from '../services/avatars.js';
 import { grantFreeEliteMonth } from '../services/orders.js';
+import { computeReferralDiscount } from '../lib/referralDiscount.js';
 
 const router = Router();
 
@@ -114,6 +115,17 @@ router.post('/claim', requireAuth, async (req: AuthedRequest, res) => {
 router.post('/unlink', requireAuth, async (req: AuthedRequest, res) => {
   await clearUserReferralRef(req.user.id);
   res.json({ ok: true });
+});
+
+// GET /api/referral/checkout?plan=KEY&ref=CODE — the discount truth for the
+// current logged-in user's checkout. This uses the exact same helper as order
+// creation, so the price shown in the UI always equals the price charged.
+router.get('/checkout', requireAuth, async (req: AuthedRequest, res) => {
+  const planKey = String(req.query.plan ?? '').trim();
+  if (!planKey) return res.status(400).json({ error: 'plan is required' });
+  const refParam = typeof req.query.ref === 'string' ? req.query.ref : undefined;
+  const r = await computeReferralDiscount({ userId: req.user.id, refCode: refParam, planKey });
+  res.json({ ...r });
 });
 
 // GET /api/referral/validate?ref=CODE — lightweight public check that a code is

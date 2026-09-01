@@ -81,6 +81,7 @@ const en: Dict = {
   'checkout.amount': 'Amount',
   'checkout.referralDiscount': 'Friend referral {pct}% applied',
   'checkout.ownerDiscount': 'Link owner {pct}% discount applied',
+  'checkout.referralBy': 'Friend {name} referral {pct}% applied',
   'checkout.promoLabel': 'Promo Code',
   'checkout.promoPlaceholder': 'SU8L-XXXX-XXXX-XXXX-DEVs',
   'checkout.apply': 'Apply',
@@ -219,6 +220,10 @@ const en: Dict = {
   'referral.eliteBadge': 'Elite',
   'referral.footnote':
     'The 8% discount applies to the Elite plan only, for both the friend and you. A referral counts once your friend actually buys Elite. Reach 5 new Elite subscribers to claim a free month — but if you use your own 8% discount before reaching 5, the goal rises to 7.',
+  'referral.howTitle': 'How it works',
+  'referral.howInvitee': 'A friend who joins via your link gets {pct}% off Elite at checkout.',
+  'referral.howOwner': 'After ONE paid referral, YOU also get {pct}% off Elite automatically at checkout.',
+  'referral.howFresh': 'A new account that registered without any link gets no discount.',
 
   'chat.title': 'Community Chat',
   'chat.introTitle': 'Welcome to the Community',
@@ -517,6 +522,7 @@ const ar: Dict = {
   'checkout.amount': 'المبلغ',
   'checkout.referralDiscount': 'خصم صديق {pct}% — نعم، مطبّق',
   'checkout.ownerDiscount': 'خصم صاحب الرابط {pct}% مطبّق',
+  'checkout.referralBy': 'خصم صديق {name} {pct}% مطبّق',
   'checkout.promoLabel': 'رمز الخصم',
   'checkout.promoPlaceholder': 'SU8L-XXXX-XXXX-XXXX-DEVs',
   'checkout.apply': 'تطبيق',
@@ -655,6 +661,10 @@ const ar: Dict = {
   'referral.eliteBadge': 'Elite',
   'referral.footnote':
     'ينطبق خصم 8% على خطة Elite فقط، لك ولصديقك. تُحتسب الإحالة عندما يشتري صديقك باقة Elite فعلًا. اجلب 5 مشتركين جدد في Elite للمطالبة بشهر مجاني — لكن إذا استخدمت خصمك بنفسك قبل الوصول إلى 5، يصبح الهدف 7.',
+  'referral.howTitle': 'كيف يعمل؟',
+  'referral.howInvitee': 'الصديق الذي يدخل عبر رابطك يحصل على {pct}% خصم من Elite عند الدفع.',
+  'referral.howOwner': 'بعد أول اشتراك مدفوع من رابطك، تحصل أنت أيضًا على {pct}% تلقائيًا عند الدفع.',
+  'referral.howFresh': 'الحساب الجديد الذي سجّل بدون أي رابط لا يحصل على أي خصم.',
 
   'chat.title': 'شات المجتمع',
   'chat.introTitle': 'مرحبًا بك في المجتمع',

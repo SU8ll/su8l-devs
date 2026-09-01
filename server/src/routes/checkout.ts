@@ -17,20 +17,17 @@ import {
   countReferrals,
   getOrder,
   getOrderByPaypalId,
-  getOrCreateReferralCode,
   getPromoByCode,
   getUser,
-  getReferralCodeOwner,
-  getUserReferralRef,
   setUserReferralRef,
   hasActiveBaseSubscription,
   insertOrder,
   logReferrerDiscount,
   markOrderDenied,
 } from '../db.js';
-import { fulfillOrder } from '../services/orders.js';
+import { computeReferralDiscount } from '../lib/referralDiscount.js';
 import { resolveAvatarUrl } from '../services/avatars.js';
-import { REFERRAL_DISCOUNT as REFERRAL_DISCOUNT_8 } from './referral.js';
+import { fulfillOrder } from '../services/orders.js';
 
 const router = Router();
 
@@ -51,29 +48,6 @@ router.post('/create', requireAuth, async (req: AuthedRequest, res) => {
   const parsed = createSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: 'invalid request', detail: parsed.error.flatten() });
   const { planKey, cycle, promoCode, extraSlot, cloudHosting, refCode } = parsed.data;
-
-  // Resolve the friend referral code from the explicit body param (the user just
-  // clicked a link with ?ref=) OR the code persisted on the ACCOUNT at signup.
-  // No browser cookie/localStorage is trusted here: those can leak a stale code
-  // from an older account into a new one.
-  let referralCode: string | null = refCode?.trim() ? refCode.trim().toUpperCase() : null;
-  if (!referralCode) {
-    const acctRef = await getUserReferralRef(req.user.id);
-    if (acctRef) referralCode = acctRef;
-  }
-  // The code must belong to a real user (it may be your own code, which grants
-  // YOU the referrer's 8% discount instead of counting a new referral).
-  const referralOwner = referralCode ? await getReferralCodeOwner(referralCode) : undefined;
-  if (referralCode && !referralOwner) {
-    referralCode = null;
-  }
-  const isOwnCode = !!referralCode && !!referralOwner && referralOwner.user_id === req.user.id;
-  // Persist a valid friend referral code on the account so it survives even if
-  // the browser/cookie/localStorage clears later — enables the fulfill fallback.
-  if (referralCode && !isOwnCode && referralOwner && referralOwner.user_id !== req.user.id) {
-    await setUserReferralRef(req.user.id, referralCode);
-  }
-  console.log(`[referral:create] user=${req.user.id} bodyRef=${JSON.stringify(refCode)} finalRef=${referralCode} owner=${referralOwner?.user_id} isOwn=${isOwnCode}`);
 
   let amount: number;
   let description: string;
@@ -108,39 +82,27 @@ router.post('/create', requireAuth, async (req: AuthedRequest, res) => {
       finalPlanKey = plan.key;
       finalPlanName = plan.name;
 
-      // Referral discount: 8% off the Elite (highest tier) plan ONLY. It never
-      // applies to products, extra slots, or the Starter plan.
+      // Referral discount: 8% off the Elite (highest tier) plan ONLY. Shared
+      // logic with the UI (computeReferralDiscount) so the shown price always
+      // equals the charged one. Never trusts cookies/localStorage.
       let referralDiscount = 0;
-      if (!referralCode && plan.isHighestTier) {
-        // Auto-apply a referrer's own code so they get 8% off Elite as a perk —
-        // but ONLY after they have at least one real referral. A brand-new
-        // account whose link nobody joined gets no discount.
-        const ownCount = await countReferrals(req.user.id);
-        if (ownCount >= 1) {
-          const ownCode = await getOrCreateReferralCode(req.user.id);
-          if (ownCode?.code) referralCode = ownCode.code;
-        }
-      }
-      if (referralCode && plan.isHighestTier) {
-        const owner = await getReferralCodeOwner(referralCode);
-        const self = !!owner && owner.user_id === req.user.id;
-        if (self) {
-          const currentCount = await countReferrals(req.user.id);
-          if (currentCount < 1) {
-            // Own code on a fresh account with no real referral → no discount.
-            referralCode = null;
-          } else {
-            referralDiscount = REFERRAL_DISCOUNT_8;
-            appliedReferral = referralCode;
-            console.log(`[referral:create] applying 8% to user=${req.user.id} plan=${planKey} ref=${referralCode}`);
-            // Referrer used their own 8% discount before completing the original
-            // 5-referral goal → raise their free-month goal from 5 to 7 (idempotent).
-            await logReferrerDiscount(req.user.id, currentCount);
-          }
-        } else {
-          referralDiscount = REFERRAL_DISCOUNT_8;
-          appliedReferral = referralCode;
-          console.log(`[referral:create] applying 8% to user=${req.user.id} plan=${planKey} ref=${referralCode}`);
+      const referral = await computeReferralDiscount({
+        userId: req.user.id,
+        refCode,
+        planKey,
+      });
+      if (referral.apply) {
+        referralDiscount = referral.discount;
+        appliedReferral = referral.code;
+        console.log(`[referral:create] applying ${referral.discount}% to user=${req.user.id} plan=${planKey} ref=${referral.code} own=${referral.own}`);
+        if (referral.own) {
+          // Referrer used their own 8% discount before completing the original
+          // 5-referral goal → raise their free-month goal from 5 to 7 (idempotent).
+          await logReferrerDiscount(req.user.id, await countReferrals(req.user.id));
+        } else if (referral.code) {
+          // Persist a valid friend referral code on the account so it survives
+          // reloads/devices and the webhook can credit the referrer later.
+          await setUserReferralRef(req.user.id, referral.code);
         }
       }
 

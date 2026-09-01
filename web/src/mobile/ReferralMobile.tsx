@@ -26,6 +26,12 @@ export default function ReferralMobile(){
         <div style={{marginTop:8, fontSize:18, fontWeight:800, letterSpacing:'-0.02em', color:'#F5F5F7'}}>{t('referral.headline')}</div>
         <div style={{marginTop:6, fontSize:13, lineHeight:1.5, color:'#9A99A6'}}>{t('referral.subtitle')}</div>
 
+        <div style={{display:'flex', flexDirection:'column', gap:8, marginTop:14}}>
+          <div style={{padding:'11px 13px', borderRadius:12, background:'rgba(16,185,129,0.06)', border:'1px solid rgba(16,185,129,0.16)', fontSize:12.5, lineHeight:1.5, color:'#86EFAC'}}>{t('referral.howInvitee').replace('{pct}', String(data.discount))}</div>
+          <div style={{padding:'11px 13px', borderRadius:12, background:'rgba(124,58,237,0.07)', border:'1px solid rgba(124,58,237,0.18)', fontSize:12.5, lineHeight:1.5, color:'#C4B5FD'}}>{t('referral.howOwner').replace('{pct}', String(data.discount))}</div>
+          <div style={{padding:'11px 13px', borderRadius:12, background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.07)', fontSize:12.5, lineHeight:1.5, color:'#9A99A6'}}>{t('referral.howFresh')}</div>
+        </div>
+
         <div className="m-stats" style={{marginTop:14, gridTemplateColumns:'repeat(3,1fr)', gap:8}}>
           <div className="m-stat" style={{padding:'12px 6px'}}><div style={{fontSize:18, fontWeight:850, color:'#A78BFA'}}>{data.discount}%</div><div style={{fontSize:10, letterSpacing:'0.06em', textTransform:'uppercase', color:'#6B6A78', marginTop:4}}>{t('referral.statDiscount')}</div></div>
           <div className="m-stat" style={{padding:'12px 6px'}}><div style={{fontSize:18, fontWeight:850, color:'#F5F5F7'}}>{data.count}/{goal}</div><div style={{fontSize:10, letterSpacing:'0.06em', textTransform:'uppercase', color:'#6B6A78', marginTop:4}}>{t('referral.statFriends')}</div></div>
