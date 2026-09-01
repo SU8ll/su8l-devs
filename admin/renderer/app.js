@@ -158,6 +158,31 @@ const I18N = {
     maintenanceOff: 'الصيانة متوقفة',
     saveStatus: 'حفظ',
     statusSaved: 'تم الحفظ ✓',
+    'nav.referrals': 'الإحالات',
+    refsSearchPlaceholder: 'ابحث بالاسم أو البريد أو كود الإحالة…',
+    refsReferrer: 'المحيل',
+    refsReferrerCode: 'كود المحيل',
+    refsInvitee: 'المدعو',
+    refsJoinedAt: 'تاريخ الإحالة',
+    refsProgress: 'التقدم',
+    refsClaimed: 'استلم الشهر المجاني',
+    refsClaimedYes: 'استلم ✓',
+    refsClaimedNo: 'لم يستلم',
+    refsGoalRaised: 'هدف 7 (استخدم حسمه)',
+    refsGoalNormal: 'هدف 5',
+    refsRefOrders: 'طلبات بحسم إحالة',
+    refsTotal: 'إجمالي الإحالات',
+    refsClaims: 'مكافآت مستلمة',
+    refsReferrers: 'عدد المحيلين',
+    refsNone: 'لا توجد إحالات',
+    refsUserCode: 'كودك (رابطك)',
+    refsBoundRef: 'الكود المربوط بالحساب (صديق انضم عبره)',
+    refsFreeMonth: 'الشهر المجاني',
+    refsUsedOwnDiscount: 'استخدم حسم صاحب الرابط',
+    refsFriendsList: 'الأشخاص الذين انضموا عبر رابطك',
+    refsNoFriends: 'لم يضمّ أحد بعد',
+    refsProgressOf: '{n} من {goal}',
+    refsOrderRef: 'كود الإحالة',
   },
   en: {
     loginSub: 'Admin Panel',
@@ -311,6 +336,31 @@ const I18N = {
     maintenanceOff: 'Maintenance OFF',
     saveStatus: 'Save',
     statusSaved: 'Saved ✓',
+    'nav.referrals': 'Referrals',
+    refsSearchPlaceholder: 'Search by name, email, or referral code…',
+    refsReferrer: 'Referrer',
+    refsReferrerCode: 'Referrer code',
+    refsInvitee: 'Invitee',
+    refsJoinedAt: 'Referral date',
+    refsProgress: 'Progress',
+    refsClaimed: 'Free month claimed',
+    refsClaimedYes: 'Claimed ✓',
+    refsClaimedNo: 'Not claimed',
+    refsGoalRaised: 'Goal 7 (used own discount)',
+    refsGoalNormal: 'Goal 5',
+    refsRefOrders: 'Orders with referral discount',
+    refsTotal: 'Total referrals',
+    refsClaims: 'Claims awarded',
+    refsReferrers: 'Referrers',
+    refsNone: 'No referrals yet',
+    refsUserCode: 'Your referral code',
+    refsBoundRef: 'Bound friend code (inviter)',
+    refsFreeMonth: 'Free month',
+    refsUsedOwnDiscount: 'Used link-owner discount',
+    refsFriendsList: 'Friends who joined via your link',
+    refsNoFriends: 'No one joined yet',
+    refsProgressOf: '{n} of {goal}',
+    refsOrderRef: 'Referral code',
   },
 };
 
@@ -342,6 +392,7 @@ const state = {
   tickets: [],
   promos: [],
   configs: [],
+  referrals: [],
   stats: null,
   selectedUser: null,
   selectedTicket: null,
@@ -770,6 +821,7 @@ function loadView() {
   if (v === 'overview') loadStats();
   else if (v === 'users') loadUsers();
   else if (v === 'orders') loadOrders();
+  else if (v === 'referrals') loadReferrals();
   else if (v === 'tickets') loadTickets();
   else if (v === 'promos') loadPromos();
   else if (v === 'configs') loadConfigs();
@@ -795,10 +847,13 @@ function renderStats() {
     [t('promoAvailable'), s.promoCount, ''],
     [t('extraSlotsL'), s.extraSlots, ''],
     [t('botConfigs'), s.configs, ''],
+    [t('refsTotal'), s.referrals, ''],
+    [t('refsRefOrders'), s.referralOrders, ''],
+    [t('refsClaims'), s.referralClaims, s.referralClaims > 0 ? 'green' : ''],
   ];
   $('#view').innerHTML =
     '<div class="cards">' +
-    cards.map((c) => `<div class="stat"><div class="num" style="${c[2] === 'amber' ? 'color:#fcd34d;-webkit-text-fill-color:#fcd34d;' : ''}${c[2] === 'red' ? 'color:#fda4af;-webkit-text-fill-color:#fda4af;' : ''}">${c[1]}</div><div class="lab">${c[0]}</div></div>`).join('') +
+    cards.map((c) => `<div class="stat"><div class="num" style="${c[2] === 'amber' ? 'color:#fcd34d;-webkit-text-fill-color:#fcd34d;' : ''}${c[2] === 'red' ? 'color:#fda4af;-webkit-text-fill-color:#fda4af;' : ''}${c[2] === 'green' ? 'color:#6ee7b7;-webkit-text-fill-color:#6ee7b7;' : ''}">${c[1]}</div><div class="lab">${c[0]}</div></div>`).join('') +
     '</div>';
 }
 
@@ -975,6 +1030,42 @@ function renderUserDetail() {
         <table>
           <thead><tr><th>${t('slotCol')} ID</th><th>${t('nameCol')}</th><th>${t('lastUpdate')}</th></tr></thead>
           <tbody>${slotRows || '<tr><td colspan="3" class="muted">' + t('noSlots') + '</td></tr>'}</tbody>
+        </table>
+      </div>
+    </div>
+
+    ${renderUserReferral(u)}`;
+}
+
+function renderUserReferral(u) {
+  const ref = u.referral || {};
+  const inviteeRows = (ref.invitees || []).map((i) => `
+    <tr>
+      <td>${escapeHtml(i.username)}</td>
+      <td dir="ltr">${i.email || '—'}</td>
+      <td>${fmtDate(i.joinedAt)}</td>
+    </tr>`).join('');
+  const goalBadge = ref.goal === 7
+    ? `<span class="badge red">${t('refsGoalRaised')}</span>`
+    : `<span class="badge slate">${t('refsGoalNormal')}</span>`;
+  const claimedBadge = ref.claimed
+    ? `<span class="badge green">${t('refsClaimedYes')}</span>`
+    : `<span class="muted">${t('refsClaimedNo')}</span>`;
+  return `
+    <div class="panel">
+      <h3>${t('nav.referrals')} — ${t('refsProgressOf').replace('{n}', ref.count ?? 0).replace('{goal}', ref.goal ?? 5)}</h3>
+      <div class="row" style="flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+        ${ref.code ? `<span class="copy-chip mono" dir="ltr">${escapeHtml(ref.code)} <button data-action="copy" data-id="${escapeHtml(ref.code)}" title="${t('copied')}">⧉</button></span>` : `<span class="muted">${t('refsUserCode')}: —</span>`}
+        ${ref.boundRef ? `<span class="badge purple" dir="ltr" title="${t('refsBoundRef')}">↦ ${escapeHtml(ref.boundRef)}</span>` : ''}
+        ${ref.usedOwnDiscount ? `<span class="badge amber">${t('refsUsedOwnDiscount')}</span>` : ''}
+        ${goalBadge}
+        <span>${t('refsFreeMonth')}: ${claimedBadge}</span>
+      </div>
+      <h3 class="mt">${t('refsFriendsList')} (${(ref.invitees || []).length})</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>${t('nameCol')}</th><th>${t('emailCol')}</th><th>${t('dateCol')}</th></tr></thead>
+          <tbody>${inviteeRows || '<tr><td colspan="3" class="muted">' + t('refsNoFriends') + '</td></tr>'}</tbody>
         </table>
       </div>
     </div>`;
@@ -1186,14 +1277,15 @@ function renderOrders() {
       <td>$${o.amount}</td>
       <td><span class="badge ${o.status === 'completed' ? 'green' : o.status === 'pending' ? 'amber' : 'red'}">${st(o.status)}</span></td>
       <td class="mono" dir="ltr">${o.promo_code || '—'}</td>
+      <td class="mono" dir="ltr">${o.referral_code ? '<span class="badge purple" title="' + t('refsRefOrders') + '">REF ' + escapeHtml(o.referral_code) + '</span>' : '—'}</td>
       <td>${o.extra_slot ? t('yes') : '—'}</td>
       <td>${fmtDate(o.created_at)}</td>
     </tr>`).join('');
   $('#view').innerHTML = `
     <div class="panel table-wrap">
       <table>
-        <thead><tr><th>${t('idCol')}</th><th>${t('nameCol')}</th><th>${t('emailCol')}</th><th>${t('planCol')}</th><th>${t('priceCol')}</th><th>${t('statusCol')}</th><th>${t('codeCol')}</th><th>${t('slotCol')}</th><th>${t('dateCol')}</th></tr></thead>
-        <tbody>${rows || '<tr><td colspan="9" class="muted">' + t('noOrders') + '</td></tr>'}</tbody>
+        <thead><tr><th>${t('idCol')}</th><th>${t('nameCol')}</th><th>${t('emailCol')}</th><th>${t('planCol')}</th><th>${t('priceCol')}</th><th>${t('statusCol')}</th><th>${t('codeCol')}</th><th>${t('refsOrderRef')}</th><th>${t('slotCol')}</th><th>${t('dateCol')}</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="10" class="muted">' + t('noOrders') + '</td></tr>'}</tbody>
       </table>
     </div>`;
 }
@@ -1312,6 +1404,41 @@ function renderPromos() {
     </div>`;
 }
 
+/* ── Referrals ─────────────────────────────────────────── */
+async function loadReferrals(q) {
+  const query = (q || $('#refSearch')?.value || '').trim();
+  try {
+    state.referrals = (await api('/referrals?q=' + encodeURIComponent(query))).referrals;
+    renderReferrals();
+  } catch (e) { renderError(e); }
+}
+function renderReferrals() {
+  const rows = state.referrals.map((r) => `
+    <tr class="clickable" data-action="ref-user" data-id="${r.referrer_user_id}">
+      <td>${escapeHtml(r.referrer_username)}</td>
+      <td class="mono" dir="ltr">${escapeHtml(r.referrer_code || '—')}</td>
+      <td>${escapeHtml(r.invitee_username)}</td>
+      <td dir="ltr">${r.invitee_email || '—'}</td>
+      <td>
+        <span class="badge ${r.referrer_count >= r.referrer_goal ? 'green' : 'amber'}">${t('refsProgressOf').replace('{n}', r.referrer_count).replace('{goal}', r.referrer_goal)}</span>
+        ${r.goal_raised ? `<span class="badge red">${t('refsGoalRaised')}</span>` : ''}
+      </td>
+      <td>${r.claimed ? `<span class="badge green">${t('refsClaimedYes')}</span>` : `<span class="muted">${t('refsClaimedNo')}</span>`}</td>
+      <td>${fmtDate(r.created_at)}</td>
+    </tr>`).join('');
+  $('#view').innerHTML = `
+    <div class="search-row">
+      <input id="refSearch" class="input" placeholder="${t('refsSearchPlaceholder')}" value="${escapeHtml(($('#refSearch')?.value || ''))}" />
+      <button class="btn ghost" id="refSearchBtn">${t('search')}</button>
+    </div>
+    <div class="panel table-wrap">
+      <table>
+        <thead><tr><th>${t('refsReferrer')}</th><th>${t('refsReferrerCode')}</th><th>${t('refsInvitee')}</th><th>${t('emailCol')}</th><th>${t('refsProgress')}</th><th>${t('refsClaimed')}</th><th>${t('refsJoinedAt')}</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="7" class="muted">' + t('refsNone') + '</td></tr>'}</tbody>
+      </table>
+    </div>`;
+}
+
 /* ── Configs (customer choices) ────────────────────────── */
 async function loadConfigs() {
   try {
@@ -1365,6 +1492,7 @@ function copyText(txt) {
 async function doAction(name, id, extra, trigger) {
   try {
     if (name === 'user') { await openUser(id); }
+    else if (name === 'ref-user') { await openUser(id); }
     else if (name === 'back-users') { state.selectedUser = null; loadUsers(); }
     else if (name === 'grant-sub') {
       const plan = $('#grantPlan').value;
@@ -1534,10 +1662,12 @@ $('#view').addEventListener('click', (e) => {
   if (e.target.id === 'replyBtn') doAction('reply', undefined, undefined, e.target);
   if (e.target.id === 'genPromoBtn') doAction('gen-promos', undefined, undefined, e.target);
   if (e.target.id === 'createUserBtn') showCreateUserModal();
+  if (e.target.id === 'refSearchBtn') loadReferrals();
 });
 
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && e.target.id === 'userSearch') loadUsers();
+  if (e.key === 'Enter' && e.target.id === 'refSearch') loadReferrals();
 });
 
 window.notifNavigate = notifNavigate;

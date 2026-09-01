@@ -15,6 +15,12 @@ import {
   withTransaction,
   nowIso,
   subscriptionDisplayStatus,
+  countReferrals,
+  getReferralCode,
+  getReferralRewardRow,
+  getReferrerDiscountLog,
+  getUserReferralRef,
+  listReferrals,
 } from './db.js';
 import { getPlan, planCycleMonths } from './plans.js';
 import { generatePromoCode } from './lib/ids.js';
@@ -54,6 +60,17 @@ async function q1<T>(sql: string, ...params: unknown[]): Promise<T | undefined> 
   return res.rows[0] as T | undefined;
 }
 
+/* Referral free-month goal mirror (must match server/src/routes/referral.ts). */
+const REFERRAL_GOAL_DEFAULT = 5;
+const REFERRAL_GOAL_DISCOUNTED = 7;
+
+function referralGoal(referralCount: number, discountLog?: { referral_count: number }): number {
+  if (discountLog && discountLog.referral_count < REFERRAL_GOAL_DEFAULT) {
+    return REFERRAL_GOAL_DISCOUNTED;
+  }
+  return REFERRAL_GOAL_DEFAULT;
+}
+
 export async function panelStats() {
   const now = Date.now();
   const s = {
@@ -87,6 +104,17 @@ export async function panelStats() {
         `SELECT COUNT(*)::bigint AS n FROM bot_slots WHERE bot_config IS NOT NULL AND bot_config <> '{}'`
       ))?.n ?? '0'
     ),
+    referrals: ((await q1<{ n: string }>('SELECT COUNT(*)::bigint AS n FROM referrals'))?.n ?? '0'),
+    referralOrders: (
+      (await q1<{ n: string }>(
+        `SELECT COUNT(*)::bigint AS n FROM orders WHERE referral_code IS NOT NULL AND referral_code <> ''`
+      ))?.n ?? '0'
+    ),
+    referralClaims: (
+      (await q1<{ n: string }>(
+        `SELECT COUNT(*)::bigint AS n FROM referral_rewards WHERE awarded IS NOT NULL`
+      ))?.n ?? '0'
+    ),
   };
   return {
     ...s,
@@ -99,6 +127,9 @@ export async function panelStats() {
     promoCount: Number(s.promoCount),
     extraSlots: Number(s.extraSlots),
     configs: Number(s.configs),
+    referrals: Number(s.referrals),
+    referralOrders: Number(s.referralOrders),
+    referralClaims: Number(s.referralClaims),
   };
 }
 
@@ -134,6 +165,25 @@ export async function panelUserDetail(userId: string) {
       return { ...s, cfg, summary: summarizeBotConfig(cfg) };
     })
   );
+  const [ownCode, boundRef, referralCount, reward, dlog, referrals] = await Promise.all([
+    getReferralCode(userId),
+    getUserReferralRef(userId),
+    countReferrals(userId),
+    getReferralRewardRow(userId),
+    getReferrerDiscountLog(userId),
+    listReferrals(userId),
+  ]);
+  const invitees = await Promise.all(
+    referrals.map(async (r) => {
+      const inv = await getUser(r.invitee_user_id);
+      return {
+        userId: r.invitee_user_id,
+        username: inv?.username ?? 'unknown',
+        email: inv?.email ?? null,
+        joinedAt: r.created_at,
+      };
+    })
+  );
   return {
     user,
     accounts,
@@ -141,6 +191,17 @@ export async function panelUserDetail(userId: string) {
     orders: orders.rows,
     extraSlots: extraSlots.rows,
     botSlots: slotConfigs,
+    referral: {
+      code: ownCode?.code ?? null,
+      boundRef,
+      count: referralCount,
+      goal: referralGoal(referralCount, dlog),
+      goalRaised: !!dlog && dlog.referral_count < REFERRAL_GOAL_DEFAULT,
+      usedOwnDiscount: !!dlog,
+      claimed: !!reward?.awarded,
+      freeMonthAwarded: reward?.awarded ?? null,
+      invitees,
+    },
   };
 }
 
@@ -183,6 +244,47 @@ export async function panelListOrders(status?: string) {
     [status || null]
   );
   return res.rows;
+}
+
+export async function panelReferrals(q = '') {
+  const needle = `%${q}%`;
+  const res = await pool.query(
+    `SELECT r.id, r.referrer_user_id, r.invitee_user_id, r.elite_order_id, r.created_at,
+            refr.username AS referrer_username, refr.email AS referrer_email, refr.avatar AS referrer_avatar,
+            inv.username AS invitee_username, inv.email AS invitee_email,
+            rc.code AS referrer_code
+       FROM referrals r
+       JOIN users refr ON refr.id = r.referrer_user_id
+       JOIN users inv ON inv.id = r.invitee_user_id
+       LEFT JOIN referral_codes rc ON rc.user_id = r.referrer_user_id
+      WHERE $1 = ''
+         OR refr.username ILIKE $1 OR refr.email ILIKE $1
+         OR inv.username ILIKE $1 OR inv.email ILIKE $1
+         OR rc.code ILIKE $1
+      ORDER BY r.created_at DESC
+      LIMIT 400`,
+    [needle]
+  );
+  const counts = await pool.query(
+    `SELECT referrer_user_id, COUNT(*)::int AS n FROM referrals GROUP BY referrer_user_id`
+  );
+  const countsMap = new Map<string, number>(counts.rows.map((r) => [r.referrer_user_id, Number(r.n)]));
+  const rewards = await pool.query(
+    `SELECT user_id, awarded FROM referral_rewards WHERE awarded IS NOT NULL`
+  );
+  const rewardsMap = new Map<string, string>(rewards.rows.map((r) => [r.user_id, r.awarded]));
+  const dlogs = await pool.query(`SELECT user_id, referral_count FROM referrer_discount_log`);
+  const dlogMap = new Map<string, number>(dlogs.rows.map((r) => [r.user_id, Number(r.referral_count)]));
+  return res.rows.map((row) => {
+    const count = countsMap.get(row.referrer_user_id) ?? 0;
+    return {
+      ...row,
+      referrer_count: count,
+      referrer_goal: referralGoal(count, dlogMap.has(row.referrer_user_id) ? { referral_count: dlogMap.get(row.referrer_user_id)! } : undefined),
+      goal_raised: referralGoal(count, dlogMap.has(row.referrer_user_id) ? { referral_count: dlogMap.get(row.referrer_user_id)! } : undefined) === REFERRAL_GOAL_DISCOUNTED,
+      claimed: rewardsMap.has(row.referrer_user_id),
+    };
+  });
 }
 
 export async function panelListTickets(limit = 200) {

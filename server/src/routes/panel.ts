@@ -23,6 +23,7 @@ import {
   panelDisablePromo,
   panelListConfigs,
   panelConfigChanges,
+  panelReferrals,
 } from '../dbPanel.js';
 
 const router = Router();
@@ -210,6 +211,12 @@ router.get('/config-changes', async (req, res) => {
   const since = String(req.query.since ?? '').trim();
   const changes = await panelConfigChanges(since || undefined);
   res.json({ changes });
+});
+
+// GET /api/panel/referrals?q= — referral relationships + referrer progress/rewards
+router.get('/referrals', async (req, res) => {
+  const q = String(req.query.q ?? '').trim();
+  res.json({ referrals: await panelReferrals(q) });
 });
 
 // GET /api/panel/status — get current site status
