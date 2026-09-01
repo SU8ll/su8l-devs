@@ -20,7 +20,8 @@ import { useIsMobile } from '../../hooks/useIsMobile';
 const translate = createTranslator();
 
 export default function Chat() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
+  const siteIsAr = lang === 'ar';
   const { user, refresh } = useAuth();
   const isMobile = useIsMobile();
   const [chosenLanguage, setChosenLanguage] = useState<ChatLang | null>(null);
@@ -41,8 +42,9 @@ export default function Chat() {
   const [usernameError, setUsernameError] = useState('');
   const [nameUpdated, setNameUpdated] = useState(false);
   const [emojiOpen, setEmojiOpen] = useState(false);
-  const [disclaimerAccepted, setDisclaimerAccepted] = useState(()=>{ try{ return typeof window!=='undefined' && localStorage.getItem('su8l_chat_disclaimer')==='1'; }catch{ return false; }});
+  const [disclaimerAccepted, setDisclaimerAccepted] = useState(()=>{ try{ const k= typeof window!=='undefined' ? localStorage.getItem(`su8l_chat_disclaimer_${lang}`) : null; const legacy= typeof window!=='undefined' ? localStorage.getItem('su8l_chat_disclaimer') : null; return k==='1' || legacy==='1'; }catch{ return false; }});
   const [disclaimerChecked, setDisclaimerChecked] = useState(false);
+  useEffect(()=>{ try{ const k=`su8l_chat_disclaimer_${lang}`; const ok = localStorage.getItem(k)==='1' || localStorage.getItem('su8l_chat_disclaimer')==='1'; setDisclaimerAccepted(ok); setDisclaimerChecked(false);}catch{} },[lang]);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -324,26 +326,26 @@ export default function Chat() {
   const meta = chatLangMeta(chosenLanguage);
 
   if (chosenLanguage && !disclaimerAccepted) {
-    const discText = isMobile
+    const discText = siteIsAr
       ? 'SU8L DEVs لا تؤيد مشاركتك لمعلوماتك الخاصة — بما في ذلك رقم المملكة، اسم التحالف، أو أي معلومات حسابك داخل اللعبة. لا تُشارك كلمات المرور أو بيانات الدفع هنا. أنت مسؤول وحدك عن ما تكتبه. بالمتابعة أنت تؤكد فهمك وموافقتك.'
       : 'SU8L DEVs does not endorse sharing personal information — including kingdom number, alliance name, or game account details. Do not share passwords or payment data here. You are solely responsible for what you post. By continuing you confirm you understand and agree.';
     return (
       <div style={{maxWidth: isMobile? '100%':'520px', margin:'0 auto', padding: isMobile? '16px':'24px'}}>
-        <div className="m-card" style={{padding:20, textAlign: isMobile? 'right':'left', direction: isMobile && chosenLanguage==='ar' ? 'rtl':'ltr'}}>
-          <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:12}}>
+        <div className="m-card" style={{padding:20, textAlign: siteIsAr? 'right':'left', direction: siteIsAr ? 'rtl':'ltr'}}>
+          <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:12, flexDirection: siteIsAr? 'row-reverse':'row'}}>
             <span style={{width:36,height:36, borderRadius:10, background:'rgba(245,158,11,0.12)', border:'1px solid rgba(245,158,11,0.18)', display:'flex', alignItems:'center', justifyContent:'center'}}>⚠️</span>
-            <span style={{fontSize:16, fontWeight:800, color:'#F5F5F7'}}>{isMobile? 'إخلاء مسؤولية' : 'Disclaimer'}</span>
+            <span style={{fontSize:16, fontWeight:800, color:'#F5F5F7'}}>{siteIsAr? 'إخلاء مسؤولية' : 'Disclaimer'}</span>
           </div>
           <div style={{fontSize:13, lineHeight:1.6, color:'#D1D1D6'}}>{discText}</div>
           <div style={{marginTop:12, padding:'10px 12px', borderRadius:10, background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.06)', fontSize:12, lineHeight:1.5, color:'#9A99A6'}}>
-            ⏰ {isMobile? 'المحادثات تُحذف تلقائيًا كل 6 ساعات للحفاظ على خفة الموقع بالهواتف البسيطة.' : 'Chats are automatically deleted every 6 hours to keep the site light on low-end phones.'}
+            ⏰ {siteIsAr? 'المحادثات تُحذف تلقائيًا كل 6 ساعات للحفاظ على خفة الموقع بالهواتف البسيطة.' : 'Chats are automatically deleted every 6 hours to keep the site light on low-end phones.'}
           </div>
-          <label style={{display:'flex', gap:8, alignItems:'flex-start', marginTop:14, cursor:'pointer'}}>
+          <label style={{display:'flex', gap:8, alignItems:'flex-start', marginTop:14, cursor:'pointer', flexDirection: siteIsAr? 'row-reverse':'row'}}>
             <input type="checkbox" checked={disclaimerChecked} onChange={e=>setDisclaimerChecked(e.target.checked)} style={{marginTop:3, accentColor:'#7C3AED'}}/>
-            <span style={{fontSize:12.5, color:'#D1D1D6', lineHeight:1.4}}>{isMobile? 'أقر بأنني فهمت وأوافق على عدم مشاركة معلومات حساسة.' : 'I understand and agree not to share sensitive information.'}</span>
+            <span style={{fontSize:12.5, color:'#D1D1D6', lineHeight:1.4}}>{siteIsAr? 'أقر بأنني فهمت وأوافق على عدم مشاركة معلومات حساسة.' : 'I understand and agree not to share sensitive information.'}</span>
           </label>
-          <button type="button" disabled={!disclaimerChecked} onClick={()=>{ try{ localStorage.setItem('su8l_chat_disclaimer','1'); }catch{} setDisclaimerAccepted(true); }} style={{width:'100%', marginTop:14, padding:'12px', borderRadius:12, border:'none', background: disclaimerChecked? '#7C3AED':'rgba(255,255,255,0.08)', color: disclaimerChecked? '#fff':'#6B6A78', fontWeight:700, opacity: disclaimerChecked?1:0.6}}>
-            {isMobile? 'موافق — دخول المحادثة' : 'I agree — Enter chat'}
+          <button type="button" disabled={!disclaimerChecked} onClick={()=>{ try{ localStorage.setItem(`su8l_chat_disclaimer_${lang}`,'1'); localStorage.setItem('su8l_chat_disclaimer','1'); }catch{} setDisclaimerAccepted(true); }} style={{width:'100%', marginTop:14, padding:'12px', borderRadius:12, border:'none', background: disclaimerChecked? '#7C3AED':'rgba(255,255,255,0.08)', color: disclaimerChecked? '#fff':'#6B6A78', fontWeight:700, opacity: disclaimerChecked?1:0.6}}>
+            {siteIsAr? 'موافق — دخول المحادثة' : 'I agree — Enter chat'}
           </button>
         </div>
       </div>
@@ -378,7 +380,7 @@ export default function Chat() {
             {nameUpdated && !usernameError && <div style={{marginTop:8, fontSize:12, color:'#6EE7B7'}}>{t('chat.nameSaved')}</div>}
           </div>
         )}
-        <div style={{padding:'8px 10px', borderRadius:10, background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.06)', fontSize:11, color:'#6B6A78', textAlign:'center', lineHeight:1.4}}>⏰ {chosenLanguage==='ar'? 'المحادثات تُحذف تلقائيًا كل 6 ساعات للحفاظ على خفة الموقع بالهواتف البسيطة.' : 'Chats are auto-deleted every 6 hours to keep the site light.'}</div>
+        <div style={{padding:'8px 10px', borderRadius:10, background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.06)', fontSize:11, color:'#6B6A78', textAlign:'center', lineHeight:1.4}}>⏰ {siteIsAr? 'المحادثات تُحذف تلقائيًا كل 6 ساعات للحفاظ على خفة الموقع بالهواتف البسيطة.' : 'Chats are auto-deleted every 6 hours to keep the site light.'}</div>
 
         {/* Messages — airy rows, not boxed cards */}
         <div style={{flex:1, overflowY:'auto', display:'flex', flexDirection:'column', gap:14, padding:'4px 2px'}}>
