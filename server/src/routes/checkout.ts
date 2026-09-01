@@ -17,6 +17,7 @@ import {
   countReferrals,
   getOrder,
   getOrderByPaypalId,
+  getOrCreateReferralCode,
   getPromoByCode,
   getUser,
   getReferralCodeOwner,
@@ -116,6 +117,15 @@ router.post('/create', requireAuth, async (req: AuthedRequest, res) => {
       // Referral discount: 8% off the Elite (highest tier) plan ONLY. It never
       // applies to products, extra slots, or the Starter plan.
       let referralDiscount = 0;
+      if (!referralCode && plan.isHighestTier) {
+        // Auto-apply the user's own referral code so they get 8% off Elite as
+        // a perk for being a referrer (link owner), without needing to enter it.
+        const ownCode = await getOrCreateReferralCode(req.user.id);
+        if (ownCode?.code) {
+          referralCode = ownCode.code;
+          // isOwnCode will be set correctly below (owner matches self).
+        }
+      }
       if (referralCode && plan.isHighestTier) {
         referralDiscount = REFERRAL_DISCOUNT_8;
         appliedReferral = referralCode;

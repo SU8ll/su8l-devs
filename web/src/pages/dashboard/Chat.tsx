@@ -433,6 +433,7 @@ export default function Chat() {
             </div>
           </div>
           <button type="button" onClick={()=> setUsernameEdit(v=>!v)} style={{padding:'7px 10px', borderRadius:9, border:'1px solid rgba(255,255,255,0.07)', background:'rgba(255,255,255,0.03)', color:'#D1D1D6', fontSize:12, fontWeight:600}}>✎ {t('chat.changeName')}</button>
+          <button type="button" title={siteIsAr? 'إرشادات المجتمع':'Community guidelines'} onClick={()=>{ setDisclaimerAccepted(false); setDisclaimerChecked(false); }} style={{padding:'7px 10px', borderRadius:9, border:'1px solid rgba(255,255,255,0.07)', background:'rgba(255,255,255,0.03)', color:'#D1D1D6', fontSize:12, fontWeight:600}}>📋</button>
           <button type="button" onClick={()=> setChosenLanguage(null)} style={{padding:'7px 10px', borderRadius:9, border:'1px solid rgba(255,255,255,0.07)', background:'rgba(255,255,255,0.03)', color:'#D1D1D6', fontSize:12, fontWeight:600}}>🌐</button>
         </div>
         {replyToast && (
@@ -543,6 +544,9 @@ export default function Chat() {
         <div className="ml-auto flex shrink-0 items-center gap-1.5">
           <button type="button" onClick={() => setUsernameEdit((v) => !v)} className="btn-ghost text-xs">
             ✎ {t('chat.changeName')}
+          </button>
+          <button type="button" title={siteIsAr? 'إرشادات المجتمع':'Community guidelines'} onClick={()=>{ setDisclaimerAccepted(false); setDisclaimerChecked(false); }} className="btn-ghost text-xs">
+            📋
           </button>
           <button type="button" onClick={() => setChosenLanguage(null)} className="btn-ghost text-xs">
             🌐 {t('chat.switchLang')}

@@ -116,4 +116,19 @@ router.get('/validate', async (req, res) => {
   res.json({ valid: !!owner, discount: REFERRAL_DISCOUNT });
 });
 
+// GET /api/referral/self-discount — check if the logged-in user qualifies for
+// the automatic own-code 8% discount (referrers get 8% off Elite automatically).
+router.get('/self-discount', requireAuth, async (req: AuthedRequest, res) => {
+  const own = await getOrCreateReferralCode(req.user.id);
+  if (own?.code) {
+    return res.json({
+      valid: true,
+      discount: REFERRAL_DISCOUNT,
+      ownCode: own.code,
+      referrerName: 'Link owner discount',
+    });
+  }
+  res.json({ valid: false });
+});
+
 export default router;

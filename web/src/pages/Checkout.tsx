@@ -88,12 +88,23 @@ export default function Checkout() {
   useEffect(() => {
     let cancelled = false;
     const refToCheck = (() => { try { return localStorage.getItem('su8l_ref') ?? params.get('ref') ?? ''; } catch { return params.get('ref') ?? ''; } })();
-    if (!refToCheck.trim()) { setReferralValid(false); return; }
-    api<{ valid: boolean; discount: number }>('/api/referral/validate?ref=' + encodeURIComponent(refToCheck.trim().toUpperCase()))
-      .then((r) => { if (!cancelled) setReferralValid(!!r.valid); })
-      .catch(() => { if (!cancelled) setReferralValid(false); });
+    if (refToCheck.trim()) {
+      api<{ valid: boolean; discount: number }>('/api/referral/validate?ref=' + encodeURIComponent(refToCheck.trim().toUpperCase()))
+        .then((r) => { if (!cancelled) setReferralValid(!!r.valid); })
+        .catch(() => { if (!cancelled) setReferralValid(false); });
+      return () => { cancelled = true; };
+    }
+    // No friend ref → the logged-in referrer gets their own-code 8% automatically.
+    // Only relevant for the Elite plan, so only check when elite is selected.
+    if (plan?.isHighestTier && !extra) {
+      api<{ valid: boolean; discount: number }>('/api/referral/self-discount')
+        .then((r) => { if (!cancelled) setReferralValid(!!r.valid); })
+        .catch(() => { if (!cancelled) setReferralValid(false); });
+    } else {
+      setReferralValid(false);
+    }
     return () => { cancelled = true; };
-  }, [params]);
+  }, [params, plan, extra]);
 
   const promoApplied = promoState === 'valid';
   const elite = plan?.isHighestTier;
@@ -114,7 +125,9 @@ export default function Checkout() {
   // the discount visible instead of only appearing in the PayPal amount.
   const REFERRAL_DISCOUNT = 8;
   const referralRef = (() => { try { return localStorage.getItem('su8l_ref') ?? params.get('ref') ?? undefined; } catch { return params.get('ref') ?? undefined; } })();
-  const referralApplied = referralValid && !!referralRef && !!elite && !extra && !isProduct && !promoApplied;
+  // Auto-apply: logged-in referrers (link owners) get 8% automatically even with
+  // no friend code, provided the plan is Elite.
+  const referralApplied = referralValid && !!elite && !extra && !isProduct && !promoApplied && (!!referralRef || !!elite);
   const referralPrice = referralApplied ? Math.round((basePrice * (100 - REFERRAL_DISCOUNT)) / 100) : basePrice;
 
   const effectivePrice = promoApplied && elite && promoInfo ? (cycle === 'yearly' ? promoInfo.yearlyPrice : promoInfo.monthlyPrice) : referralPrice;
@@ -304,7 +317,7 @@ export default function Checkout() {
             {referralApplied && (
               <div className="mt-2 flex items-center gap-2 rounded-xl border border-emerald-400/25 bg-emerald-400/10 px-3 py-2 text-xs font-medium text-emerald-300">
                 <span>🎁</span>
-                <span>{t('checkout.referralDiscount').replace('{pct}', String(REFERRAL_DISCOUNT)) || `Friend referral ${REFERRAL_DISCOUNT}% applied — ${referralRef}`}</span>
+                <span>{referralRef ? t('checkout.referralDiscount').replace('{pct}', String(REFERRAL_DISCOUNT)) : t('checkout.ownerDiscount').replace('{pct}', String(REFERRAL_DISCOUNT))}</span>
               </div>
             )}
           </div>
