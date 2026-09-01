@@ -65,6 +65,7 @@ router.post('/create', requireAuth, async (req: AuthedRequest, res) => {
     referralCode = null;
   }
   const isOwnCode = !!referralCode && !!referralOwner && referralOwner.user_id === req.user.id;
+  console.log(`[referral:create] user=${req.user.id} bodyRef=${JSON.stringify(refCode)} finalRef=${referralCode} owner=${referralOwner?.user_id} isOwn=${isOwnCode}`);
 
   let amount: number;
   let description: string;
@@ -105,6 +106,7 @@ router.post('/create', requireAuth, async (req: AuthedRequest, res) => {
       if (referralCode && plan.isHighestTier) {
         referralDiscount = REFERRAL_DISCOUNT_8;
         appliedReferral = referralCode;
+        console.log(`[referral:create] applying 8% to user=${req.user.id} plan=${planKey} ref=${referralCode}`);
         // If the referrer used their OWN code (their 8% discount) before
         // completing the original 5-referral goal, this raises their free-month
         // goal from 5 to 7. Log it once (idempotent) with the count at that time.

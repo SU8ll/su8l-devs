@@ -75,6 +75,7 @@ export async function fulfillOrder(orderId: string, captureId: string | null): P
         // A referrer's own order (their own code) grants a discount but never
         // counts as a referral toward their own reward.
         const isSelfReferral = !!owner && owner.user_id === fresh.user_id;
+        console.log(`[referral:fulfill] invitedUser=${fresh.user_id} refCode=${fresh.referral_code} owner=${owner?.user_id} isElite=${isEliteOrder} alreadyCounted=${alreadyCounted} isSelf=${isSelfReferral}`);
         if (owner && isEliteOrder && !alreadyCounted && !isSelfReferral) {
           await insertReferral({
             referrerUserId: owner.user_id,
