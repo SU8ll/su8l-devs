@@ -47,22 +47,29 @@ function scoreScript(text: string): Partial<Record<ChatLang, number>> {
   if (koRatio > 0.2) out.ko = koRatio;
   if (hiRatio > 0.2) out.hi = hiRatio;
 
-  // Turkish-specific: ğ Ğ ı ş Ş ç Ç ö Ö ü Ü — ş/ı are strong Turkish markers.
-  const trStrong = (s.match(/[ğĞışŞ]/g) ?? []).length;
+  // Turkish-specific: ğ Ğ ı ş Ş ç Ç ö Ö ü Ü — ş/ı are strong Turkish markers (include caps).
+  const trStrong = (s.match(/[ğĞıİşŞçÇöÖüÜ]/g) ?? []).length;
   // German strong: ä ö ü ß
   const deStrong = (s.match(/[äöüßÄÖÜ]/g) ?? []).length;
-  // French strong: ç é è ê à ù œ
-  const frStrong = (s.match(/[éèêàçùœÇÉÈÊÀ]/g) ?? []).length;
-  // Italian strong: ì ò à ù è é
-  const itStrong = (s.match(/[àèéìòù]/g) ?? []).length;
+  // French strong: ç é è ê à ù œ (both cases)
+  const frStrong = (s.match(/[éèêàçùœÉÈÊÀÇÙŒ]/g) ?? []).length;
+  // Italian strong: à è é ì ò ù (both cases) — also capital È at sentence start
+  const itStrong = (s.match(/[àèéìòùÀÈÉÌÒÙ]/g) ?? []).length;
 
   const letterCount = Math.max(1, asciiLetters);
-  if (trStrong && trStrong / letterCount >= 0.03) out.tr = trStrong;
-  if (deStrong && deStrong / letterCount >= 0.03) out.de = deStrong;
-  if (frStrong && frStrong / letterCount >= 0.03) out.fr = frStrong;
-  if (itStrong && itStrong / letterCount >= 0.03) out.it = itStrong;
+  if (trStrong && trStrong / letterCount >= 0.01) out.tr = trStrong;
+  if (deStrong && deStrong / letterCount >= 0.01) out.de = deStrong;
+  if (frStrong && frStrong / letterCount >= 0.01) out.fr = frStrong;
+  if (itStrong && itStrong / letterCount >= 0.008) out.it = itStrong;
 
-  if (asciiLetters > 0 && Object.keys(out).length === 0) out.en = asciiRatio;
+  // Word-based boost for Latin languages with few diacritics (common words)
+  const lower = s.toLowerCase();
+  if (/\b(che|non|sono|anche|davvero|fantastico|piccoli|dettagli|traduzione|automatica|vero|gesto|pensate|piccolo|cose)\b/.test(lower)) out.it = (out.it ?? 0) + 2;
+  if (/\b(bonjour|merci|oui|avec|pour|vous|très|français|parfait|bien)\b/.test(lower)) out.fr = (out.fr ?? 0) + 2;
+  if (/\b(und|der|die|das|nicht|hallo|danke|wirklich|klein)\b/.test(lower)) out.de = (out.de ?? 0) + 2;
+  if (/\b(ve|bir|bu|çok|teşekkür|merhaba|nasıl|güzel)\b/.test(lower)) out.tr = (out.tr ?? 0) + 2;
+  if (/\b(hello|the|and|you|are|this|that|with|have|for|not|but|are)\b/.test(lower) && !out.it && !out.fr && !out.de && !out.tr) out.en = asciiRatio;
+
   return out;
 }
 

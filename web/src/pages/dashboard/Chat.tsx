@@ -86,6 +86,14 @@ export default function Chat() {
       setTimeout(()=>{ try{ const o2=ctx.createOscillator(); const g2=ctx.createGain(); o2.frequency.value=1320; g2.gain.value=0.10; o2.connect(g2); g2.connect(ctx.destination); o2.start(); o2.stop(ctx.currentTime+0.12);}catch{} },90);
     }catch{}
   }
+  function isMeaningfulForTranslation(text: string): boolean{
+    const t=text.trim();
+    if(t.length<2) return false;
+    try{
+      const noEmoji=t.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F900}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\s]/gu,'').trim();
+      return noEmoji.length>=2;
+    }catch{ return t.length>=2; }
+  }
 
   // Curated iOS-style emoji set (rendered by the OS in native color-emoji font).
   const iOS_EMOJIS = useMemo(
@@ -481,8 +489,8 @@ export default function Chat() {
                       </div>
                     )}
                     <div style={{marginTop:6, fontSize:14, lineHeight:1.55, color:'#E6E6E8', whiteSpace:'pre-wrap', wordBreak:'break-word'}}>{showTranslated? translated : m.body}</div>
-                    {showTranslated && <div style={{marginTop:6, fontSize:11, color:'#6B6A78', fontStyle:'italic', textAlign: isLeft? 'left':'right'}}>{t('chat.originalNote').replace('{lang}', chatLangMeta(src).name)} <button type="button" onClick={()=>setShowOriginal(p=>({...p,[m.id]:true}))} style={{marginLeft:6, color:'#A78BFA', background:'none', border:'none', fontWeight:600, textDecoration:'underline'}}>{t('chat.viewOriginal')}</button></div>}
-                    {!showTranslated && m.body!==translated && src!==chosenLanguage && <div style={{marginTop:4, fontSize:11, color:'#6B6A78', textAlign: isLeft? 'left':'right'}}>{t('chat.originalLang').replace('{lang}', chatLangMeta(src).name)}</div>}
+                    {showTranslated && isMeaningfulForTranslation(m.body) && <div style={{marginTop:6, fontSize:11, color:'#6B6A78', fontStyle:'italic', textAlign: isLeft? 'left':'right'}}>{t('chat.originalNote').replace('{lang}', chatLangMeta(src).name)} <button type="button" onClick={()=>setShowOriginal(p=>({...p,[m.id]:true}))} style={{marginLeft:6, color:'#A78BFA', background:'none', border:'none', fontWeight:600, textDecoration:'underline'}}>{t('chat.viewOriginal')}</button></div>}
+                    {!showTranslated && isMeaningfulForTranslation(m.body) && m.body!==translated && src!==chosenLanguage && <div style={{marginTop:4, fontSize:11, color:'#6B6A78', textAlign: isLeft? 'left':'right'}}>{t('chat.originalLang').replace('{lang}', chatLangMeta(src).name)}</div>}
                     <div style={{marginTop:8, display:'flex', gap:10, justifyContent: isLeft? 'flex-start':'flex-end'}}>
                       {!mine && <button type="button" onClick={()=>{ setReplyTo({id:m.id, body:m.body, username:m.user.username}); inputRef.current?.focus(); }} style={{fontSize:11, color:'#6B6A78', background:'none', border:'none', display:'flex', alignItems:'center', gap:4}}>↩ {t('chat.reply')}</button>}
                       {showOriginal[m.id] && <button type="button" onClick={()=>setShowOriginal(p=>({...p,[m.id]:false}))} style={{fontSize:11, color:'#A78BFA', background:'none', border:'none'}}>↑ {t('chat.backToTranslated')}</button>}
@@ -629,7 +637,7 @@ export default function Chat() {
                     {showTranslated ? translated : m.body}
                   </div>
 
-                  {showTranslated && (
+                  {showTranslated && isMeaningfulForTranslation(m.body) && (
                     <div className="mt-1 border-t border-white/5 pt-1 text-[0.68rem] italic text-muted">
                       {t('chat.originalNote').replace('{lang}', chatLangMeta(src).name)}
                       <button type="button" className="ml-2 nav-link underline underline-offset-2" onClick={() => setShowOriginal((p) => ({ ...p, [m.id]: true }))}>
@@ -637,7 +645,7 @@ export default function Chat() {
                       </button>
                     </div>
                   )}
-                  {!showTranslated && m.body !== translated && src !== chosenLanguage && (
+                  {!showTranslated && isMeaningfulForTranslation(m.body) && m.body !== translated && src !== chosenLanguage && (
                     <div className="mt-1 text-[0.68rem] text-muted">
                       {t('chat.originalLang').replace('{lang}', chatLangMeta(src).name)}
                     </div>
