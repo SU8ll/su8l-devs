@@ -4,7 +4,6 @@ import { useI18n } from '../../i18n';
 import { useAuth } from '../../AuthContext';
 import {
   api,
-  renameAccount,
   type CloudCategorySchema,
   type CloudConfig,
   type CloudConfigDto,
@@ -204,13 +203,6 @@ export default function CloudConfigurator() {
     loadConfig(id);
   };
 
-  const handleRename = async (id: string, newName: string) => {
-    await renameAccount(id, newName);
-    setData((prev) =>
-      prev ? { ...prev, slots: prev.slots.map((s) => (s.id === id ? { ...s, name: newName } : s)) } : prev
-    );
-  };
-
   const openCategory = (id: string) => {
     setActiveCatId(id);
     for (const m of AREA_MAP) {
@@ -290,14 +282,11 @@ export default function CloudConfigurator() {
             onSwitch={switchAccount}
           />
 
+          <SlotExpansionBanner t={t} user={user} />
+
           {area === 'overview' && (
             <OverviewArea t={t} schema={data.schema} cfg={cfg} slots={data.slots} activeSlotId={activeSlotId}
               onGo={(catId) => openCategory(catId)} onEdit={() => setEditing(true)} />
-          )}
-
-          {area === 'accounts' && (
-            <AccountsArea t={t} slots={data.slots} activeSlotId={activeSlotId} onSwitch={switchAccount}
-              onRename={handleRename} username={user?.username ?? ''} />
           )}
 
           {(area === 'automation' || area === 'events' || area === 'system') && !activeCategory && (
@@ -370,7 +359,6 @@ function NavRail({ area, onArea, counts }: { area: Area; onArea: (a: Area) => vo
 
       <div className="bs-area-label">Command</div>
       {item('overview', 'Overview', I.overview)}
-      {item('accounts', 'Accounts', I.accounts)}
 
       <div className="bs-area-label">Automation</div>
       {item('automation', 'Automation', I.automation, counts.automation)}
@@ -441,6 +429,34 @@ function Topbar({
 }
 
 /* ── Overview area ──────────────────────────────────────────────────────── */
+function SlotExpansionBanner({ t, user }: {
+  t: (k: string) => string;
+  user: { slots?: { active?: boolean; total?: number }; extraSlots?: number } | null;
+}) {
+  if (!user) return null;
+  const active = user.slots?.active;
+  const owned = (user.extraSlots ?? 0) > 0;
+  const total = user.slots?.total ?? 0;
+  if (!active) return null;
+  return (
+    <div className="bs-slot-banner">
+      <div className="bs-slot-banner-icon">🚀</div>
+      <div className="bs-slot-banner-body">
+        <div className="bs-slot-banner-title">{t('dash.extraSlotTitle')}</div>
+        <div className="bs-slot-banner-sub">{t('cloud.slotTotal').replace('{n}', String(total))}</div>
+        {owned ? (
+          <div className="bs-slot-banner-owned">✓ {t('dash.extraSlotOwned')}</div>
+        ) : (
+          <div className="bs-slot-banner-desc">{t('dash.extraSlotDesc')}</div>
+        )}
+      </div>
+      {!owned && (
+        <Link to="/checkout?extra=1" className="bs-btn bs-btn-primary bs-slot-banner-cta">$15 · {t('dash.extraSlotCta')}</Link>
+      )}
+    </div>
+  );
+}
+
 function OverviewArea({
   t, schema, cfg, slots, activeSlotId, onGo, onEdit,
 }: {
@@ -499,76 +515,6 @@ function OverviewArea({
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-function AccountsArea({
-  t, slots, activeSlotId, onSwitch, onRename, username,
-}: {
-  t: (k: string) => string;
-  slots: CloudSlot[];
-  activeSlotId: string;
-  onSwitch: (id: string) => void;
-  onRename: (id: string, newName: string) => Promise<void>;
-  username: string;
-}) {
-  const [renaming, setRenaming] = useState<CloudSlot | null>(null);
-  const [name, setName] = useState('');
-  const [busy, setBusy] = useState(false);
-  const active = slots.find((s) => s.id === activeSlotId) ?? slots[0];
-
-  const startRename = (s: CloudSlot) => { setName(s.name); setRenaming(s); };
-  const doRename = async () => {
-    if (!renaming || !name.trim()) return;
-    setBusy(true);
-    try { await onRename(renaming.id, name.trim()); setRenaming(null); } finally { setBusy(false); }
-  };
-
-  return (
-    <div className="space-y-4">
-      <div className="bs-panel">
-        <div className="bs-panel-head">
-          <div><div className="bs-panel-title">{t('cloud.switchAccount')}</div><div className="bs-panel-sub">{username}</div></div>
-        </div>
-        <div className="bs-panel-body">
-          {slots.map((s) => (
-            <div key={s.id} className="bs-row">
-              <div>
-                <div className="bs-row-label">{s.name}</div>
-                <div className="bs-row-desc">{s.id === activeSlotId ? 'Active configuration' : 'Switch to edit this account'}</div>
-              </div>
-              <div className="flex items-center gap-2">
-                {s.id === activeSlotId && <span className="bs-badge online"><span className="dot" />ACTIVE</span>}
-                <button type="button" className="bs-btn bs-btn-ghost" onClick={() => startRename(s)}>{t('cloud.rename')}</button>
-                {s.id !== activeSlotId && <button type="button" className="bs-btn" onClick={() => onSwitch(s.id)}>Switch</button>}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="bs-panel">
-        <div className="bs-panel-head"><div className="bs-panel-title">{active?.name} — {t('botpanel.running')}</div></div>
-        <div className="bs-panel-body">
-          <div className="bs-row"><div><div className="bs-row-label">Configuration source</div><div className="bs-row-desc">This account uses its own saved configuration.</div></div><span className="bs-row-tag">Custom</span></div>
-          <div className="bs-row"><div><div className="bs-row-label">{t('cloud.footerNote')}</div></div></div>
-        </div>
-      </div>
-
-      {renaming && (
-        <div className="bs-modal-backdrop" role="dialog" aria-modal="true" onClick={() => setRenaming(null)}>
-          <div className="bs-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="bs-modal-title">{t('cloud.renameTitle')}</div>
-            <div className="bs-modal-sub">{t('cloud.renameDesc')}</div>
-            <input className="bs-input mt-4" value={name} maxLength={60} autoFocus onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') void doRename(); }} placeholder={t('cloud.renamePlaceholder')} />
-            <div className="mt-4 flex gap-2">
-              <button type="button" className="bs-btn bs-btn-primary flex-1" onClick={doRename} disabled={busy || !name.trim()}>{busy ? <Spinner size={16} /> : t('cloud.renameSave')}</button>
-              <button type="button" className="bs-btn bs-btn-ghost flex-1" onClick={() => setRenaming(null)}>{t('cloud.renameCancel')}</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

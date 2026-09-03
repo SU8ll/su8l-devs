@@ -74,7 +74,6 @@ function walkEnabled(cfg: CloudConfig, path: string[], cat: CloudCategorySchema)
 
 const AREAS: { id: Area; label: string }[] = [
   { id: 'overview', label: 'Home' },
-  { id: 'accounts', label: 'Accounts' },
   { id: 'automation', label: 'Automation' },
   { id: 'events', label: 'Events' },
   { id: 'system', label: 'More' },
@@ -152,6 +151,8 @@ export default function CloudMobile() {
         <span style={{ fontSize: 12, color: 'var(--bs-text-2)', fontWeight: 600, marginInlineStart: 'auto' }}>{activeSlot?.name}</span>
       </div>
 
+      <MobileSlotBanner t={t} user={user} />
+
       {/* Area segmented nav (compact, no horizontal scroll of categories) */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 4, background: 'var(--bs-surface-1)', border: '1px solid var(--bs-border)', borderRadius: 12, padding: 4 }}>
         {AREAS.map((a) => (
@@ -178,10 +179,6 @@ export default function CloudMobile() {
           setActiveCatId(id);
           for (const m of AREA_MAP) if (m.categories.includes(id)) { setArea(m.area); return; }
         }} />
-      )}
-      {area === 'accounts' && (
-        <MobileAccounts slots={data.slots} activeSlotId={activeSlotId} username={user?.username ?? ''}
-          onSwitch={loadConfig} />
       )}
       {(area === 'automation' || area === 'events' || area === 'system') && !activeCat && (
         <MobileLanding cfg={cfg} categories={categoriesForArea(data.schema, area)} onOpen={(id) => setActiveCatId(id)} />
@@ -257,22 +254,30 @@ function MobileLanding({ cfg, categories, onOpen }: { cfg: CloudConfig; categori
   );
 }
 
-function MobileAccounts({ slots, activeSlotId, username, onSwitch }: {
-  slots: CloudConfigDto['slots']; activeSlotId: string; username: string;
-  onSwitch: (id: string) => void;
+function MobileSlotBanner({ t, user }: {
+  t: (k: string) => string;
+  user: { slots?: { active?: boolean; total?: number }; extraSlots?: number } | null;
 }) {
+  if (!user) return null;
+  const active = user.slots?.active;
+  const owned = (user.extraSlots ?? 0) > 0;
+  const total = user.slots?.total ?? 0;
+  if (!active) return null;
   return (
-    <div className="bs-panel">
-      <div className="bs-panel-body">
-        {slots.map((s) => (
-          <div key={s.id} className="bs-row">
-            <div><div className="bs-row-label">{s.name}</div><div className="bs-row-desc">{username}</div></div>
-            {s.id === activeSlotId
-              ? <span className="bs-badge online"><span className="dot" />ACTIVE</span>
-              : <button type="button" className="bs-btn" onClick={() => onSwitch(s.id)}>Switch</button>}
-          </div>
-        ))}
+    <div className="bs-slot-banner">
+      <div className="bs-slot-banner-icon">🚀</div>
+      <div className="bs-slot-banner-body">
+        <div className="bs-slot-banner-title">{t('dash.extraSlotTitle')}</div>
+        <div className="bs-slot-banner-sub">{t('cloud.slotTotal').replace('{n}', String(total))}</div>
+        {owned ? (
+          <div className="bs-slot-banner-owned">✓ {t('dash.extraSlotOwned')}</div>
+        ) : (
+          <div className="bs-slot-banner-desc">{t('dash.extraSlotDesc')}</div>
+        )}
       </div>
+      {!owned && (
+        <Link to="/checkout?extra=1" className="bs-btn bs-btn-primary bs-slot-banner-cta">$15 · {t('dash.extraSlotCta')}</Link>
+      )}
     </div>
   );
 }
