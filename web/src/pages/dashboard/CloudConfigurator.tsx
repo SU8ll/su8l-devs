@@ -70,6 +70,10 @@ function ratioGroupsIn(path: string[]): RatioGroupDef[] {
   if (path.length !== 2) return [];
   return RATIO_GROUPS.filter((r) => r.categoryId === path[0] && r.groupId === path[1]);
 }
+/** Whether a category (by id) owns any 100%-ratio trooplet fields. */
+function categoryOwnsRatio(catId: string): boolean {
+  return RATIO_GROUPS.some((r) => r.categoryId === catId);
+}
 
 /* ── helpers ────────────────────────────────────────────────────────────── */
 function getValue(root: unknown, path: string[]): unknown {
@@ -306,7 +310,7 @@ export default function CloudConfigurator() {
               <div className={editing ? '' : 'bs-readonly'}>
                 <CategoryPanel category={activeCategory} path={[activeCategory.id]} cfg={cfg} disabled={!editing} onChange={update} />
               </div>
-              {editing && ratioIssues.length > 0 && (
+              {editing && activeCategory && categoryOwnsRatio(activeCategory.id) && ratioIssues.length > 0 && (
                 <div className="rounded-xl border border-[rgba(240,93,104,0.4)] bg-[rgba(240,93,104,0.08)] px-4 py-3 text-[12.5px] font-semibold text-[var(--bs-warning)]">
                   {t('cloud.ratioGridWarning')}
                 </div>

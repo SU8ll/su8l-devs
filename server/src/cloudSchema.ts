@@ -197,7 +197,7 @@ const CONNECTION_CATEGORY: CloudCategorySchema = {
         { ...num('Reconnect Delay after other-device login (s)', 600), key: 'conn_other_login' },
         { ...num('Action delay (ms)', 2000), key: 'conn_action_delay' },
         { ...bool(false), key: 'conn_rotation', label: 'Accounts Rotation' },
-        { ...num('Timer interval (min)', 60, 5), key: 'conn_rotation_interval', description: 'minimum 5' },
+        { ...num('Character Rotation (min)', 60, 5), key: 'conn_rotation_interval', description: 'minimum 5' },
       ],
     },
   ],
