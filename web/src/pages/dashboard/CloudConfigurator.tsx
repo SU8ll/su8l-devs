@@ -227,7 +227,7 @@ export default function CloudConfigurator() {
       <div className="bs-root min-w-0 space-y-6">
         <HeaderBar t={t} running={true} />
         <div className="bs-panel flex flex-col items-center gap-3 p-12 text-center">
-          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#161A21] text-xl">🔒</span>
+          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#171733] text-xl">🔒</span>
           <h3 className="text-[16px] font-bold">{t('cloud.lockedPlan')}</h3>
           <Link to="/pricing" className="bs-btn bs-btn-primary mt-2">{t('dash.upgrade')}</Link>
         </div>
@@ -255,7 +255,7 @@ export default function CloudConfigurator() {
         </div>
       ) : (
         <div className="bs-savebar mb-5" style={{ justifyContent: 'flex-start' }}>
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#161A21] text-[var(--bs-gold)]">{I.lock}</span>
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#171733] text-[var(--bs-gold)]">{I.lock}</span>
           <div>
             <div className="text-[13px] font-bold">{t('cloud.lockedTitle')}</div>
             <div className="text-[12px] text-[var(--bs-text-3)]">{t('cloud.lockedDesc')}</div>
@@ -349,6 +349,7 @@ function walkEnabled(cfg: CloudConfig, path: string[], cat: CloudCategorySchema)
    Navigation rail
    ───────────────────────────────────────────────────────────────────────── */
 function NavRail({ area, onArea, counts }: { area: Area; onArea: (a: Area) => void; counts: { automation: number; events: number } }) {
+  const [logoFailed, setLogoFailed] = useState(false);
   const item = (a: Area, label: string, icon: ReactNode, count?: number) => (
     <button type="button" className={`bs-nav-item ${area === a ? 'active' : ''}`} onClick={() => onArea(a)}>
       <span className="bs-nav-ic">{icon}</span>
@@ -359,7 +360,11 @@ function NavRail({ area, onArea, counts }: { area: Area; onArea: (a: Area) => vo
   return (
     <aside className="bs-nav" style={{ position: 'sticky', top: 24 }}>
       <div className="bs-nav-head">
-        <span className="bs-nav-logo">S8</span>
+        {logoFailed ? (
+          <span className="bs-nav-logo"><span className="bs-nav-logo-fallback">SU</span></span>
+        ) : (
+          <img src="/logo.png" alt="SU8L" className="bs-nav-logo" onError={() => setLogoFailed(true)} />
+        )}
         <div className="bs-nav-brand">SU8LDEVs BOT<small>Control Console</small></div>
       </div>
 

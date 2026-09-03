@@ -1,30 +1,30 @@
 /* ═════════════════════════════════════════════════════════════════════════
    SU8LDEVs — BOT SETTINGS / CONTROL CONSOLE
-   Obsidian / Royal Gold / Silver / controlled Purple accent.
-
-   A premium control-application feel: solid dark surfaces, clean hierarchy,
-   restrained state-indicating accent. No particles, no scanlines, no glow
-   everywhere. This file is scoped ONLY to the bot settings interface classes
-   (`bs-*` prefix) so the rest of the site is untouched.
+   Matches the SU8L DEVs brand: deep indigo-charcoal surfaces with the
+   brand violet / cyan accent family. No particles, no scanlines, no glow
+   everywhere. This file is scoped ONLY to the bot settings interface
+   classes (`bs-*` prefix) so the rest of the site is untouched.
    ═════════════════════════════════════════════════════════════════════════ */
 
 .bs-root {
-  --bs-bg: #07080b;
-  --bs-surface-1: #0c0e12;
-  --bs-surface-2: #11141a;
-  --bs-surface-3: #161a21;
-  --bs-border: rgba(255, 255, 255, 0.08);
-  --bs-border-strong: rgba(214, 177, 94, 0.32);
-  --bs-gold: #d6b15e;
-  --bs-gold-bright: #f1d98a;
-  --bs-silver: #a8b0bc;
-  --bs-text: #f4f5f7;
-  --bs-text-2: #b4bac4;
-  --bs-text-3: #747b87;
+  --bs-bg: #05051a;
+  --bs-surface-1: #0b0b1f;
+  --bs-surface-2: #121229;
+  --bs-surface-3: #171733;
+  --bs-border: rgba(168, 85, 247, 0.15);
+  --bs-border-strong: rgba(168, 85, 247, 0.4);
+  --bs-gold: #7c3aed;
+  --bs-gold-bright: #a855f7;
+  --bs-silver: #a09bb8;
+  --bs-text: #f0ecff;
+  --bs-text-2: #b9b3d4;
+  --bs-text-3: #8983a6;
   --bs-purple: #7c3aed;
-  --bs-success: #35d07f;
-  --bs-warning: #e8b84d;
-  --bs-danger: #f05d68;
+  --bs-accent: #22d3ee;
+  --bs-accent2: #f472b6;
+  --bs-success: #34d399;
+  --bs-warning: #fbbf24;
+  --bs-danger: #f87171;
   --bs-radius: 14px;
   --bs-radius-lg: 18px;
   font-family: 'Inter', 'Cairo', system-ui, sans-serif;
@@ -65,14 +65,17 @@
   width: 30px;
   height: 30px;
   border-radius: 9px;
-  background: linear-gradient(135deg, var(--bs-gold), #a8883c);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 900;
   font-size: 13px;
-  color: #0c0e12;
+  color: #fff;
+  flex-shrink: 0;
+  overflow: hidden;
 }
+.bs-nav-logo img { width: 100%; height: 100%; object-fit: contain; }
+.bs-nav-logo .bs-nav-logo-fallback { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--bs-purple), #a855f7); }
 .bs-nav-brand { font-size: 12.5px; font-weight: 800; letter-spacing: 0.03em; color: var(--bs-text); }
 .bs-nav-brand small { display: block; font-size: 9.5px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--bs-text-3); margin-top: 1px; }
 
@@ -268,7 +271,7 @@
 .bs-row-control { flex-shrink: 0; }
 .bs-row-tag {
   font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
-  color: var(--bs-gold); background: rgba(214,177,94,0.1); padding: 2px 8px; border-radius: 999px;
+  color: var(--bs-gold); background: rgba(168,85,247,0.1); padding: 2px 8px; border-radius: 999px;
 }
 
 /* ── Group card (nested sub-features) ──────────────────────────────────── */
@@ -314,7 +317,7 @@
   outline: none;
   transition: border-color .15s, box-shadow .15s, background .15s;
 }
-.bs-input:focus, .bs-select:focus { border-color: rgba(214, 177, 94, 0.5); box-shadow: 0 0 0 3px rgba(214,177,94,0.14); }
+.bs-input:focus, .bs-select:focus { border-color: rgba(168, 85, 247, 0.6); box-shadow: 0 0 0 3px rgba(168,85,247,0.18); }
 .bs-input::placeholder { color: var(--bs-text-3); }
 .bs-select { appearance: none; -webkit-appearance: none; cursor: pointer; padding-right: 30px; background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23A8B0BC' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; }
 [dir='rtl'] .bs-select { background-position: left 12px center; padding-right: 12px; padding-left: 30px; }
@@ -346,7 +349,7 @@
   transition: left .18s cubic-bezier(.4,0,.2,1), background .18s ease;
 }
 .bs-toggle[aria-checked="true"] { background: var(--bs-gold); border-color: var(--bs-gold); }
-.bs-toggle[aria-checked="true"] .knob { left: calc(100% - 21px); background: #0c0e12; }
+.bs-toggle[aria-checked="true"] .knob { left: calc(100% - 21px); background: #171733; }
 .bs-toggle:disabled { opacity: 0.5; cursor: not-allowed; }
 [dir='rtl'] .bs-toggle .knob { left: auto; right: 3px; }
 [dir='rtl'] .bs-toggle[aria-checked="true"] .knob { left: auto; right: calc(100% - 21px); }
@@ -365,7 +368,7 @@
   -webkit-tap-highlight-color: transparent;
 }
 .bs-radio:hover { border-color: var(--bs-border-strong); color: var(--bs-text); }
-.bs-radio[aria-pressed="true"] { border-color: var(--bs-gold); background: rgba(214,177,94,0.12); color: var(--bs-gold-bright); }
+.bs-radio[aria-pressed="true"] { border-color: var(--bs-gold); background: rgba(168,85,247,0.14); color: var(--bs-gold-bright); }
 
 /* Slider */
 .bs-slider-row { display: flex; align-items: center; gap: 14px; width: 100%; }
@@ -373,9 +376,9 @@
 .bs-range { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; border-radius: 999px;
   background: var(--bs-surface-3); outline: none; cursor: pointer; }
 .bs-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border-radius: 999px;
-  background: var(--bs-gold); border: 2px solid #0c0e12; box-shadow: 0 0 0 1px var(--bs-gold); cursor: pointer; }
+  background: var(--bs-gold); border: 2px solid #171733; box-shadow: 0 0 0 1px var(--bs-gold); cursor: pointer; }
 .bs-range::-moz-range-thumb { width: 18px; height: 18px; border-radius: 999px; background: var(--bs-gold);
-  border: 2px solid #0c0e12; box-shadow: 0 0 0 1px var(--bs-gold); cursor: pointer; }
+  border: 2px solid #171733; box-shadow: 0 0 0 1px var(--bs-gold); cursor: pointer; }
 .bs-range:disabled::-webkit-slider-thumb { cursor: not-allowed; opacity: .6; }
 .bs-slider-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--bs-text-3); }
 
@@ -390,7 +393,7 @@
   font: inherit; font-size: 13.5px; font-weight: 700; text-align: center;
   outline: none;
 }
-.bs-ratio:focus { border-color: rgba(214,177,94,0.5); }
+.bs-ratio:focus { border-color: rgba(168,85,247,0.6); }
 .bs-ratio.bad { border-color: rgba(240,93,104,0.55); background: rgba(240,93,104,0.08); }
 
 /* ── Ratio matrix (desktop) ────────────────────────────────────────────── */
@@ -422,7 +425,7 @@
 .bs-btn:hover { background: var(--bs-surface-3); }
 .bs-btn:active { transform: translateY(1px); }
 .bs-btn:disabled { opacity: .5; cursor: not-allowed; }
-.bs-btn-primary { background: linear-gradient(135deg, var(--bs-gold), #b8913f); border-color: transparent; color: #0c0e12; }
+.bs-btn-primary { background: linear-gradient(135deg, var(--bs-purple), #a855f7); border-color: transparent; color: #fff; }
 .bs-btn-primary:hover { filter: brightness(1.06); }
 .bs-btn-purple { background: var(--bs-purple); border-color: transparent; color: #fff; }
 .bs-btn-purple:hover { filter: brightness(1.08); }
@@ -452,7 +455,7 @@
 /* ── Modal (restrained) ────────────────────────────────────────────────── */
 .bs-modal-backdrop {
   position: fixed; inset: 0; z-index: 300;
-  background: rgba(6,7,9,0.72);
+  background: rgba(5,5,26,0.72);
   backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
   display: flex; align-items: center; justify-content: center; padding: 20px;
 }
