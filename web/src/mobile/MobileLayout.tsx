@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
+import { useLang, type Lang } from '../i18n';
 
 export interface MobileNavItem {
   to: string;
@@ -12,6 +13,22 @@ export interface MobileNavItem {
 
 function IconWrap({ children }: { children: ReactNode }) {
   return <span className="m-tab-ic">{children}</span>;
+}
+
+function LangToggle() {
+  const { lang, setLang } = useLang();
+  const next: Lang = lang === 'en' ? 'ar' : 'en';
+  return (
+    <button
+      type="button"
+      className="m-topbar-icon-btn"
+      onClick={() => setLang(next)}
+      aria-label="Toggle language"
+      style={{ padding: '0 10px', fontSize: 12, fontWeight: 700, letterSpacing: '0.04em' }}
+    >
+      <span>{lang === 'en' ? 'AR' : 'EN'}</span>
+    </button>
+  );
 }
 
 export const MIcons = {
@@ -86,6 +103,7 @@ export default function MobileLayout({
           <div className="m-topbar-title-main">{title}</div>
           {subtitle && <div className="m-topbar-title-sub">{subtitle}</div>}
         </div>
+        <LangToggle />
         {onHome && (
           <button type="button" onClick={onHome} className="m-topbar-icon-btn" aria-label="home" style={{borderColor: 'rgba(255,255,255,0.09)'}}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M5 10 12 4l7 6v8a1 1 0 0 1-1 1h-4v-5H10v5H6a1 1 0 0 1-1-1v-8Z"/></svg>

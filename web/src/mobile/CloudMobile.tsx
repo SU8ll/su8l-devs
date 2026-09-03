@@ -60,23 +60,15 @@ export default function CloudMobile(){
 
   return (
     <div style={{display:'flex', flexDirection:'column', gap:14, paddingBottom: editing? 72:0}}>
-      {/* Header */}
-      <div>
-        <div style={{fontSize:11, fontWeight:700, letterSpacing:'0.14em', textTransform:'uppercase', color:'#6B6A78'}}>{t('dash.botPanel')}</div>
-        <div style={{marginTop:4, display:'flex', alignItems:'center', gap:8, flexWrap:'wrap'}}>
-          <span style={{fontSize:20, fontWeight:850, color:'#F5F5F7'}}>{t('cloud.title')}</span>
-          <span style={{padding:'4px 8px', borderRadius:999, background:'rgba(124,58,237,0.1)', border:'1px solid rgba(124,58,237,0.18)', color:'#A78BFA', fontSize:10, fontWeight:800, letterSpacing:'0.08em', textTransform:'uppercase'}}>{t('cloud.subtitle')}</span>
-        </div>
-        <div style={{marginTop:6, fontSize:12.5, color:'#9A99A6'}}>{t('cloud.subtitleLong')}</div>
-        <div style={{marginTop:10, display:'flex', alignItems:'center', gap:8, flexWrap:'wrap'}}>
-          <span style={{width:8,height:8,borderRadius:999, background:'#10B981', boxShadow:'0 0 8px rgba(16,185,129,0.5)'}}/>
-          <span style={{fontSize:12, fontWeight:600, color:'#6EE7B7'}}>{t('botpanel.running')}</span>
-          {slots.length>1 && (
-            <button type="button" onClick={()=>{ setRenameVal(activeSlot?.name??''); setRenameOpen(true); }} style={{marginLeft:'auto', display:'inline-flex', alignItems:'center', gap:6, padding:'7px 12px', borderRadius:999, border:'1px solid rgba(255,255,255,0.08)', background:'rgba(255,255,255,0.04)', color:'#D1D1D6', fontWeight:600, fontSize:12}}>
-              <span style={{width:6,height:6, borderRadius:999, background:'#A78BFA'}}/>{activeSlot?.name ?? 'Account'} <span style={{color:'#6B6A78'}}>›</span>
-            </button>
-          )}
-        </div>
+      {/* Running/account status row */}
+      <div style={{display:'flex', alignItems:'center', gap:8, flexWrap:'wrap'}}>
+        <span style={{width:8,height:8,borderRadius:999, background:'#10B981', boxShadow:'0 0 8px rgba(16,185,129,0.5)'}}/>
+        <span style={{fontSize:12, fontWeight:600, color:'#6EE7B7'}}>{t('botpanel.running')}</span>
+        {slots.length>1 && (
+          <button type="button" onClick={()=>{ setRenameVal(activeSlot?.name??''); setRenameOpen(true); }} style={{marginLeft:'auto', display:'inline-flex', alignItems:'center', gap:6, padding:'7px 12px', borderRadius:999, border:'1px solid rgba(255,255,255,0.08)', background:'rgba(255,255,255,0.04)', color:'#D1D1D6', fontWeight:600, fontSize:12}}>
+            <span style={{width:6,height:6, borderRadius:999, background:'#A78BFA'}}/>{activeSlot?.name ?? 'Account'} <span style={{color:'#6B6A78'}}>›</span>
+          </button>
+        )}
       </div>
 
       {/* Edit banner */}
