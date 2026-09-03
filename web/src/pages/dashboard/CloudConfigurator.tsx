@@ -288,6 +288,7 @@ export default function CloudConfigurator() {
 
           {area === 'overview' && (
             <OverviewArea t={t} schema={data.schema} cfg={cfg} slots={data.slots} activeSlotId={activeSlotId}
+              extraSlots={user?.extraSlots ?? 0}
               onGo={(catId) => openCategory(catId)} onEdit={() => setEditing(true)} />
           )}
 
@@ -457,13 +458,14 @@ function SlotExpansionBanner({ t, user }: {
 }
 
 function OverviewArea({
-  t, schema, cfg, slots, activeSlotId, onGo, onEdit,
+  t, schema, cfg, slots, activeSlotId, extraSlots, onGo, onEdit,
 }: {
   t: (k: string) => string;
   schema: CloudConfigDto['schema'];
   cfg: CloudConfig;
   slots: CloudSlot[];
   activeSlotId: string;
+  extraSlots: number;
   onGo: (catId: string) => void;
   onEdit: () => void;
 }) {
@@ -473,11 +475,12 @@ function OverviewArea({
   const activeEvents = events.filter(enabledCount(cfg)).length;
   const activeSlot = slots.find((s) => s.id === activeSlotId) ?? slots[0];
   const totalEnabled = [...automation, ...events].filter(enabledCount(cfg)).length;
+  const ownedSlots = 1 + extraSlots;
 
   return (
     <div className="space-y-4">
       <div className="bs-stat-grid">
-        <div className="bs-stat"><div className="bs-stat-num">{slots.length}</div><div className="bs-stat-label">Accounts</div></div>
+        <div className="bs-stat"><div className="bs-stat-num">{ownedSlots}</div><div className="bs-stat-label">Accounts</div></div>
         <div className="bs-stat"><div className="bs-stat-num">{totalEnabled}</div><div className="bs-stat-label">Active Features</div></div>
         <div className="bs-stat"><div className="bs-stat-num">{activeAuto}</div><div className="bs-stat-label">Automation</div></div>
         <div className="bs-stat"><div className="bs-stat-num">{activeEvents}</div><div className="bs-stat-label">Events</div></div>

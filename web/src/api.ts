@@ -226,6 +226,8 @@ export interface CloudConfig {
       conn_recon_delay: number;
       conn_other_login: number;
       conn_action_delay: number;
+      conn_rotation: boolean;
+      conn_rotation_interval: number;
     };
   };
   collection: {

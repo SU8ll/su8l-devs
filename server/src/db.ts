@@ -1,7 +1,7 @@
 import { Pool, types } from 'pg';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { config } from './config.js';
-import { getPlan, planCycleMonths, type Plan } from './plans.js';
+import { planCycleMonths, type Plan } from './plans.js';
 
 // Postgres returns BIGINT columns (ids, epoch ms) as strings by default.
 // Parse them back to JS numbers so the rest of the code sees numbers.
@@ -547,16 +547,14 @@ export async function activateSubscription(data: {
 
 export async function getEffectiveSlots(userId: string): Promise<{ base: number; extra: number; total: number; active: boolean }> {
   const active = await getActiveSubscriptions(userId);
-  let planSlots = 0;
-  for (const s of active) {
-    const plan = getPlan(s.plan_key);
-    if (plan && plan.slots > planSlots) planSlots = plan.slots;
-  }
   const extra = await getExtraSlotCount(userId);
+  // Every subscriber gets exactly ONE free base slot. Anything above that is a
+  // paid, permanently-owned extra slot. Plan tier no longer affects the fleet size.
+  const base = 1;
   return {
-    base: planSlots,
+    base,
     extra,
-    total: active.length > 0 ? planSlots + extra : 0,
+    total: active.length > 0 ? base + extra : 0,
     active: active.length > 0,
   };
 }

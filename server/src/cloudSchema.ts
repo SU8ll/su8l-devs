@@ -196,6 +196,8 @@ const CONNECTION_CATEGORY: CloudCategorySchema = {
         { ...num('Reconnect Delay (s)', 30), key: 'conn_recon_delay' },
         { ...num('Reconnect Delay after other-device login (s)', 600), key: 'conn_other_login' },
         { ...num('Action delay (ms)', 2000), key: 'conn_action_delay' },
+        { ...bool(false), key: 'conn_rotation', label: 'Accounts Rotation' },
+        { ...num('Timer interval (min)', 60, 5), key: 'conn_rotation_interval', description: 'minimum 5' },
       ],
     },
   ],
@@ -882,7 +884,7 @@ export function emptyValue(f: CloudFieldSchema): boolean | number | string {
 }
 
 /** Bumped whenever the schema shape changes so the panel refreshes its defaults. */
-export const SCHEMA_VERSION = 16;
+export const SCHEMA_VERSION = 17;
 
 export const FLAT_SCHEMA = flattenedSchema(MASTER_SCHEMA);
 
