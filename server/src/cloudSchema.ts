@@ -587,8 +587,8 @@ const TOWERS_ARENA_CATEGORY: CloudCategorySchema = {
       icon: '⚔️',
       fields: [
         { ...bool(true), key: 'arena_enable', label: 'Auto-challenge (daily free)' },
-        { ...radio('Defense team', 'Auto (best by power)', ['Auto (best by power)', 'Manual']), key: 'arena_def' },
-        { ...radio('Attack team', 'Auto (best by power)', ['Auto (best by power)', 'Manual']), key: 'arena_atk' },
+        { ...radio('Defense team', 'Auto (best by power)', ['Auto (best by power)', 'Use in game formation']), key: 'arena_def' },
+        { ...radio('Attack team', 'Auto (best by power)', ['Auto (best by power)', 'Use in game formation']), key: 'arena_atk' },
         { ...num('Min power advantage', 1), key: 'arena_min_power' },
         { ...bool(false), key: 'arena_atk_allies', label: 'Attack alliance members' },
         { ...num('Gem refreshes / day', 5), key: 'arena_refreshes' },
