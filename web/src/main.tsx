@@ -6,6 +6,7 @@ import { I18nProvider } from './i18n';
 import { AuthProvider } from './AuthContext';
 import './index.css';
 import './mobile.css';
+import './bot-settings.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

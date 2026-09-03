@@ -1,128 +1,210 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useI18n } from '../i18n';
-import { api, renameAccount, type CloudCategorySchema, type CloudConfig, type CloudConfigDto, type CloudFieldSchema, type SaveCloudConfigResponse } from '../api';
+import { useAuth } from '../AuthContext';
+import { api, type CloudCategorySchema, type CloudConfig, type CloudConfigDto, type CloudFieldSchema, type SaveCloudConfigResponse } from '../api';
 import { Spinner } from '../components/ui';
 
 type JsonObject = Record<string, unknown>;
-function getValue(root:unknown, path:string[]):unknown{ let cur:unknown=root; for(const k of path){ if(cur && typeof cur==='object' && !Array.isArray(cur)) cur=(cur as JsonObject)[k]; else return undefined;} return cur; }
-function setValue(root:CloudConfig, path:string[], value:unknown):CloudConfig{ const clone=JSON.parse(JSON.stringify(root)) as JsonObject; let cur:JsonObject=clone; for(let i=0;i<path.length-1;i++){ const n=cur[path[i]]; if(n && typeof n==='object' && !Array.isArray(n)) cur=n as JsonObject; else cur=(cur[path[i]]={}) as JsonObject; } cur[path[path.length-1]]=value; return clone as unknown as CloudConfig; }
 
-export default function CloudMobile(){
+/* ── Frontend IA (mirrors desktop) ──────────────────────────────────────── */
+type Area = 'overview' | 'accounts' | 'automation' | 'events' | 'system';
+const AREA_MAP: { area: Area; categories: string[] }[] = [
+  { area: 'automation', categories: ['connection', 'collection', 'law_edicts', 'vip_bank', 'development', 'gathering', 'pets', 'island'] },
+  { area: 'events', categories: ['alliance_systems', 'combat_traps', 'towers_arena', 'protection'] },
+  { area: 'system', categories: ['expert'] },
+];
+function categoriesForArea(schema: CloudConfigDto['schema'], area: Area): CloudCategorySchema[] {
+  const map = AREA_MAP.find((m) => m.area === area);
+  if (!map) return [];
+  return schema.categories.filter((c) => map.categories.includes(c.id));
+}
+
+interface RatioGroupDef { name: string; categoryId: string; groupId: string; keys: string[]; enable?: string; }
+const RATIO_GROUPS: RatioGroupDef[] = [
+  { name: 'Championship', categoryId: 'alliance_systems', groupId: 'alliance_championship', keys: ['champ_inf', 'champ_cav', 'champ_rng'] },
+  { name: 'Coliseum', categoryId: 'towers_arena', groupId: 'climb_tower', enable: 'climb_t1', keys: ['col_inf', 'col_cav', 'col_arch'] },
+  { name: 'Forest of Life', categoryId: 'towers_arena', groupId: 'climb_tower', enable: 'climb_t2', keys: ['fol_inf', 'fol_cav', 'fol_arch'] },
+  { name: 'Crystal Cave', categoryId: 'towers_arena', groupId: 'climb_tower', enable: 'climb_t3', keys: ['cc_inf', 'cc_cav', 'cc_arch'] },
+  { name: 'Knowledge Nexus', categoryId: 'towers_arena', groupId: 'climb_tower', enable: 'climb_t4', keys: ['kn_inf', 'kn_cav', 'kn_arch'] },
+  { name: 'Molten Fort', categoryId: 'towers_arena', groupId: 'climb_tower', enable: 'climb_t5', keys: ['mf_inf', 'mf_cav', 'mf_arch'] },
+  { name: 'Radiant Spire', categoryId: 'towers_arena', groupId: 'climb_tower', enable: 'climb_t6', keys: ['rs_inf', 'rs_cav', 'rs_arch'] },
+  { name: 'Alliance Defense', categoryId: 'combat_traps', groupId: 'alliance_defense', enable: 'alliance_defense_enable', keys: ['alliance_defense_inf', 'alliance_defense_cav', 'alliance_defense_arch'] },
+  { name: 'Bear Trap (Joining)', categoryId: 'combat_traps', groupId: 'bear_group', enable: 'bear_enable', keys: ['bear_joining_inf', 'bear_joining_cav', 'bear_joining_arch'] },
+  { name: 'Bear Trap (Master)', categoryId: 'combat_traps', groupId: 'bear_group', enable: 'bear_enable', keys: ['bear_master_inf', 'bear_master_cav', 'bear_master_arch'] },
+  { name: 'Viking Vengeance', categoryId: 'combat_traps', groupId: 'viking_vengeance', enable: 'viking_enable', keys: ['viking_inf', 'viking_cav', 'viking_arch'] },
+];
+function ratioGroupFor(path: string[]): RatioGroupDef | null {
+  if (path.length !== 3) return null;
+  return RATIO_GROUPS.find((r) => r.categoryId === path[0] && r.groupId === path[1] && r.keys.includes(path[2])) ?? null;
+}
+function ratioGroupsIn(path: string[]): RatioGroupDef[] {
+  if (path.length !== 2) return [];
+  return RATIO_GROUPS.filter((r) => r.categoryId === path[0] && r.groupId === path[1]);
+}
+
+function getValue(root: unknown, path: string[]): unknown {
+  let cur: unknown = root;
+  for (const k of path) {
+    if (cur && typeof cur === 'object' && !Array.isArray(cur)) cur = (cur as JsonObject)[k];
+    else return undefined;
+  }
+  return cur;
+}
+function setValue(root: CloudConfig, path: string[], value: unknown): CloudConfig {
+  const clone = JSON.parse(JSON.stringify(root)) as JsonObject;
+  let cur: JsonObject = clone;
+  for (let i = 0; i < path.length - 1; i++) {
+    const n = cur[path[i]];
+    if (n && typeof n === 'object' && !Array.isArray(n)) cur = n as JsonObject;
+    else cur = (cur[path[i]] = {}) as JsonObject;
+  }
+  cur[path[path.length - 1]] = value;
+  return clone as unknown as CloudConfig;
+}
+
+function enabledCount(cfg: CloudConfig) {
+  return (cat: CloudCategorySchema): boolean => walkEnabled(cfg, [cat.id], cat);
+}
+function walkEnabled(cfg: CloudConfig, path: string[], cat: CloudCategorySchema): boolean {
+  for (const f of cat.fields ?? []) if (f.type === 'boolean' && getValue(cfg, [...path, f.key]) === true) return true;
+  for (const g of cat.groups ?? []) if (walkEnabled(cfg, [...path, g.id], g)) return true;
+  return false;
+}
+
+const AREAS: { id: Area; label: string }[] = [
+  { id: 'overview', label: 'Home' },
+  { id: 'accounts', label: 'Accounts' },
+  { id: 'automation', label: 'Automation' },
+  { id: 'events', label: 'Events' },
+  { id: 'system', label: 'More' },
+];
+
+export default function CloudMobile() {
   const { t } = useI18n();
-  const [data,setData]=useState<CloudConfigDto|null>(null);
-  const [cfg,setCfg]=useState<CloudConfig|null>(null);
-  const [snapshot,setSnapshot]=useState('');
-  const [activeKey,setActiveKey]=useState('');
-  const [activeSlotId,setActiveSlotId]=useState('');
-  const [editing,setEditing]=useState(false);
-  const [saving,setSaving]=useState(false);
-  const [error,setError]=useState('');
-  const [renameOpen,setRenameOpen]=useState(false);
-  const [renameVal,setRenameVal]=useState('');
-  const dirty = cfg!==null && JSON.stringify(cfg)!==snapshot;
+  const { user } = useAuth();
+  const [data, setData] = useState<CloudConfigDto | null>(null);
+  const [cfg, setCfg] = useState<CloudConfig | null>(null);
+  const [snapshot, setSnapshot] = useState('');
+  const [area, setArea] = useState<Area>('overview');
+  const [activeCatId, setActiveCatId] = useState<string | null>(null);
+  const [activeSlotId, setActiveSlotId] = useState('');
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const dirty = cfg !== null && JSON.stringify(cfg) !== snapshot;
 
-  const loadConfig=async(slotId?:string)=>{
+  const loadConfig = async (slotId?: string) => {
     setError('');
-    try{ const q=slotId? `?slotId=${encodeURIComponent(slotId)}` : ''; const d=await api<CloudConfigDto>(`/api/dashboard/cloud-config${q}`); setData(d); setCfg(d.config); setSnapshot(JSON.stringify(d.config)); setActiveKey(d.schema.categories[0]?.id??''); setActiveSlotId(d.activeSlotId?? slotId ?? ''); setEditing(false); }catch{ setError('Failed to load'); }
+    try {
+      const q = slotId ? `?slotId=${encodeURIComponent(slotId)}` : '';
+      const d = await api<CloudConfigDto>(`/api/dashboard/cloud-config${q}`);
+      setData(d); setCfg(d.config); setSnapshot(JSON.stringify(d.config));
+      setActiveSlotId(d.activeSlotId ?? slotId ?? ''); setEditing(false);
+    } catch { setError('Failed to load'); }
   };
-  useEffect(()=>{ loadConfig(); },[]);
+  useEffect(() => { loadConfig(); }, []);
 
-  const update=(path:string[], value:unknown)=>{
-    if(!editing || !cfg) return;
-    setCfg(prev=> prev? setValue(prev, path, value) : prev);
+  const update = (path: string[], value: unknown) => {
+    if (!editing || !cfg) return;
+    setCfg((prev) => {
+      if (!prev) return prev;
+      const rg = ratioGroupFor(path);
+      if (rg && typeof value === 'number' && Number.isFinite(value)) {
+        const othersSum = rg.keys.filter((k) => k !== path[2]).reduce((acc, k) => acc + (Number(getValue(prev, path.slice(0, 2).concat(k))) || 0), 0);
+        value = Math.min(value, Math.max(0, 100 - othersSum));
+      }
+      return setValue(prev, path, value);
+    });
   };
-  const save=async()=>{
-    if(!cfg) return;
+  const save = async () => {
+    if (!cfg) return;
     setSaving(true);
-    try{ const res=await api<SaveCloudConfigResponse>('/api/dashboard/cloud-config',{method:'PUT', body:{config:cfg, slotId: activeSlotId||undefined}}); setSnapshot(JSON.stringify(res.config)); setCfg(res.config); setActiveSlotId(res.activeSlotId); setEditing(false); }catch(e){ setError(e instanceof Error? e.message:'Failed'); } finally{ setSaving(false); }
+    try {
+      const res = await api<SaveCloudConfigResponse>('/api/dashboard/cloud-config', { method: 'PUT', body: { config: cfg, slotId: activeSlotId || undefined } });
+      setSnapshot(JSON.stringify(res.config)); setCfg(res.config); setActiveSlotId(res.activeSlotId); setEditing(false);
+    } catch (e) { setError(e instanceof Error ? e.message : 'Failed'); } finally { setSaving(false); }
   };
-  const exitEdit=()=>{ setEditing(false); if(cfg && snapshot) try{ setCfg(JSON.parse(snapshot) as CloudConfig); }catch{} };
+  const exitEdit = () => { setEditing(false); if (cfg && snapshot) try { setCfg(JSON.parse(snapshot) as CloudConfig); } catch { /* ignore */ } };
 
-  if(error) return <div style={{color:'#F87171', padding:16}}>{error}</div>;
-  if(!data || !cfg) return <div className="flex justify-center py-20"><Spinner size={28}/></div>;
-  if(data.locked){
+  if (error) return <div style={{ color: '#F05D68', padding: 16 }}>{error}</div>;
+  if (!data || !cfg) return <div className="flex justify-center py-20"><Spinner size={28} /></div>;
+  if (data.locked) {
     return (
-      <div style={{display:'flex', flexDirection:'column', gap:14}}>
-        <div style={{fontSize:11, fontWeight:700, letterSpacing:'0.14em', textTransform:'uppercase', color:'#6B6A78'}}>{t('dash.botPanel')}</div>
-        <div style={{fontSize:20, fontWeight:850, color:'#F5F5F7'}}>{t('cloud.title')}</div>
-        <div className="m-card" style={{textAlign:'center', padding:'28px 16px'}}>
-          <div style={{fontSize:28}}>🔒</div>
-          <div style={{marginTop:10, fontWeight:700, color:'#F5F5F7'}}>{t('cloud.lockedPlan')}</div>
-          <Link to="/pricing" className="m-btn m-btn-primary" style={{width:'100%', marginTop:14}}>{t('dash.upgrade')}</Link>
+      <div className="bs-root" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div className="m-card" style={{ textAlign: 'center', padding: '28px 16px' }}>
+          <span style={{ fontSize: 28 }}>🔒</span>
+          <div style={{ marginTop: 10, fontWeight: 700, fontSize: 15 }}>{t('cloud.lockedPlan')}</div>
+          <Link to="/pricing" className="bs-btn bs-btn-primary" style={{ width: '100%', marginTop: 14 }}>{t('dash.upgrade')}</Link>
         </div>
       </div>
     );
   }
-  const active = data.schema.categories.find(c=>c.id===activeKey) ?? data.schema.categories[0];
-  const slots=data.slots;
-  const activeSlot = slots.find(s=>s.id===activeSlotId) ?? slots[0];
+
+  const activeSlot = data.slots.find((s) => s.id === activeSlotId) ?? data.slots[0];
+  const activeCat = data.schema.categories.find((c) => c.id === activeCatId) ?? null;
 
   return (
-    <div style={{display:'flex', flexDirection:'column', gap:14, paddingBottom: editing? 72:0}}>
-      {/* Status / account row (title shown once in the top bar) */}
-      <div style={{display:'flex', alignItems:'center', gap:8, flexWrap:'wrap'}}>
-        <span style={{width:8,height:8,borderRadius:999, background:'#34d399', boxShadow:'0 0 6px rgba(52,211,153,0.4)'}}/>
-        <span style={{fontSize:12, fontWeight:600, color:'#6EE7B7'}}>{t('botpanel.running')}</span>
-        {slots.length>1 && (
-          <button type="button" onClick={()=>{ setRenameVal(activeSlot?.name??''); setRenameOpen(true); }} style={{marginLeft:'auto', display:'inline-flex', alignItems:'center', gap:6, padding:'7px 12px', borderRadius:999, border:'1px solid rgba(255,255,255,0.06)', background:'rgba(255,255,255,0.03)', color:'#D1D1D6', fontWeight:600, fontSize:12}}>
-            <span style={{width:6,height:6, borderRadius:999, background:'#A78BFA'}}/>{activeSlot?.name ?? 'Account'} <span style={{color:'#6B6A78'}}>›</span>
-          </button>
-        )}
+    <div className="bs-root" style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingBottom: editing ? 92 : 0 }}>
+      {/* Account context row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span className="bs-badge online"><span className="dot" />{t('botpanel.online')}</span>
+        <span style={{ fontSize: 12, color: 'var(--bs-text-2)', fontWeight: 600, marginInlineStart: 'auto' }}>{activeSlot?.name}</span>
       </div>
 
-      {/* Edit banner */}
-      <div className="m-card" style={{padding:14, display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, borderColor: editing? 'rgba(124,58,237,0.15)' : 'rgba(255,255,255,0.06)', background: editing? 'rgba(124,58,237,0.04)' : undefined}}>
-        <div style={{display:'flex', gap:10, alignItems:'center'}}>
-          <span style={{width:36,height:36, borderRadius:11, background: editing? '#7C3AED' : 'rgba(255,255,255,0.05)', display:'flex', alignItems:'center', justifyContent:'center', color: editing? '#fff':'#A09BB8'}}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          </span>
-          <div>
-            <div style={{fontSize:12, fontWeight:800, letterSpacing:'0.08em', textTransform:'uppercase', color: editing? '#A78BFA':'#A09BB8'}}>{editing? t('cloud.editing') : t('cloud.lockedTitle')}</div>
-            <div style={{fontSize:11, color:'#6B6A78', marginTop:2}}>{editing? (dirty? t('cloud.unsaved') : '—') : t('cloud.lockedDesc')}</div>
-          </div>
-        </div>
-        {editing? <button type="button" onClick={exitEdit} style={{padding:'8px 14px', borderRadius:11, border:'1px solid rgba(255,255,255,0.06)', background:'rgba(255,255,255,0.03)', color:'#D1D1D6', fontWeight:600}}>{t('cloud.cancel')}</button>
-        : <button type="button" onClick={()=>setEditing(true)} style={{padding:'9px 14px', borderRadius:11, border:'none', background:'#7C3AED', color:'#fff', fontWeight:700, display:'flex', alignItems:'center', gap:6}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>{t('cloud.edit')}</button>}
-      </div>
-
-      {/* Category pills */}
-      <div style={{display:'flex', gap:8, overflowX:'auto', paddingBottom:4, scrollbarWidth:'none'}}>
-        {data.schema.categories.map(c=>(
-          <button key={c.id} type="button" onClick={()=>setActiveKey(c.id)} style={{flex:'0 0 auto', padding:'10px 14px', borderRadius:12, border: activeKey===c.id? '1px solid rgba(124,58,237,0.25)' : '1px solid rgba(255,255,255,0.06)', background: activeKey===c.id? 'rgba(124,58,237,0.1)' : 'rgba(255,255,255,0.025)', color: activeKey===c.id? '#A78BFA':'#A09BB8', fontWeight:700, fontSize:13, display:'flex', alignItems:'center', gap:6}}>
-            <span>{c.icon ?? '⚙️'}</span>{c.title}
+      {/* Area segmented nav (compact, no horizontal scroll of categories) */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 4, background: 'var(--bs-surface-1)', border: '1px solid var(--bs-border)', borderRadius: 12, padding: 4 }}>
+        {AREAS.map((a) => (
+          <button key={a.id} type="button" onClick={() => { setArea(a.id); setActiveCatId(null); }}
+            style={{ padding: '9px 2px', borderRadius: 9, fontSize: 11, fontWeight: 700, border: 'none', cursor: 'pointer', background: area === a.id ? 'var(--bs-surface-3)' : 'transparent', color: area === a.id ? 'var(--bs-gold-bright)' : 'var(--bs-text-3)', boxShadow: area === a.id ? 'inset 0 0 0 1px var(--bs-border)' : 'none' }}>
+            {a.label}
           </button>
         ))}
       </div>
 
-      {/* Panel */}
-      <div className="m-card" style={{padding:16, opacity: editing? 1 : 0.6, pointerEvents: editing? undefined:'none'}}>
-        {active && <MobileCategoryPanel category={active} path={[active.id]} cfg={cfg} disabled={!editing} onChange={update} />}
-      </div>
+      {/* Edit / save state */}
+      {editing ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span className="bs-badge warn"><span className="dot" />{t('cloud.editing')}</span>
+          {dirty && <span className="bs-unsaved"><span className="dot" />{t('cloud.unsaved')}</span>}
+        </div>
+      ) : (
+        <button type="button" className="bs-btn bs-btn-purple" style={{ width: '100%' }} onClick={() => setEditing(true)}>⚙ {t('cloud.edit')}</button>
+      )}
 
-      {/* Save bar sticky */}
+      {/* Content */}
+      {area === 'overview' && (
+        <MobileOverview cfg={cfg} schema={data.schema} onOpen={(id) => {
+          setActiveCatId(id);
+          for (const m of AREA_MAP) if (m.categories.includes(id)) { setArea(m.area); return; }
+        }} />
+      )}
+      {area === 'accounts' && (
+        <MobileAccounts slots={data.slots} activeSlotId={activeSlotId} username={user?.username ?? ''}
+          onSwitch={loadConfig} />
+      )}
+      {(area === 'automation' || area === 'events' || area === 'system') && !activeCat && (
+        <MobileLanding cfg={cfg} categories={categoriesForArea(data.schema, area)} onOpen={(id) => setActiveCatId(id)} />
+      )}
+      {(area === 'automation' || area === 'events' || area === 'system') && activeCat && (
+        <div>
+          <button type="button" onClick={() => setActiveCatId(null)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--bs-text-2)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', marginBottom: 8 }}>← Back</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+            <span style={{ fontSize: 22 }}>{activeCat.icon ?? '⚙️'}</span>
+            <div><div style={{ fontSize: 16, fontWeight: 800 }}>{activeCat.title}</div></div>
+          </div>
+          <div className="bs-panel" style={{ opacity: editing ? 1 : 0.75 }}>
+            <MobileCategoryPanel category={activeCat} path={[activeCat.id]} cfg={cfg} disabled={!editing} onChange={update} />
+          </div>
+        </div>
+      )}
+
+      {/* Sticky save bar */}
       {editing && (
-        <div style={{position:'fixed', left:0, right:0, bottom:'calc(64px + env(safe-area-inset-bottom))', background:'rgba(8,8,26,0.96)', backdropFilter:'blur(12px)', borderTop:'1px solid rgba(255,255,255,0.06)', padding:'12px 16px', display:'flex', gap:10, zIndex:30}}>
-          <button type="button" onClick={exitEdit} style={{flex:1, padding:'12px', borderRadius:12, border:'1px solid rgba(255,255,255,0.06)', background:'rgba(255,255,255,0.03)', color:'#D1D1D6', fontWeight:600}}>{t('cloud.cancel')}</button>
-          <button type="button" onClick={save} disabled={saving || !dirty} style={{flex:1, padding:'12px', borderRadius:12, border:'none', background: dirty? '#7C3AED':'rgba(255,255,255,0.05)', color: dirty? '#fff':'#6B6A78', fontWeight:700, opacity: saving?0.7:1}}>{saving? t('cloud.saving') : t('cloud.save')}</button>
-        </div>
-      )}
-
-      {renameOpen && (
-        <div onClick={()=>setRenameOpen(false)} style={{position:'fixed', inset:0, zIndex:80, background:'rgba(5,5,16,0.7)', backdropFilter:'blur(8px)', display:'flex', alignItems:'center', padding:16}}>
-          <div onClick={e=>e.stopPropagation()} className="m-card" style={{width:'100%', maxWidth:420, margin:'0 auto', padding:18}}>
-            <div style={{fontWeight:800, color:'#F0ECFF'}}>{t('cloud.renameTitle')}</div>
-            <div style={{fontSize:12, color:'#A09BB8', marginTop:4}}>{t('cloud.renameDesc')}</div>
-            <input value={renameVal} onChange={e=>setRenameVal(e.target.value)} maxLength={60} autoFocus style={{width:'100%', marginTop:12, padding:'12px 14px', borderRadius:12, border:'1px solid rgba(255,255,255,0.06)', background:'rgba(255,255,255,0.035)', color:'#F0ECFF', outline:'none'}}/>
-            <div style={{display:'flex', gap:8, marginTop:12}}>
-              <button type="button" onClick={async()=>{ if(!renameVal.trim()) return; await renameAccount(activeSlot.id, renameVal.trim()); setData(prev=> prev? {...prev, slots: prev.slots.map(s=> s.id===activeSlot.id? {...s, name: renameVal.trim()}: s)}: prev); setRenameOpen(false); }} style={{flex:1, padding:'11px', borderRadius:12, border:'none', background:'#7C3AED', color:'#fff', fontWeight:700}}>{t('cloud.renameSave')}</button>
-              <button type="button" onClick={()=>setRenameOpen(false)} style={{flex:1, padding:'11px', borderRadius:12, border:'1px solid rgba(255,255,255,0.06)', background:'rgba(255,255,255,0.03)', color:'#D1D1D6', fontWeight:600}}>{t('cloud.renameCancel')}</button>
-            </div>
-            <div style={{marginTop:10, display:'flex', flexDirection:'column', gap:6, maxHeight:180, overflowY:'auto'}}>
-              {slots.map(s=>(
-                <button key={s.id} type="button" onClick={()=>{ loadConfig(s.id); setRenameOpen(false); }} style={{textAlign:'left', padding:'10px 12px', borderRadius:10, border: s.id===activeSlotId? '1px solid rgba(124,58,237,0.2)':'1px solid rgba(255,255,255,0.05)', background: s.id===activeSlotId? 'rgba(124,58,237,0.06)':'rgba(255,255,255,0.02)', color: s.id===activeSlotId? '#A78BFA':'#A09BB8', fontWeight:600}}>{s.id===activeSlotId?'● ':'○ '}{s.name}</button>
-              ))}
-            </div>
+        <div style={{ position: 'fixed', left: 16, right: 16, bottom: 'calc(76px + env(safe-area-inset-bottom))', zIndex: 40 }}>
+          <div style={{ display: 'flex', gap: 8, padding: 10, background: 'var(--bs-surface-1)', border: '1px solid var(--bs-border-strong)', borderRadius: 14 }}>
+            <button type="button" className="bs-btn bs-btn-ghost" style={{ flex: 1 }} onClick={exitEdit}>{t('cloud.cancel')}</button>
+            <button type="button" className="bs-btn bs-btn-primary" style={{ flex: 2 }} onClick={save} disabled={saving || !dirty}>{saving ? t('cloud.saving') : `✓ ${t('cloud.save')}`}</button>
           </div>
         </div>
       )}
@@ -130,39 +212,25 @@ export default function CloudMobile(){
   );
 }
 
-function MobileCategoryPanel({ category, path, cfg, disabled, onChange }:{category:CloudCategorySchema; path:string[]; cfg:CloudConfig; disabled:boolean; onChange:(path:string[], v:unknown)=>void; }){
-  const fields = category.fields ?? [];
-  const booleans = fields.filter(f=> f.type==='boolean');
-  const others = fields.filter(f=> f.type!=='boolean');
+function MobileOverview({ cfg, schema, onOpen }: { cfg: CloudConfig; schema: CloudConfigDto['schema']; onOpen: (id: string) => void }) {
+  const automation = categoriesForArea(schema, 'automation');
+  const events = categoriesForArea(schema, 'events');
+  const all = [...automation, ...events];
+  const active = all.filter(enabledCount(cfg)).length;
   return (
-    <div style={{display:'flex', flexDirection:'column', gap:10}}>
-      {booleans.map(f=>(
-        <div key={f.key} style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, padding:'14px 14px', borderRadius:12, border:'1px solid rgba(255,255,255,0.06)', background:'rgba(255,255,255,0.02)'}}>
-          <div style={{minWidth:0}}>
-            <div style={{fontSize:13, fontWeight:600, color:'#F0ECFF'}}>{f.label}</div>
-            {f.description && <div style={{fontSize:11.5, color:'#A09BB8', marginTop:2}}>{f.description}</div>}
-          </div>
-          <Toggle checked={Boolean(getValue(cfg, [...path, f.key]))} disabled={disabled} onChange={v=>onChange([...path,f.key],v)} />
-        </div>
-      ))}
-
-      {others.map(f=>(
-        <div key={f.key} style={{display:'flex', flexDirection:'column', gap:6}}>
-          <div style={{fontSize:12, fontWeight:600, color:'#F0ECFF'}}>{f.label}</div>
-          {f.description && <div style={{fontSize:11.5, color:'#A09BB8', marginTop:-2}}>{f.description}</div>}
-          <FieldControl field={f} value={getValue(cfg,[...path,f.key])} disabled={disabled} onChange={v=>onChange([...path,f.key],v)} />
-        </div>
-      ))}
-
-      {category.groups?.map(g=>(
-        <div key={g.id} style={{padding:14, borderRadius:14, border:'1px solid rgba(124,58,237,0.1)', background:'rgba(124,58,237,0.03)'}}>
-          <div style={{display:'flex', gap:8, alignItems:'center'}}>
-            {g.icon && <span>{g.icon}</span>}
-            <span style={{fontWeight:700, color:'#F0ECFF', fontSize:14}}>{g.title}</span>
-          </div>
-          {g.description && <div style={{fontSize:12, color:'#A09BB8', marginTop:4}}>{g.description}</div>}
-          <div style={{marginTop:12}}>
-            <MobileCategoryPanel category={g} path={[...path, g.id]} cfg={cfg} disabled={disabled} onChange={onChange} />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10 }}>
+        <div className="bs-stat"><div className="bs-stat-num">{all.length}</div><div className="bs-stat-label">Features</div></div>
+        <div className="bs-stat"><div className="bs-stat-num">{active}</div><div className="bs-stat-label">Active</div></div>
+      </div>
+      <div className="m-section-title" style={{ color: 'var(--bs-text-3)' }}>Quick access</div>
+      {all.map((c) => (
+        <div key={c.id} className="bs-feature-card" onClick={() => onOpen(c.id)} role="button">
+          <div className="bs-feature-head">
+            <span className="bs-feature-ic">{c.icon ?? '⚙️'}</span>
+            <div className="min-w-0"><div className="bs-feature-title">{c.title}</div>
+              <div className={`bs-state-badge ${enabledCount(cfg)(c) ? 'active' : 'paused'}`}>{enabledCount(cfg)(c) ? '● ACTIVE' : '○ PAUSED'}</div>
+            </div>
           </div>
         </div>
       ))}
@@ -170,25 +238,168 @@ function MobileCategoryPanel({ category, path, cfg, disabled, onChange }:{catego
   );
 }
 
-function FieldControl({ field, value, disabled, onChange }:{field:CloudFieldSchema; value:unknown; disabled:boolean; onChange:(v:unknown)=>void;}){
-  switch(field.type){
-    case 'number': return <input type="number" value={String(value??0)} min={field.min} max={field.max} step={field.step??1} disabled={disabled} onChange={e=>onChange(Number(e.target.value))} style={inputStyle(disabled)}/>;
-    case 'slider': {
-      const v=Number(value??0); const min=field.min??0; const max=field.max??100; return (
-        <div style={{display:'flex', gap:10, alignItems:'center'}}>
-          <input type="range" min={min} max={max} step={field.step??1} value={v} disabled={disabled} onChange={e=>onChange(Number(e.target.value))} style={{flex:1, accentColor:'#7C3AED'}}/>
-          <input type="number" value={v} min={min} max={max} disabled={disabled} onChange={e=>onChange(Number(e.target.value))} style={{...inputStyle(disabled), width:72, textAlign:'center' as const}}/>
-          {field.unit && <span style={{fontSize:11, color:'#6B6A78'}}>{field.unit}</span>}
+function MobileLanding({ cfg, categories, onOpen }: { cfg: CloudConfig; categories: CloudCategorySchema[]; onOpen: (id: string) => void }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {categories.map((c) => (
+        <div key={c.id} className="bs-feature-card" onClick={() => onOpen(c.id)} role="button">
+          <div className="bs-feature-head">
+            <span className="bs-feature-ic">{c.icon ?? '⚙️'}</span>
+            <div className="min-w-0"><div className="bs-feature-title">{c.title}</div>
+              <div className={`bs-state-badge ${enabledCount(cfg)(c) ? 'active' : 'paused'}`}>{enabledCount(cfg)(c) ? '● ACTIVE' : '○ PAUSED'}</div>
+            </div>
+            <span style={{ marginInlineStart: 'auto', color: 'var(--bs-text-3)' }}>›</span>
+          </div>
+        </div>
+      ))}
+      {categories.length === 0 && <div className="bs-empty">No features available.</div>}
+    </div>
+  );
+}
+
+function MobileAccounts({ slots, activeSlotId, username, onSwitch }: {
+  slots: CloudConfigDto['slots']; activeSlotId: string; username: string;
+  onSwitch: (id: string) => void;
+}) {
+  return (
+    <div className="bs-panel">
+      <div className="bs-panel-body">
+        {slots.map((s) => (
+          <div key={s.id} className="bs-row">
+            <div><div className="bs-row-label">{s.name}</div><div className="bs-row-desc">{username}</div></div>
+            {s.id === activeSlotId
+              ? <span className="bs-badge online"><span className="dot" />ACTIVE</span>
+              : <button type="button" className="bs-btn" onClick={() => onSwitch(s.id)}>Switch</button>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MobileCategoryPanel({ category, path, cfg, disabled, onChange }: {
+  category: CloudCategorySchema; path: string[]; cfg: CloudConfig; disabled: boolean; onChange: (p: string[], v: unknown) => void;
+}) {
+  const localRatioGroups = ratioGroupsIn(path);
+  const gridRatioKeys = new Set(localRatioGroups.flatMap((r) => r.keys));
+  const gridEnableKeys = new Set(localRatioGroups.flatMap((r) => (r.enable ? [r.enable] : [])));
+  const booleans = (category.fields ?? []).filter((f) => f.type === 'boolean' && !gridEnableKeys.has(f.key));
+  const others = (category.fields ?? []).filter((f) => f.type !== 'boolean' && !gridRatioKeys.has(f.key));
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      {booleans.map((f) => (
+        <div key={f.key} className="bs-row">
+          <div><div className="bs-row-label">{f.label}</div>{f.description && <div className="bs-row-desc">{f.description}</div>}</div>
+          <Toggle checked={Boolean(getValue(cfg, [...path, f.key]))} disabled={disabled} onChange={(v) => onChange([...path, f.key], v)} />
+        </div>
+      ))}
+
+      {others.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '12px 18px' }}>
+          {others.map((f) => (
+            <div key={f.key}>
+              <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--bs-text)' }}>{f.label}</label>
+              {f.description && <div style={{ fontSize: 11.5, color: 'var(--bs-text-3)', margin: '2px 0 6px' }}>{f.description}</div>}
+              <FieldControl field={f} value={getValue(cfg, [...path, f.key])} disabled={disabled} onChange={(v) => onChange([...path, f.key], v)} />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {localRatioGroups.length > 0 && (
+        <div style={{ padding: '6px 18px 14px' }}>
+          <MobileRatio groups={localRatioGroups} path={path} cfg={cfg} disabled={disabled} onChange={onChange} />
+        </div>
+      )}
+
+      {category.groups?.map((g) => (
+        <GroupCard key={g.id} group={g} path={[...path, g.id]} cfg={cfg} disabled={disabled} onChange={onChange} />
+      ))}
+    </div>
+  );
+}
+
+function GroupCard({ group, path, cfg, disabled, onChange }: {
+  group: CloudCategorySchema; path: string[]; cfg: CloudConfig; disabled: boolean; onChange: (p: string[], v: unknown) => void;
+}) {
+  const [open, setOpen] = useState((group.fields?.length ?? 0) <= 6);
+  const enabled = (() => {
+    for (const f of group.fields ?? []) if (f.type === 'boolean' && getValue(cfg, [...path, f.key]) === true) return true;
+    return false;
+  })();
+  return (
+    <div className="bs-group" style={{ marginTop: 0, borderRadius: 0, borderLeft: 'none', borderRight: 'none', borderBottom: 'none', background: 'transparent' }}>
+      <div className="bs-group-head" onClick={() => setOpen((o) => !o)}>
+        {group.icon && <span>{group.icon}</span>}
+        <span className="bs-group-title">{group.title}</span>
+        <span className="bs-group-state">{enabled ? <span className="bs-state-badge active">● ON</span> : <span className="bs-state-badge off">○ OFF</span>}</span>
+        <span style={{ marginInlineStart: 'auto', color: 'var(--bs-text-3)', transform: open ? 'rotate(90deg)' : 'none', transition: 'transform .18s' }}>›</span>
+      </div>
+      {open && <MobileCategoryPanel category={group} path={path} cfg={cfg} disabled={disabled} onChange={onChange} />}
+    </div>
+  );
+}
+
+/* Mobile ratio — stacked rows, no horizontal scroll */
+function MobileRatio({ groups, path, cfg, disabled, onChange }: {
+  groups: RatioGroupDef[]; path: string[]; cfg: CloudConfig; disabled: boolean; onChange: (p: string[], v: unknown) => void;
+}) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {groups.map((rg) => {
+        const vals = rg.keys.map((k) => Number(getValue(cfg, [...path, k])) || 0);
+        const sum = vals.reduce((a, b) => a + b, 0);
+        const ok = sum === 100;
+        const enabled = rg.enable ? Boolean(getValue(cfg, [...path, rg.enable])) : true;
+        const labels = [rg.keys[2]?.endsWith('_rng') ? 'Ranged' : 'Archer', 'Cavalry', 'Infantry'];
+        return (
+          <div key={rg.name} style={{ border: '1px solid var(--bs-border)', borderRadius: 12, padding: 12, background: 'var(--bs-surface-2)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: enabled ? 'var(--bs-text)' : 'var(--bs-text-3)' }}>{rg.name}</span>
+              <span style={{ marginInlineStart: 'auto', fontSize: 12, fontWeight: 800, color: ok ? 'var(--bs-success)' : 'var(--bs-warning)' }}>{ok ? '100% ✓' : `${sum}%`}</span>
+              {rg.enable && <Toggle checked={enabled} disabled={disabled} onChange={(v) => onChange([...path, rg.enable!], v)} />}
+            </div>
+            {rg.keys.map((k, i) => (
+              <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                <span style={{ width: 90, fontSize: 12.5, fontWeight: 600, color: 'var(--bs-text-2)' }}>{rg.keys.length === 3 ? labels[i] : k}</span>
+                <RatioInput value={vals[i]} disabled={disabled} onChange={(v) => onChange([...path, k], v)} />
+              </div>
+            ))}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function RatioInput({ value, disabled, onChange }: { value: number; disabled: boolean; onChange: (v: number) => void }) {
+  return <input type="number" className="bs-ratio" style={{ width: '100%' }} min={0} max={100} value={value} disabled={disabled} onChange={(e) => onChange(Number(e.target.value))} />;
+}
+
+function FieldControl({ field, value, disabled, onChange }: { field: CloudFieldSchema; value: unknown; disabled: boolean; onChange: (v: unknown) => void }) {
+  switch (field.type) {
+    case 'number':
+      return (
+        <div className="bs-numwrap">
+          <input className="bs-input" style={{ flex: 1 }} type="number" min={field.min} max={field.max} step={field.step ?? 1} value={String(value ?? 0)} disabled={disabled} onChange={(e) => onChange(Number(e.target.value))} />
+          {field.unit && <span className="bs-unit">{field.unit}</span>}
         </div>
       );
-    }
-    case 'string': return <input value={String(value??'')} maxLength={field.maxLength} placeholder={field.placeholder} disabled={disabled} onChange={e=>onChange(e.target.value)} style={inputStyle(disabled)}/>;
-    case 'select': return <select value={String(value??'')} disabled={disabled} onChange={e=>onChange(e.target.value)} style={inputStyle(disabled)}>{(field.options??[]).map(o=> <option key={o} value={o}>{o}</option>)}</select>;
-    case 'radio': return <div style={{display:'flex', gap:6, flexWrap:'wrap'}}>{(field.options??[]).map(o=> <button key={o} type="button" disabled={disabled} onClick={()=>onChange(o)} style={{padding:'8px 12px', borderRadius:999, border: value===o? '1px solid rgba(124,58,237,0.25)':'1px solid rgba(255,255,255,0.06)', background: value===o? 'rgba(124,58,237,0.1)':'rgba(255,255,255,0.02)', color: value===o? '#A78BFA':'#A09BB8', fontWeight:600, fontSize:12}}>{o}</button>)}</div>;
+    case 'slider':
+      return (
+        <div className="bs-slider-row">
+          <input type="range" className="bs-range" min={field.min ?? 0} max={field.max ?? 100} step={field.step ?? 1} value={Number(value ?? 0)} disabled={disabled} style={{ flex: 1 }} onChange={(e) => onChange(Number(e.target.value))} />
+          <input className="bs-input" style={{ width: 64, textAlign: 'center' }} type="number" min={field.min} max={field.max} value={String(value ?? 0)} disabled={disabled} onChange={(e) => onChange(Number(e.target.value))} />
+        </div>
+      );
+    case 'string': return <input className="bs-input" value={String(value ?? '')} maxLength={field.maxLength} placeholder={field.placeholder} disabled={disabled} onChange={(e) => onChange(e.target.value)} />;
+    case 'select': return <select className="bs-select" value={String(value ?? '')} disabled={disabled} onChange={(e) => onChange(e.target.value)}>{(field.options ?? []).map((o) => <option key={o} value={o}>{o}</option>)}</select>;
+    case 'radio': return <div className="bs-radio-group">{(field.options ?? []).map((o) => <button key={o} type="button" aria-pressed={value === o} className="bs-radio" disabled={disabled} onClick={() => onChange(o)}>{o}</button>)}</div>;
     default: return null;
   }
 }
-function inputStyle(disabled:boolean):React.CSSProperties{ return {width:'100%', padding:'11px 12px', borderRadius:11, border:'1px solid rgba(255,255,255,0.06)', background: disabled? 'rgba(255,255,255,0.02)':'rgba(255,255,255,0.035)', color:'#F0ECFF', outline:'none', opacity: disabled?0.5:1};}
-function Toggle({checked, disabled, onChange}:{checked:boolean; disabled:boolean; onChange:(v:boolean)=>void}){
-  return <button type="button" role="switch" aria-checked={checked} disabled={disabled} onClick={()=>onChange(!checked)} style={{width:44, height:26, borderRadius:999, background: checked? '#7C3AED':'rgba(255,255,255,0.08)', border:'1px solid '+(checked?'rgba(124,58,237,0.4)':'rgba(255,255,255,0.06)'), position:'relative', flexShrink:0, opacity: disabled?0.5:1, transition:'all 0.2s'}}><span style={{position:'absolute', top:2, left: checked? 'calc(100% - 22px)' : '2px', width:20, height:20, borderRadius:999, background:'#fff', transition:'left 0.16s', boxShadow:'0 1px 3px rgba(0,0,0,0.25)'}}/></button>;
+
+function Toggle({ checked, disabled, onChange }: { checked: boolean; disabled: boolean; onChange: (v: boolean) => void }) {
+  return <button type="button" role="switch" aria-checked={checked} disabled={disabled} className="bs-toggle" onClick={() => onChange(!checked)}><span className="knob" /></button>;
 }

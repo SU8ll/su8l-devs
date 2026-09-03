@@ -811,6 +811,9 @@ const ar: Dict = {
   'cloud.renameSave': 'حفظ',
   'cloud.renameCancel': 'إلغاء',
   'cloud.renameError': 'فشلت إعادة التسمية. حاول مجددًا.',
+  'cloud.ratioSumInvalid': 'يجب أن يساوي 100% بالضبط',
+  'cloud.ratioGridWarning': 'يجب أن يكون مجموع توزيع القوات في كل برج 100% بالضبط للحفظ.',
+  'cloud.ratioSaveWarning': 'هذه المجموعات لا تصل إلى 100%: {groups}. هل تريد الحفظ على أي حال؟',
 
   'terms.title': 'شروط الخدمة',
   'terms.intro': 'مرحبًا بك في SU8L DEVs. باستخدامك لهذه المنصة فأنت توافق على شروط الخدمة هذه. إذا لم توافق، لا تستخدم الخدمة.',
