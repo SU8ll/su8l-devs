@@ -60,7 +60,7 @@ export default function CloudMobile(){
 
   return (
     <div style={{display:'flex', flexDirection:'column', gap:14, paddingBottom: editing? 72:0}}>
-      {/* Running/account status row */}
+      {/* Status / account row (title shown once in the top bar) */}
       <div style={{display:'flex', alignItems:'center', gap:8, flexWrap:'wrap'}}>
         <span style={{width:8,height:8,borderRadius:999, background:'#10B981', boxShadow:'0 0 8px rgba(16,185,129,0.5)'}}/>
         <span style={{fontSize:12, fontWeight:600, color:'#6EE7B7'}}>{t('botpanel.running')}</span>

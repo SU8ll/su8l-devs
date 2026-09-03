@@ -38,21 +38,21 @@ export default function DashboardLayout() {
   /* ─── Mobile: dedicated app shell ─── */
   if (isMobile) {
     const nav: MobileNavItem[] = [
-      { to: '/dashboard', label: t('dash.overview'), icon: MIcons.overview, end: true },
-      { to: '/dashboard/bot', label: t('dash.cloudConfig'), icon: MIcons.bot },
-      { to: '/dashboard/chat', label: t('dash.chat'), icon: MIcons.chat },
-      { to: '/dashboard/referral', label: t('dash.referral'), icon: MIcons.rewards },
-      { to: '/dashboard/tickets', label: t('dash.tickets'), icon: MIcons.tickets, badge: unread },
+      { to: '/dashboard', label: 'Overview', icon: MIcons.overview, end: true },
+      { to: '/dashboard/bot', label: 'Cloud', icon: MIcons.bot },
+      { to: '/dashboard/chat', label: 'Chat', icon: MIcons.chat },
+      { to: '/dashboard/referral', label: 'Rewards', icon: MIcons.rewards },
+      { to: '/dashboard/tickets', label: 'Support', icon: MIcons.tickets, badge: unread },
     ];
     const p = location.pathname;
-    let mTitle = user?.username ?? 'SU8L';
-    let mSub: string | undefined = t('dash.overview');
-    if (p.startsWith('/dashboard/bot')) { mTitle = t('dash.cloudConfig'); mSub = undefined; }
-    else if (p.startsWith('/dashboard/chat')) { mTitle = t('dash.chat'); mSub = undefined; }
-    else if (p.startsWith('/dashboard/referral')) { mTitle = t('dash.referral'); mSub = undefined; }
-    else if (p.startsWith('/dashboard/tickets')) { mTitle = t('dash.tickets'); mSub = undefined; }
-    else if (p.startsWith('/dashboard/status')) { mTitle = t('dash.status'); mSub = undefined; }
-    else { mTitle = user?.username ?? 'SU8L'; mSub = undefined; }
+    let mTitle = t('dash.overview');
+    let mSub: string | undefined = user?.username ?? undefined;
+    if (p.startsWith('/dashboard/bot')) { mTitle = 'Cloud'; mSub = 'Configurator'; }
+    else if (p.startsWith('/dashboard/chat')) { mTitle = 'Community'; mSub = 'Chat • ' + (user?.username ?? ''); }
+    else if (p.startsWith('/dashboard/referral')) { mTitle = 'Rewards'; mSub = user?.username ?? undefined; }
+    else if (p.startsWith('/dashboard/tickets')) { mTitle = 'Support'; mSub = 'Tickets'; }
+    else if (p.startsWith('/dashboard/status')) { mTitle = 'Status'; mSub = user?.username ?? undefined; }
+    else { mTitle = user?.username ?? 'SU8L'; mSub = t('dash.overview'); }
     return (
       <MobileLayout
         title={mTitle}
