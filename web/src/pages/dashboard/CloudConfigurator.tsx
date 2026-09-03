@@ -227,7 +227,8 @@ export default function CloudConfigurator() {
     );
   }
 
-  const activeSlot = data.slots.find((s) => s.id === activeSlotId) ?? data.slots[0];
+  const ownedCount = 1 + (user?.extraSlots ?? 0);
+  const activeSlot = data.slots.slice(0, ownedCount).find((s) => s.id === activeSlotId) ?? data.slots[0] ?? null;
 
   return (
     <div className="bs-root min-w-0">
@@ -280,6 +281,7 @@ export default function CloudConfigurator() {
             slots={data.slots}
             activeSlotId={activeSlotId}
             onSwitch={switchAccount}
+            extraSlots={user?.extraSlots ?? 0}
           />
 
           <SlotExpansionBanner t={t} user={user} />
@@ -374,7 +376,7 @@ function NavRail({ area, onArea, counts }: { area: Area; onArea: (a: Area) => vo
 
 /* ── Top bar with account context ───────────────────────────────────────── */
 function Topbar({
-  t, area, accountName, accountSub, running, slots, activeSlotId, onSwitch,
+  t, area, accountName, accountSub, running, slots, activeSlotId, onSwitch, extraSlots,
 }: {
   t: (k: string) => string;
   area: Area;
@@ -384,9 +386,12 @@ function Topbar({
   slots: CloudSlot[];
   activeSlotId: string;
   onSwitch: (id: string) => void;
+  extraSlots?: number;
 }) {
   const [open, setOpen] = useState(false);
   const areaTitle = area.charAt(0).toUpperCase() + area.slice(1);
+  const ownedCount = 1 + (extraSlots ?? 0);
+  const ownedSlots = slots.filter((_, i) => i < ownedCount);
   return (
     <div className="bs-topbar">
       <div>
@@ -396,12 +401,12 @@ function Topbar({
 
       {running && <span className="bs-badge online"><span className="dot" />{t('botpanel.online')}</span>}
 
-      <div className={`bs-account ${slots.length <= 1 ? 'borderless' : ''}`}>
+      <div className={`bs-account ${ownedSlots.length <= 1 ? 'borderless' : ''}`}>
         <div className="min-w-0 text-end">
           <div className="bs-acct-name">{accountName}</div>
           {accountSub && <div className="bs-acct-meta">{accountSub}</div>}
         </div>
-        {slots.length > 1 && (
+        {ownedSlots.length > 1 && (
           <div className="relative">
             <button type="button" className="bs-btn" style={{ minHeight: 30, padding: '0 8px' }} onClick={() => setOpen((o) => !o)}>
               {I.down}
@@ -410,7 +415,7 @@ function Topbar({
               <>
                 <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
                 <div className="bs-panel absolute end-0 z-40 mt-2 w-52" style={{ padding: 6 }}>
-                  {slots.map((s) => (
+                  {ownedSlots.map((s) => (
                     <button key={s.id} type="button"
                       onClick={() => { onSwitch(s.id); setOpen(false); }}
                       className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-start text-[13px] font-semibold transition-colors hover:bg-[var(--bs-surface-2)] ${s.id === activeSlotId ? 'text-[var(--bs-gold)]' : 'text-[var(--bs-text-2)]'}`}>
