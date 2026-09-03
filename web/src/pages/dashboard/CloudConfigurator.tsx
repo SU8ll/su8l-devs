@@ -558,13 +558,13 @@ function SidebarItem({
       onClick={onClick}
       className={`flex shrink-0 items-center gap-3 rounded-2xl px-3 py-2.5 text-start transition-all ${
         active
-          ? 'bg-gradient-to-r from-primary/25 to-glow/25 ring-1 ring-glow/40'
-          : 'hover:bg-white/5'
+          ? 'bg-gradient-to-r from-primary/20 to-glow/15 ring-1 ring-glow/30'
+          : 'hover:bg-white/[0.04]'
       }`}
     >
       <span className="text-xl">{category.icon ?? '⚙️'}</span>
       <span className="min-w-0">
-        <span className="block truncate text-sm font-bold">{category.title}</span>
+        <span className="block truncate text-sm font-bold text-white/90">{category.title}</span>
         {category.description && (
           <span className="hidden truncate text-xs text-muted lg:block">{category.description}</span>
         )}
@@ -641,7 +641,7 @@ function CategoryPanel({
       {category.groups?.map((g) => (
         <div
           key={g.id}
-          className="rounded-2xl border border-glow/20 bg-gradient-to-br from-glow/[0.06] to-transparent p-4 sm:p-6"
+          className="rounded-2xl border border-glow/[0.12] bg-gradient-to-br from-glow/[0.03] to-transparent p-4 sm:p-6"
         >
           <SectionTitle icon={g.icon} title={g.title} desc={g.description} />
           <div className="mt-5">
@@ -802,12 +802,12 @@ function SectionTitle({ icon, title, desc }: { icon?: string; title: string; des
   return (
     <div className="flex items-start gap-3">
       {icon && (
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/30 to-glow/30 text-xl">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-glow/20 text-xl">
           {icon}
         </span>
       )}
       <div>
-        <h2 className="font-display text-lg font-bold text-gradient">{title}</h2>
+        <h2 className="font-display text-lg font-bold text-white">{title}</h2>
         {desc && <p className="mt-0.5 text-sm text-muted">{desc}</p>}
       </div>
     </div>
@@ -817,7 +817,7 @@ function SectionTitle({ icon, title, desc }: { icon?: string; title: string; des
 function Field({ field, children }: { field: CloudFieldSchema; children: ReactNode }) {
   return (
     <div>
-      <label className="mb-1.5 block text-sm font-semibold">{field.label}</label>
+      <label className="mb-1.5 block text-sm font-semibold text-white/90">{field.label}</label>
       {field.description && <p className="mb-2 text-xs text-muted">{field.description}</p>}
       {children}
     </div>
@@ -836,10 +836,10 @@ function BooleanRow({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-xl border border-white/10 bg-white/[0.03] px-5 py-4">
+    <div className="flex items-center justify-between gap-4 rounded-xl border border-white/[0.08] bg-white/[0.025] px-5 py-4 transition-colors hover:bg-white/[0.04]">
       <div className="min-w-0">
-        <div className="text-sm font-semibold">{field.label}</div>
-        {field.description && <div className="text-xs text-muted">{field.description}</div>}
+        <div className="text-sm font-semibold text-white/90">{field.label}</div>
+        {field.description && <div className="mt-0.5 text-xs text-muted">{field.description}</div>}
       </div>
       <Toggle checked={value} disabled={disabled} onChange={onChange} />
     </div>
@@ -1011,8 +1011,8 @@ function RadioGroup({
           onClick={() => onChange(o)}
           className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-all ${
             value === o
-              ? 'bg-gradient-to-r from-primary to-glow text-white shadow-glow'
-              : 'border border-white/10 bg-white/5 text-muted hover:text-white'
+              ? 'bg-gradient-to-r from-primary to-glow text-white shadow-[0_0_10px_rgba(168,85,247,0.25)]'
+              : 'border border-white/[0.08] bg-white/[0.03] text-muted hover:text-white hover:bg-white/[0.06]'
           }`}
         >
           {o}
@@ -1030,14 +1030,14 @@ function Toggle({ checked, disabled, onChange }: { checked: boolean; disabled: b
       aria-checked={checked}
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${
+      className={`relative h-7 w-12 shrink-0 rounded-full transition-all duration-200 ${
         checked
-          ? 'bg-gradient-to-r from-primary to-glow shadow-glow'
-          : 'bg-gray-600 shadow-inner ring-2 ring-inset ring-gray-300/80'
+          ? 'bg-gradient-to-r from-primary to-glow shadow-[0_0_12px_rgba(168,85,247,0.3)]'
+          : 'bg-white/10 ring-1 ring-inset ring-white/10'
       }`}
     >
       <span
-        className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow-md transition-all ${
+        className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow-md transition-all duration-200 ${
           checked ? 'left-[calc(100%-1.625rem)]' : 'left-0.5'
         }`}
       />
