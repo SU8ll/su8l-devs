@@ -261,7 +261,7 @@ function MobileSlotBanner({ t, user }: {
   if (!user) return null;
   const active = user.slots?.active;
   const owned = (user.extraSlots ?? 0) > 0;
-  const total = user.slots?.total ?? 0;
+  const total = 1 + (user.extraSlots ?? 0);
   if (!active) return null;
   return (
     <div className="bs-slot-banner">
@@ -269,15 +269,9 @@ function MobileSlotBanner({ t, user }: {
       <div className="bs-slot-banner-body">
         <div className="bs-slot-banner-title">{t('dash.extraSlotTitle')}</div>
         <div className="bs-slot-banner-sub">{t('cloud.slotTotal').replace('{n}', String(total))}</div>
-        {owned ? (
-          <div className="bs-slot-banner-owned">✓ {t('dash.extraSlotOwned')}</div>
-        ) : (
-          <div className="bs-slot-banner-desc">{t('dash.extraSlotDesc')}</div>
-        )}
+        <div className="bs-slot-banner-desc">{t('dash.extraSlotDesc')} {owned && <span className="bs-slot-banner-owned">✓ {t('dash.extraSlotOwned')}</span>}</div>
       </div>
-      {!owned && (
-        <Link to="/checkout?extra=1" className="bs-btn bs-btn-primary bs-slot-banner-cta">$15 · {t('dash.extraSlotCta')}</Link>
-      )}
+      <Link to="/checkout?extra=1" className="bs-btn bs-btn-primary bs-slot-banner-cta">$15 · {t('dash.extraSlotCta')}</Link>
     </div>
   );
 }
