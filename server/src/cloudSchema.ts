@@ -54,7 +54,7 @@ export interface CloudCategorySchema {
 }
 
 /** Ids of groups that are 100%-ratio triplets (Inf/Cav/Arch). */
-const RATIO_GROUP_IDS = new Set(['alliance_championship', 'climb_tower']);
+const RATIO_GROUP_IDS = new Set(['alliance_championship', 'climb_tower', 'alliance_defense', 'bear_group', 'viking_vengeance']);
 
 /**
  * Describes a single 100%-constrained triple. `ratioGroupFor(path)` maps the
@@ -75,12 +75,16 @@ export const RATIO_GROUPS: RatioGroup[] = [
   { name: 'Knowledge Nexus', categoryId: 'towers_arena', groupId: 'climb_tower', keys: ['kn_inf', 'kn_cav', 'kn_arch'] },
   { name: 'Molten Fort', categoryId: 'towers_arena', groupId: 'climb_tower', keys: ['mf_inf', 'mf_cav', 'mf_arch'] },
   { name: 'Radiant Spire', categoryId: 'towers_arena', groupId: 'climb_tower', keys: ['rs_inf', 'rs_cav', 'rs_arch'] },
+  { name: 'Alliance Defense', categoryId: 'combat_traps', groupId: 'alliance_defense', keys: ['alliance_defense_inf', 'alliance_defense_cav', 'alliance_defense_arch'] },
+  { name: 'Bear Trap (Joining)', categoryId: 'combat_traps', groupId: 'bear_group', keys: ['bear_joining_inf', 'bear_joining_cav', 'bear_joining_arch'] },
+  { name: 'Bear Trap (Master)', categoryId: 'combat_traps', groupId: 'bear_group', keys: ['bear_master_inf', 'bear_master_cav', 'bear_master_arch'] },
+  { name: 'Viking Vengeance', categoryId: 'combat_traps', groupId: 'viking_vengeance', keys: ['viking_inf', 'viking_cav', 'viking_arch'] },
 ];
 
 export function ratioGroupFor(path: string[]): RatioGroup | undefined {
   if (path.length < 3) return undefined;
   const key = path[path.length - 1] ?? '';
-  return RATIO_GROUPS.find((r) => r.categoryId === path[0] && r.keys.includes(key));
+  return RATIO_GROUPS.find((r) => r.categoryId === path[0] && r.groupId === path[1] && r.keys.includes(key)) ?? undefined;
 }
 
 /** Builds the zod validator for a single field. */
