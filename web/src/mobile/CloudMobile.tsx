@@ -135,15 +135,7 @@ function MobileCategoryPanel({ category, path, cfg, disabled, onChange }:{catego
   const booleans = fields.filter(f=> f.type==='boolean');
   const others = fields.filter(f=> f.type!=='boolean');
   return (
-    <div style={{display:'flex', flexDirection:'column', gap:16}}>
-      <div style={{display:'flex', gap:10, alignItems:'flex-start'}}>
-        {category.icon && <span style={{width:36,height:36, borderRadius:11, background:'rgba(124,58,237,0.12)', border:'1px solid rgba(124,58,237,0.14)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>{category.icon}</span>}
-        <div>
-          <div style={{fontSize:15, fontWeight:800, color:'#F5F5F7'}}>{category.title}</div>
-          {category.description && <div style={{fontSize:12.5, color:'#9A99A6', marginTop:2, lineHeight:1.4}}>{category.description}</div>}
-        </div>
-      </div>
-
+    <div style={{display:'flex', flexDirection:'column', gap:12}}>
       {booleans.map(f=>(
         <div key={f.key} style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, padding:'14px 14px', borderRadius:12, border:'1px solid rgba(255,255,255,0.07)', background:'rgba(255,255,255,0.02)'}}>
           <div style={{minWidth:0}}>
