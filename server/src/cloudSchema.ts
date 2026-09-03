@@ -409,10 +409,10 @@ const COMBAT_TRAPS_CATEGORY: CloudCategorySchema = {
     },
     {
       id: 'mine_war',
-      title: 'Mine War',
+      title: "Eternity's Reach",
       icon: '⛏️',
       fields: [
-        { ...bool(true), key: 'minewar_enable', label: 'Enable Mine War Module' },
+        { ...bool(true), key: 'minewar_enable', label: "Enable Eternity's Reach Module" },
         { ...bool(true), key: 'minewar_apply', label: 'Auto Apply / Sign Up' },
         { ...bool(true), key: 'minewar_claim', label: 'Auto Claim Gather Rewards' },
         { ...bool(true), key: 'minewar_battle', label: 'Auto Battle' },
