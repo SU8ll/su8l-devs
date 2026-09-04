@@ -284,14 +284,27 @@ function MobileCategoryPanel({ category, path, cfg, disabled, onChange }: {
   const gridRatioKeys = new Set(localRatioGroups.flatMap((r) => r.keys));
   const gridEnableKeys = new Set(localRatioGroups.flatMap((r) => (r.enable ? [r.enable] : [])));
   const booleans = (category.fields ?? []).filter((f) => f.type === 'boolean' && !gridEnableKeys.has(f.key));
-  const others = (category.fields ?? []).filter((f) => f.type !== 'boolean' && !gridRatioKeys.has(f.key));
+  const othersRaw = (category.fields ?? []).filter((f) => f.type !== 'boolean' && !gridRatioKeys.has(f.key));
+  const isBearGroup = path[path.length - 1] === 'bear_group' || category.id === 'bear_group';
+  const separateCapEnabled = isBearGroup ? Boolean(getValue(cfg, [...path, 'bear_separate_cap'])) : false;
+  const bearMaxLeading = isBearGroup ? othersRaw.find((f) => f.key === 'bear_max_leading') ?? null : null;
+  const others = isBearGroup ? othersRaw.filter((f) => f.key !== 'bear_max_leading') : othersRaw;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
       {booleans.map((f) => (
-        <div key={f.key} className="bs-row">
-          <div><div className="bs-row-label">{f.label}</div>{f.description && <div className="bs-row-desc">{f.description}</div>}</div>
-          <Toggle checked={Boolean(getValue(cfg, [...path, f.key]))} disabled={disabled} onChange={(v) => onChange([...path, f.key], v)} />
+        <div key={f.key}>
+          <div className="bs-row">
+            <div><div className="bs-row-label">{f.label}</div>{f.description && <div className="bs-row-desc">{f.description}</div>}</div>
+            <Toggle checked={Boolean(getValue(cfg, [...path, f.key]))} disabled={disabled} onChange={(v) => onChange([...path, f.key], v)} />
+          </div>
+          {isBearGroup && f.key === 'bear_separate_cap' && separateCapEnabled && bearMaxLeading && (
+            <div style={{ padding: '8px 18px 10px 36px', borderLeft: '2px solid var(--bs-border)', marginLeft: 18 }}>
+              <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--bs-text)' }}>{bearMaxLeading.label}</label>
+              {bearMaxLeading.description && <div style={{ fontSize: 11.5, color: 'var(--bs-text-3)', margin: '2px 0 6px' }}>{bearMaxLeading.description}</div>}
+              <FieldControl field={bearMaxLeading} value={getValue(cfg, [...path, bearMaxLeading.key])} disabled={disabled} onChange={(v) => onChange([...path, bearMaxLeading.key], v)} />
+            </div>
+          )}
         </div>
       ))}
 

@@ -504,9 +504,7 @@ const COMBAT_TRAPS_CATEGORY: CloudCategorySchema = {
         { ...num('Max marches per trap', 0, 0), key: 'bear_max_marches', description: '0 = no limit' },
         { ...num('Pre-event window (s)', 300, 0), key: 'bear_pre_event', description: 'seconds before the trap - stop sending new gather marches' },
         { ...num('Recall buffer (s)', 30, 0), key: 'bear_recall_buffer', description: 'seconds of safety margin on the just-in-time recall' },
-        { ...bool(false), key: 'bear_fill', label: 'Fill march to capacity (top-up)' },
         { ...num('Max troops per march', 150000, 0), key: 'bear_max_troops', description: '0 = no limit (use march capacity)' },
-        { ...bool(false), key: 'bear_joining_minimal', label: 'Minimal (1 troop — hero carries the damage)' },
         { ...num('Infantry count %', 10, 0, 100), key: 'bear_joining_inf', unit: '%' },
         { ...num('Cavalry count %', 10, 0, 100), key: 'bear_joining_cav', unit: '%' },
         { ...num('Ranged count %', 80, 0, 100), key: 'bear_joining_arch', unit: '%' },
@@ -515,7 +513,6 @@ const COMBAT_TRAPS_CATEGORY: CloudCategorySchema = {
         { ...sel('Joiner hero #3', '', BEAR_HERO_IDS), key: 'bear_joiner_3' },
         { ...sel('Joiner hero #4', '', BEAR_HERO_IDS), key: 'bear_joiner_4' },
         { ...sel('Joiner hero #5', '', BEAR_HERO_IDS), key: 'bear_joiner_5' },
-        { ...bool(false), key: 'bear_master_minimal', label: 'Minimal (1 troop — hero carries the damage)' },
         { ...num('Infantry count %', 10, 0, 100), key: 'bear_master_inf', unit: '%' },
         { ...num('Cavalry count %', 10, 0, 100), key: 'bear_master_cav', unit: '%' },
         { ...num('Ranged count %', 80, 0, 100), key: 'bear_master_arch', unit: '%' },
@@ -932,7 +929,7 @@ export function emptyValue(f: CloudFieldSchema): boolean | number | string {
 }
 
 /** Bumped whenever the schema shape changes so the panel refreshes its defaults. */
-export const SCHEMA_VERSION = 18;
+export const SCHEMA_VERSION = 19;
 
 export const FLAT_SCHEMA = flattenedSchema(MASTER_SCHEMA);
 

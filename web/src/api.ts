@@ -377,9 +377,7 @@ export interface CloudConfig {
       bear_max_marches: number;
       bear_pre_event: number;
       bear_recall_buffer: number;
-      bear_fill: boolean;
       bear_max_troops: number;
-      bear_joining_minimal: boolean;
       bear_joining_inf: number;
       bear_joining_cav: number;
       bear_joining_arch: number;
@@ -388,7 +386,6 @@ export interface CloudConfig {
       bear_joiner_3: string;
       bear_joiner_4: string;
       bear_joiner_5: string;
-      bear_master_minimal: boolean;
       bear_master_inf: number;
       bear_master_cav: number;
       bear_master_arch: number;

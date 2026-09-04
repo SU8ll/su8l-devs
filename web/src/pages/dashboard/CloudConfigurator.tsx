@@ -616,20 +616,46 @@ function CategoryPanel({
       ))}
 
       {/* other booleans */}
-      {restBooleans.length > 0 && (
-        <div>
-          {restBooleans.map((f) => (
-            <BooleanRow key={f.key} field={f} value={Boolean(getValue(cfg, [...path, f.key]))} disabled={disabled} onChange={(v) => onChange([...path, f.key], v)} />
-          ))}
-        </div>
-      )}
+      {(() => {
+        const isBearGroup = path[path.length - 1] === 'bear_group' || category.id === 'bear_group';
+        const separateCapEnabled = isBearGroup ? Boolean(getValue(cfg, [...path, 'bear_separate_cap'])) : false;
+        const bearMaxLeading = isBearGroup ? others.find((f) => f.key === 'bear_max_leading') ?? null : null;
+        return (
+          <>
+            {restBooleans.length > 0 && (
+              <div className="space-y-1">
+                {restBooleans.map((f) => {
+                  if (isBearGroup && f.key === 'bear_separate_cap') {
+                    return (
+                      <div key={f.key}>
+                        <BooleanRow field={f} value={Boolean(getValue(cfg, [...path, f.key]))} disabled={disabled} onChange={(v) => onChange([...path, f.key], v)} />
+                        {separateCapEnabled && bearMaxLeading && (
+                          <div className="ms-6 border-s-2 border-[var(--bs-border)] ps-4 py-2">
+                            <Field field={bearMaxLeading}>
+                              <FieldInput field={bearMaxLeading} value={getValue(cfg, [...path, bearMaxLeading.key])} disabled={disabled} onChange={(v) => onChange([...path, bearMaxLeading.key], v)} />
+                            </Field>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+                  return <BooleanRow key={f.key} field={f} value={Boolean(getValue(cfg, [...path, f.key]))} disabled={disabled} onChange={(v) => onChange([...path, f.key], v)} />;
+                })}
+              </div>
+            )}
+          </>
+        );
+      })()}
 
       {/* number / select / radio / string / slider */}
       {(() => {
         const isBearGroup = path[path.length - 1] === 'bear_group' || category.id === 'bear_group';
+        const bearMaxLeadingKey = 'bear_max_leading';
         const joiners = isBearGroup ? others.filter((f) => f.key.startsWith('bear_joiner_')) : [];
         const leaders = isBearGroup ? others.filter((f) => f.key.startsWith('bear_leader_')) : [];
-        const normalOthers = isBearGroup ? others.filter((f) => !f.key.startsWith('bear_joiner_') && !f.key.startsWith('bear_leader_')) : others;
+        const normalOthers = isBearGroup
+          ? others.filter((f) => !f.key.startsWith('bear_joiner_') && !f.key.startsWith('bear_leader_') && f.key !== bearMaxLeadingKey)
+          : others;
         return (
           <>
             {normalOthers.length > 0 && (
