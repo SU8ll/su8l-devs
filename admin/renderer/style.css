@@ -277,6 +277,16 @@ tr.clickable:hover td { background: rgba(255,255,255,0.03); }
   width: 12px; height: 12px; border-radius: 50%; background: var(--muted);
   transition: all .15s;
 }
+
+/* ── Bear Hunt hero cells (admin) ─────────────────────────────── */
+.cfg-hero-cell { padding: 6px 10px; }
+.cfg-hero-cell .v.hero-val,
+.cfg-hero-cell .v.hero-empty { display: flex; align-items: center; gap: 7px; font-weight: 700; font-size: 12.5px; }
+.cfg-hero-cell .hero-portrait { width: 26px; height: 26px; border-radius: 7px; object-fit: cover; border: 1px solid var(--border); background: rgba(255,255,255,0.06); flex-shrink: 0; }
+.cfg-hero-cell .hero-name { color: #fff; }
+.cfg-hero-cell .hero-stars { color: #a78bfa; font-size: 11.5px; letter-spacing: 0.04em; }
+.cfg-hero-cell .hero-meta { color: var(--muted); font-weight: 600; font-size: 10.5px; margin-left: auto; }
+.cfg-hero-cell .v.hero-empty { color: var(--muted); font-style: italic; font-weight: 600; }
 .mini-toggle.on { background: rgba(34,197,94,0.35); }
 .mini-toggle.on::after { background: #86efac; inset-inline-start: 18px; }
 

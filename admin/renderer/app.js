@@ -387,6 +387,47 @@ function ratioGroupsIn(path) {
   return RATIO_GROUPS.filter((r) => r.categoryId === path[0] && r.groupId === path[1]);
 }
 
+/* ── Bear Hunt heroes — mirrors web/src/data/heroes.ts ──────────────── */
+const BEAR_HEROES = [
+  { id: 'chenko', name: 'Chenko', stars: 4, portrait: 'heroes/portraits/chenko.webp', rarity: 'epic', gen: 1 },
+  { id: 'yeonwoo', name: 'Yeonwoo', stars: 4, portrait: 'heroes/portraits/yeonwoo.webp', rarity: 'epic', gen: 1 },
+  { id: 'amane', name: 'Amane', stars: 4, portrait: 'heroes/portraits/amane.webp', rarity: 'epic', gen: 1 },
+  { id: 'diana', name: 'Diana', stars: 4, portrait: 'heroes/portraits/diana.webp', rarity: 'epic', gen: 1 },
+  { id: 'fahd', name: 'Fahd', stars: 4, portrait: 'heroes/portraits/fahd.webp', rarity: 'epic', gen: 1 },
+  { id: 'gordon', name: 'Gordon', stars: 4, portrait: 'heroes/portraits/gordon.webp', rarity: 'epic', gen: 1 },
+  { id: 'howard', name: 'Howard', stars: 4, portrait: 'heroes/portraits/howard.webp', rarity: 'epic', gen: 1 },
+  { id: 'quinn', name: 'Quinn', stars: 4, portrait: 'heroes/portraits/quinn.webp', rarity: 'epic', gen: 1 },
+  { id: 'edwin', name: 'Edwin', stars: 3, portrait: 'heroes/portraits/edwin.webp', rarity: 'rare', gen: 1 },
+  { id: 'forrest', name: 'Forrest', stars: 3, portrait: 'heroes/portraits/forrest.webp', rarity: 'rare', gen: 1 },
+  { id: 'olive', name: 'Olive', stars: 3, portrait: 'heroes/portraits/olive.webp', rarity: 'rare', gen: 1 },
+  { id: 'seth', name: 'Seth', stars: 3, portrait: 'heroes/portraits/seth.webp', rarity: 'rare', gen: 1 },
+  { id: 'jabel', name: 'Jabel', stars: 5, portrait: 'heroes/portraits/jabel.webp', rarity: 'mythic', gen: 1 },
+  { id: 'saul', name: 'Saul', stars: 5, portrait: 'heroes/portraits/saul.webp', rarity: 'mythic', gen: 1 },
+  { id: 'helga', name: 'Helga', stars: 5, portrait: 'heroes/portraits/helga.webp', rarity: 'mythic', gen: 1 },
+  { id: 'amadeus', name: 'Amadeus', stars: 5, portrait: 'heroes/portraits/amadeus.webp', rarity: 'mythic', gen: 1 },
+  { id: 'zoe', name: 'Zoe', stars: 5, portrait: 'heroes/portraits/zoe.webp', rarity: 'mythic', gen: 2 },
+  { id: 'hilde', name: 'Hilde', stars: 5, portrait: 'heroes/portraits/hilde.webp', rarity: 'mythic', gen: 2 },
+  { id: 'marlin', name: 'Marlin', stars: 5, portrait: 'heroes/portraits/marlin.webp', rarity: 'mythic', gen: 2 },
+  { id: 'eric', name: 'Eric', stars: 5, portrait: 'heroes/portraits/eric.webp', rarity: 'mythic', gen: 3 },
+  { id: 'jaeger', name: 'Jaeger', stars: 5, portrait: 'heroes/portraits/jaeger.webp', rarity: 'mythic', gen: 3 },
+  { id: 'petra', name: 'Petra', stars: 5, portrait: 'heroes/portraits/petra.webp', rarity: 'mythic', gen: 3 },
+  { id: 'alcar', name: 'Alcar', stars: 5, portrait: 'heroes/portraits/alcar.webp', rarity: 'mythic', gen: 4 },
+  { id: 'rosa', name: 'Rosa', stars: 5, portrait: 'heroes/portraits/rosa.webp', rarity: 'mythic', gen: 4 },
+  { id: 'margot', name: 'Margot', stars: 5, portrait: 'heroes/portraits/margot.webp', rarity: 'mythic', gen: 4 },
+  { id: 'long-fei', name: 'Long Fei', stars: 5, portrait: 'heroes/portraits/long-fei.webp', rarity: 'mythic', gen: 5 },
+  { id: 'vivian', name: 'Vivian', stars: 5, portrait: 'heroes/portraits/vivian.webp', rarity: 'mythic', gen: 5 },
+  { id: 'thrud', name: 'Thrud', stars: 5, portrait: 'heroes/portraits/thrud.webp', rarity: 'mythic', gen: 5 },
+  { id: 'yang', name: 'Yang', stars: 5, portrait: 'heroes/portraits/yang.webp', rarity: 'mythic', gen: 6 },
+  { id: 'triton', name: 'Triton', stars: 5, portrait: 'heroes/portraits/triton.webp', rarity: 'mythic', gen: 6 },
+  { id: 'sophia', name: 'Sophia', stars: 5, portrait: 'heroes/portraits/sophia.webp', rarity: 'mythic', gen: 6 },
+  { id: 'ava', name: 'Ava', stars: 5, portrait: 'heroes/portraits/ava.webp', rarity: 'mythic', gen: 7 },
+  { id: 'charles', name: 'Charles', stars: 5, portrait: 'heroes/portraits/charles.webp', rarity: 'mythic', gen: 7 },
+  { id: 'wee-and-woo', name: 'Wee & Woo', stars: 5, portrait: 'heroes/portraits/wee-and-woo.webp', rarity: 'mythic', gen: 7 },
+];
+const HERO_BY_ID = new Map(BEAR_HEROES.map((h) => [h.id, h]));
+function isHeroField(key) { return key.startsWith('bear_joiner_') || key.startsWith('bear_leader_'); }
+function heroStars(n) { return '★'.repeat(n); }
+
 const state = {
   base: localStorage.getItem(LS.base) || 'https://su8ldevs.eu.cc/api/panel',
   token: localStorage.getItem(LS.token) || '',
@@ -1136,6 +1177,21 @@ function booleanRow(f, value) {
 }
 
 function fieldCell(f, value) {
+  // Hero selectors — show portrait + stars + name
+  if (isHeroField(f.key)) {
+    const h = HERO_BY_ID.get(String(value || ''));
+    if (!h || !value) {
+      const emptyHint = f.key.startsWith('bear_leader_') ? "Today's best-per-army-type auto-pick" : 'Best buff (auto)';
+      return `<div class="cfg-field-cell cfg-hero-cell">
+        <div class="k">${escapeHtml(f.label)}</div>
+        <div class="v hero-empty">— ${escapeHtml(emptyHint)}</div>
+      </div>`;
+    }
+    return `<div class="cfg-field-cell cfg-hero-cell">
+      <div class="k">${escapeHtml(f.label)}</div>
+      <div class="v hero-val"><img class="hero-portrait" src="${escapeHtml(h.portrait)}" alt="${escapeHtml(h.name)}" width="28" height="28" onerror="this.style.display='none'" /> <span class="hero-name">${escapeHtml(h.name)}</span> <span class="hero-stars">${heroStars(h.stars)}</span> <span class="hero-meta">${escapeHtml(h.rarity)} · Gen ${h.gen}</span></div>
+    </div>`;
+  }
   return `<div class="cfg-field-cell">
     <div class="k">${escapeHtml(f.label)}</div>
     <div class="v">${escapeHtml(formatCfgValue(f, value))}</div>

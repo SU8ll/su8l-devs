@@ -12,6 +12,7 @@ import {
   type SaveCloudConfigResponse,
 } from '../../api';
 import { Spinner } from '../../components/ui';
+import { HeroSelect, isHeroFieldKey } from '../../components/HeroSelect';
 
 type JsonObject = Record<string, unknown>;
 
@@ -624,15 +625,59 @@ function CategoryPanel({
       )}
 
       {/* number / select / radio / string / slider */}
-      {others.length > 0 && (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {others.map((f) => (
-            <Field key={f.key} field={f}>
-              <FieldInput field={f} value={getValue(cfg, [...path, f.key])} disabled={disabled} onChange={(v) => onChange([...path, f.key], v)} />
-            </Field>
-          ))}
-        </div>
-      )}
+      {(() => {
+        const isBearGroup = path[path.length - 1] === 'bear_group' || category.id === 'bear_group';
+        const joiners = isBearGroup ? others.filter((f) => f.key.startsWith('bear_joiner_')) : [];
+        const leaders = isBearGroup ? others.filter((f) => f.key.startsWith('bear_leader_')) : [];
+        const normalOthers = isBearGroup ? others.filter((f) => !f.key.startsWith('bear_joiner_') && !f.key.startsWith('bear_leader_')) : others;
+        return (
+          <>
+            {normalOthers.length > 0 && (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {normalOthers.map((f) => (
+                  <Field key={f.key} field={f}>
+                    <FieldInput field={f} value={getValue(cfg, [...path, f.key])} disabled={disabled} onChange={(v) => onChange([...path, f.key], v)} />
+                  </Field>
+                ))}
+              </div>
+            )}
+            {joiners.length > 0 && (
+              <div className="mt-1">
+                <div className="bs-hero-section-hint">Joiner heroes (first slot, in order of preference - empty = best rally buff)</div>
+                <div className="space-y-2">
+                  {joiners.map((f, idx) => (
+                    <div key={f.key} className="bs-hero-row">
+                      <span className="bs-hero-idx">#{idx + 1}</span>
+                      <div className="min-w-0 flex-1">
+                        <Field field={f}>
+                          <FieldInput field={f} value={getValue(cfg, [...path, f.key])} disabled={disabled} onChange={(v) => onChange([...path, f.key], v)} />
+                        </Field>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {leaders.length > 0 && (
+              <div className="mt-2">
+                <div className="bs-hero-section-hint">Leader heroes (up to 3, in order of preference - empty = today's best-per-army-type auto-pick)</div>
+                <div className="space-y-2">
+                  {leaders.map((f, idx) => (
+                    <div key={f.key} className="bs-hero-row">
+                      <span className="bs-hero-idx">#{idx + 1}</span>
+                      <div className="min-w-0 flex-1">
+                        <Field field={f}>
+                          <FieldInput field={f} value={getValue(cfg, [...path, f.key])} disabled={disabled} onChange={(v) => onChange([...path, f.key], v)} />
+                        </Field>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        );
+      })()}
 
       {/* ratio matrix */}
       {localRatioGroups.length > 0 && (
@@ -810,6 +855,9 @@ function Field({ field, children }: { field: CloudFieldSchema; children: ReactNo
 }
 
 function FieldInput({ field, value, disabled, onChange }: { field: CloudFieldSchema; value: unknown; disabled: boolean; onChange: (v: unknown) => void }) {
+  if (isHeroFieldKey(field.key)) {
+    return <HeroSelect fieldKey={field.key} value={String(value ?? '')} disabled={disabled} onChange={(v) => onChange(v)} />;
+  }
   switch (field.type) {
     case 'number': return <NumberInput field={field} value={Number(value ?? 0)} disabled={disabled} onChange={(v) => onChange(v)} />;
     case 'slider': return <Slider field={field} value={Number(value ?? 0)} disabled={disabled} onChange={(v) => onChange(v)} />;

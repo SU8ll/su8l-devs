@@ -4,6 +4,7 @@ import { useI18n } from '../i18n';
 import { useAuth } from '../AuthContext';
 import { api, type CloudCategorySchema, type CloudConfig, type CloudConfigDto, type CloudFieldSchema, type SaveCloudConfigResponse } from '../api';
 import { Spinner } from '../components/ui';
+import { HeroSelect, isHeroFieldKey } from '../components/HeroSelect';
 
 type JsonObject = Record<string, unknown>;
 
@@ -393,7 +394,10 @@ function FieldControl({ field, value, disabled, onChange }: { field: CloudFieldS
         </div>
       );
     case 'string': return <input className="bs-input" value={String(value ?? '')} maxLength={field.maxLength} placeholder={field.placeholder} disabled={disabled} onChange={(e) => onChange(e.target.value)} />;
-    case 'select': return <select className="bs-select" value={String(value ?? '')} disabled={disabled} onChange={(e) => onChange(e.target.value)}>{(field.options ?? []).map((o) => <option key={o} value={o}>{o}</option>)}</select>;
+    case 'select': {
+      if (isHeroFieldKey(field.key)) return <HeroSelect fieldKey={field.key} value={String(value ?? '')} disabled={disabled} onChange={(v) => onChange(v)} />;
+      return <select className="bs-select" value={String(value ?? '')} disabled={disabled} onChange={(e) => onChange(e.target.value)}>{(field.options ?? []).map((o) => <option key={o} value={o}>{o}</option>)}</select>;
+    }
     case 'radio': return <div className="bs-radio-group">{(field.options ?? []).map((o) => <button key={o} type="button" aria-pressed={value === o} className="bs-radio" disabled={disabled} onClick={() => onChange(o)}>{o}</button>)}</div>;
     default: return null;
   }

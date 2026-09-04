@@ -182,6 +182,45 @@ export const SPEEDUP_OPTIONS = ['5 min (300s)', '15 min (900s)', '30 min (1800s)
 
 const SPEEDUP_MODES = ['Disabled', 'TypeOnly', 'TypeAndGeneral'];
 
+/** Hero IDs for Bear Hunt selectors — '' = auto (best buff). Slugs match /heroes/portraits/*.webp filenames. */
+export const BEAR_HERO_IDS = [
+  '',
+  'chenko',
+  'yeonwoo',
+  'amane',
+  'diana',
+  'fahd',
+  'gordon',
+  'howard',
+  'quinn',
+  'edwin',
+  'forrest',
+  'olive',
+  'seth',
+  'jabel',
+  'saul',
+  'helga',
+  'amadeus',
+  'zoe',
+  'hilde',
+  'marlin',
+  'eric',
+  'jaeger',
+  'petra',
+  'alcar',
+  'rosa',
+  'margot',
+  'long-fei',
+  'vivian',
+  'thrud',
+  'yang',
+  'triton',
+  'sophia',
+  'ava',
+  'charles',
+  'wee-and-woo',
+];
+
 const CONNECTION_CATEGORY: CloudCategorySchema = {
   id: 'connection',
   title: 'Connection',
@@ -452,28 +491,37 @@ const COMBAT_TRAPS_CATEGORY: CloudCategorySchema = {
     },
     {
       id: 'bear_group',
-      title: 'Bear Trap',
+      title: 'Bear Hunt',
       icon: '🐻',
       fields: [
-        { ...bool(true), key: 'bear_enable', label: 'Enable Bear Trap Auto-Join' },
+        { ...bool(true), key: 'bear_enable', label: 'Enable Bear Hunt Auto-Join' },
         { ...bool(true), key: 'bear_t1', label: 'Join Trap 1' },
         { ...bool(false), key: 'bear_t2', label: 'Join Trap 2' },
-        { ...bool(true), key: 'bear_open', label: 'Join all open rallies' },
+        { ...bool(true), key: 'bear_open', label: "Join other players' rallies (off = lead only)" },
         { ...bool(true), key: 'bear_launch', label: 'Auto-launch own rally (be the rally master)' },
-        { ...num('Wait after rally created (s)', 0, 0), key: 'bear_wait' },
+        { ...bool(true), key: 'bear_fifo', label: "Join rallies in the game's order (first come, first served)" },
+        { ...num('Wait after rally created (s)', 0, 0), key: 'bear_wait', description: 'seconds' },
         { ...num('Max marches per trap', 0, 0), key: 'bear_max_marches', description: '0 = no limit' },
         { ...num('Pre-event window (s)', 300, 0), key: 'bear_pre_event', description: 'seconds before the trap - stop sending new gather marches' },
         { ...num('Recall buffer (s)', 30, 0), key: 'bear_recall_buffer', description: 'seconds of safety margin on the just-in-time recall' },
-        { ...bool(true), key: 'bear_fill', label: 'Fill march to capacity (top-up)' },
+        { ...bool(false), key: 'bear_fill', label: 'Fill march to capacity (top-up)' },
         { ...num('Max troops per march', 150000, 0), key: 'bear_max_troops', description: '0 = no limit (use march capacity)' },
         { ...bool(false), key: 'bear_joining_minimal', label: 'Minimal (1 troop — hero carries the damage)' },
         { ...num('Infantry count %', 10, 0, 100), key: 'bear_joining_inf', unit: '%' },
         { ...num('Cavalry count %', 10, 0, 100), key: 'bear_joining_cav', unit: '%' },
         { ...num('Ranged count %', 80, 0, 100), key: 'bear_joining_arch', unit: '%' },
+        { ...sel('Joiner hero #1 (first slot, priority)', '', BEAR_HERO_IDS), key: 'bear_joiner_1', description: 'empty = best rally buff' },
+        { ...sel('Joiner hero #2', '', BEAR_HERO_IDS), key: 'bear_joiner_2' },
+        { ...sel('Joiner hero #3', '', BEAR_HERO_IDS), key: 'bear_joiner_3' },
+        { ...sel('Joiner hero #4', '', BEAR_HERO_IDS), key: 'bear_joiner_4' },
+        { ...sel('Joiner hero #5', '', BEAR_HERO_IDS), key: 'bear_joiner_5' },
         { ...bool(false), key: 'bear_master_minimal', label: 'Minimal (1 troop — hero carries the damage)' },
         { ...num('Infantry count %', 10, 0, 100), key: 'bear_master_inf', unit: '%' },
         { ...num('Cavalry count %', 10, 0, 100), key: 'bear_master_cav', unit: '%' },
         { ...num('Ranged count %', 80, 0, 100), key: 'bear_master_arch', unit: '%' },
+        { ...sel('Leader hero #1 (up to 3, priority)', '', BEAR_HERO_IDS), key: 'bear_leader_1', description: "empty = today's best-per-army-type auto-pick" },
+        { ...sel('Leader hero #2', '', BEAR_HERO_IDS), key: 'bear_leader_2' },
+        { ...sel('Leader hero #3', '', BEAR_HERO_IDS), key: 'bear_leader_3' },
         { ...bool(false), key: 'bear_separate_cap', label: 'Use a separate troop cap when leading' },
         { ...num('Max troops when leading', 0, 0), key: 'bear_max_leading', description: '0 = no limit (use march capacity)' },
         { ...bool(true), key: 'bear_donate', label: 'Auto-donate Hunting Arrows to strengthen the trap' },
@@ -884,7 +932,7 @@ export function emptyValue(f: CloudFieldSchema): boolean | number | string {
 }
 
 /** Bumped whenever the schema shape changes so the panel refreshes its defaults. */
-export const SCHEMA_VERSION = 17;
+export const SCHEMA_VERSION = 18;
 
 export const FLAT_SCHEMA = flattenedSchema(MASTER_SCHEMA);
 
