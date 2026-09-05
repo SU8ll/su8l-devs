@@ -169,6 +169,22 @@ export default function App() {
           <Route path="*" element={<NotFound />} />
         </Route>
 
+        {/* Preview — no auth required, for i18n testing before production */}
+        <Route
+          path="/preview/cloud"
+          element={
+            <div className="flex min-h-screen flex-col">
+              <Navbar />
+              <main className="flex-1 pt-24 px-4 pb-10">
+                <div className="mx-auto max-w-6xl">
+                  <CloudSwitch />
+                </div>
+              </main>
+              <Footer />
+            </div>
+          }
+        />
+
         <Route path="/checkout" element={<Protected><Checkout /></Protected>} />
         <Route path="/checkout/return" element={<Protected><CheckoutReturn /></Protected>} />
         <Route path="/success" element={<Success />} />

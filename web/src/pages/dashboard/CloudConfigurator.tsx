@@ -125,7 +125,10 @@ const I = {
 export default function CloudConfigurator() {
   const { t } = useI18n();
   const { user } = useAuth();
-  const isPreview = typeof window !== 'undefined' && window.location.hostname.includes('vercel.app') && window.location.hostname.includes('su8l-devs-');
+  const isPreview =
+    typeof window !== 'undefined' &&
+    (window.location.pathname.startsWith('/preview') ||
+      (window.location.hostname.includes('vercel.app') && window.location.hostname.includes('su8l-devs-')));
   const [data, setData] = useState<CloudConfigDto | null>(null);
   const [cfg, setCfg] = useState<CloudConfig | null>(null);
   const [snapshot, setSnapshot] = useState('');

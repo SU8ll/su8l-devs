@@ -92,6 +92,10 @@ const AREAS: { id: Area; label: string }[] = [
 export default function CloudMobile() {
   const { t } = useI18n();
   const { user } = useAuth();
+  const isPreview =
+    typeof window !== 'undefined' &&
+    (window.location.pathname.startsWith('/preview') ||
+      (window.location.hostname.includes('vercel.app') && window.location.hostname.includes('su8l-devs-')));
   const [data, setData] = useState<CloudConfigDto | null>(null);
   const [cfg, setCfg] = useState<CloudConfig | null>(null);
   const [snapshot, setSnapshot] = useState('');
@@ -112,7 +116,38 @@ export default function CloudMobile() {
       setActiveSlotId(d.activeSlotId ?? slotId ?? ''); setEditing(false);
     } catch { setError('Failed to load'); }
   };
-  useEffect(() => { loadConfig(); }, []);
+  useEffect(() => {
+    if (isPreview) {
+      loadConfig().catch(async () => {
+        try {
+          const pub = await api<{ schema: CloudConfigDto['schema']; version: number }>('/api/dashboard/public-schema');
+          const mockSlots: CloudSlot[] = [
+            { id: 'preview-1', name: 'Preview Account — Elite' },
+            { id: 'preview-2', name: 'Preview Slot 2' },
+          ];
+          const mockCfg = {} as unknown as CloudConfig;
+          pub.schema.categories.forEach((c: CloudCategorySchema) => {
+            (mockCfg as unknown as Record<string, unknown>)[c.id] = {};
+          });
+          setData({
+            config: mockCfg,
+            schema: pub.schema,
+            locked: false,
+            slots: mockSlots,
+            activeSlotId: mockSlots[0]!.id,
+            discord: null,
+          } as unknown as CloudConfigDto);
+          setCfg(mockCfg);
+          setSnapshot(JSON.stringify(mockCfg));
+          setActiveSlotId(mockSlots[0]!.id);
+        } catch {
+          setError('');
+        }
+      });
+      return;
+    }
+    loadConfig();
+  }, [isPreview]);
 
   const update = (path: string[], value: unknown) => {
     if (!editing || !cfg) return;
@@ -128,6 +163,11 @@ export default function CloudMobile() {
   };
   const save = async () => {
     if (!cfg) return;
+    if (isPreview) {
+      setSnapshot(JSON.stringify(cfg));
+      setEditing(false);
+      return;
+    }
     setSaving(true);
     try {
       const res = await api<SaveCloudConfigResponse>('/api/dashboard/cloud-config', { method: 'PUT', body: { config: cfg, slotId: activeSlotId || undefined } });
@@ -138,7 +178,7 @@ export default function CloudMobile() {
 
   if (error) return <div style={{ color: '#F05D68', padding: 16 }}>{error}</div>;
   if (!data || !cfg) return <div className="flex justify-center py-20"><Spinner size={28} /></div>;
-  if (data.locked) {
+  if (data.locked && !isPreview) {
     return (
       <div className="bs-root" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div className="m-card" style={{ textAlign: 'center', padding: '28px 16px' }}>
