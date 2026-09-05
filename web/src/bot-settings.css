@@ -581,3 +581,5 @@
 .bs-lang-item-sub { font-size: 11px; color: var(--bs-text-3); }
 .bs-lang-check { color: var(--bs-gold); font-weight: 800; }
 .bs-lang-premium-foot { margin-top: 4px; padding: 8px 10px 4px; border-top: 1px solid var(--bs-border); font-size: 10.5px; color: var(--bs-text-3); text-align: center; letter-spacing: .06em; }
+.bs-lang-premium-foot-link { display: block; margin-top: 4px; padding: 9px 10px; border-top: 1px solid var(--bs-border); font-size: 12px; font-weight: 700; color: #a78bfa; text-align: center; text-decoration: none; border-radius: 10px; background: rgba(168,85,247,.08); transition: all .15s; }
+.bs-lang-premium-foot-link:hover { background: rgba(168,85,247,.14); color: #fff; border-color: rgba(168,85,247,.3); }

@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { Link } from 'react-router-dom';
 import { useI18n, type Lang } from '../i18n';
 
 const LANGS: { code: Lang; label: string; flag: string; native: string }[] = [
@@ -57,7 +58,9 @@ export function CloudLangSwitcher({ variant = 'panel' }: { variant?: 'panel' | '
               {lang === l.code && <span className="bs-lang-check">✓</span>}
             </button>
           ))}
-          <div className="bs-lang-premium-foot">5 languages · KINGSHOT official event names</div>
+          <Link to="/developer" onClick={() => setOpen(false)} className="bs-lang-premium-foot-link">
+            لغتك المفضلة ليست هنا ؟
+          </Link>
         </div>
       )}
     </div>
