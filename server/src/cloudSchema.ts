@@ -907,9 +907,8 @@ function burnFields(prefix: string): CloudFieldSchema[] {
 
 const EVENT_MILESTONES_CATEGORY: CloudCategorySchema = {
   id: 'event_milestones',
-  title: 'Weekly & Monthly Events',
-  icon: '🗓️',
-  description: 'الأحداث الأسبوعية والشهرية — Weekly & monthly milestones. Spends resources, speedups and hero shards to reach event score tiers.',
+  title: 'الأحداث الأسبوعية والشهرية',
+  description: 'Spends resources, speedups and hero shards to reach event score tiers. Off by default: it changes what the account burns.',
   fields: [
     { ...bool(false), key: 'chase_enable', label: 'Chase event milestones', description: 'Spends resources, speedups and hero shards to reach event score tiers. Off by default: it changes what the account burns.' },
   ],
@@ -917,7 +916,6 @@ const EVENT_MILESTONES_CATEGORY: CloudCategorySchema = {
     {
       id: 'honor_ranking',
       title: 'Honor Ranking',
-      icon: '🏅',
       description: 'What this event may burn — Edit these and they apply to this event only. The first edit copies the defaults above, so allowing one more fuel never forbids the others.',
       fields: [
         { ...bool(false), key: 'honor_on', label: 'On' },
@@ -928,7 +926,6 @@ const EVENT_MILESTONES_CATEGORY: CloudCategorySchema = {
     {
       id: 'strongest_governor',
       title: 'Strongest Governor',
-      icon: '👑',
       fields: [
         { ...bool(false), key: 'gov_on', label: 'On' },
         { ...sel('Target', 'Highest reachable', CHASE_TARGET_OPTIONS), key: 'gov_target' },
@@ -938,7 +935,6 @@ const EVENT_MILESTONES_CATEGORY: CloudCategorySchema = {
     {
       id: 'alliance_brawl',
       title: 'Alliance Brawl',
-      icon: '⚔️',
       fields: [
         { ...bool(false), key: 'brawl_on', label: 'On' },
         { ...sel('Target', 'Highest reachable', CHASE_TARGET_OPTIONS), key: 'brawl_target' },
@@ -947,8 +943,7 @@ const EVENT_MILESTONES_CATEGORY: CloudCategorySchema = {
     },
     {
       id: 'champions_eve',
-      title: "Champions' Eve",
-      icon: '🏆',
+      title: 'Flamedragon Tyrant',
       fields: [
         { ...bool(false), key: 'champ_eve_on', label: 'On' },
         { ...sel('Target', 'Highest reachable', CHASE_TARGET_OPTIONS), key: 'champ_eve_target' },
@@ -957,8 +952,7 @@ const EVENT_MILESTONES_CATEGORY: CloudCategorySchema = {
     },
     {
       id: 'event_goals',
-      title: 'Event Goals',
-      icon: '🎯',
+      title: 'Armament Competition',
       fields: [
         { ...bool(false), key: 'goals_on', label: 'On' },
         { ...sel('Target', 'Highest reachable', CHASE_TARGET_OPTIONS), key: 'goals_target' },
@@ -968,7 +962,6 @@ const EVENT_MILESTONES_CATEGORY: CloudCategorySchema = {
     {
       id: 'kingdom_of_power',
       title: 'Kingdom of Power',
-      icon: '👑',
       fields: [
         { ...bool(false), key: 'kop_on', label: 'On' },
         { ...sel('Target', 'Highest reachable', CHASE_TARGET_OPTIONS), key: 'kop_target' },

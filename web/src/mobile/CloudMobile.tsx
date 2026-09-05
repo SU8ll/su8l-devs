@@ -21,6 +21,15 @@ function categoriesForArea(schema: CloudConfigDto['schema'], area: Area): CloudC
   return schema.categories.filter((c) => map.categories.includes(c.id));
 }
 
+const EVENT_GROUP_IMAGES: Record<string, string> = {
+  'honor_ranking': '/events/stand-of-arms.webp',
+  'strongest_governor': '/events/strongest-governor.webp',
+  'alliance_brawl': '/events/alliance-brawl.webp',
+  'champions_eve': '',
+  'event_goals': '/events/armament-competition.webp',
+  'kingdom_of_power': '/events/kingdom-of-power.webp',
+};
+
 interface RatioGroupDef { name: string; categoryId: string; groupId: string; keys: string[]; enable?: string; }
 const RATIO_GROUPS: RatioGroupDef[] = [
   { name: 'Championship', categoryId: 'alliance_systems', groupId: 'alliance_championship', keys: ['champ_inf', 'champ_cav', 'champ_rng'] },
@@ -341,10 +350,11 @@ function GroupCard({ group, path, cfg, disabled, onChange }: {
     for (const f of group.fields ?? []) if (f.type === 'boolean' && getValue(cfg, [...path, f.key]) === true) return true;
     return false;
   })();
+  const eventImg = EVENT_GROUP_IMAGES[group.id];
   return (
     <div className="bs-group" style={{ marginTop: 0, borderRadius: 0, borderLeft: 'none', borderRight: 'none', borderBottom: 'none', background: 'transparent' }}>
       <div className="bs-group-head" onClick={() => setOpen((o) => !o)}>
-        {group.icon && <span>{group.icon}</span>}
+        {eventImg ? <img src={eventImg} alt={group.title} style={{ width: 26, height: 26, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--bs-border)', flexShrink: 0 }} onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')} /> : group.icon ? <span>{group.icon}</span> : null}
         <span className="bs-group-title">{group.title}</span>
         <span className="bs-group-state">{enabled ? <span className="bs-state-badge active">● ON</span> : <span className="bs-state-badge off">○ OFF</span>}</span>
         <span style={{ marginInlineStart: 'auto', color: 'var(--bs-text-3)', transform: open ? 'rotate(90deg)' : 'none', transition: 'transform .18s' }}>›</span>

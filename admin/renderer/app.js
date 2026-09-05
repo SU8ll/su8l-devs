@@ -428,6 +428,15 @@ const HERO_BY_ID = new Map(BEAR_HEROES.map((h) => [h.id, h]));
 function isHeroField(key) { return key.startsWith('bear_joiner_') || key.startsWith('bear_leader_'); }
 function heroStars(n) { return '★'.repeat(n); }
 
+const EVENT_GROUP_IMAGES = {
+  'honor_ranking': 'events/stand-of-arms.webp',
+  'strongest_governor': 'events/strongest-governor.webp',
+  'alliance_brawl': 'events/alliance-brawl.webp',
+  'champions_eve': '',
+  'event_goals': 'events/armament-competition.webp',
+  'kingdom_of_power': 'events/kingdom-of-power.webp',
+};
+
 const state = {
   base: localStorage.getItem(LS.base) || 'https://su8ldevs.eu.cc/api/panel',
   token: localStorage.getItem(LS.token) || '',
@@ -1248,8 +1257,10 @@ function renderCategory(cat, path, cfg) {
   }
   if (isRatioGrid) html.push(ratioGrid(rgs, path, cfg));
   for (const g of cat.groups ?? []) {
+    const eventImg = EVENT_GROUP_IMAGES[g.id];
+    const iconHtml = eventImg ? `<img src="${escapeHtml(eventImg)}" alt="" style="width:22px;height:22px;object-fit:cover;border-radius:6px;border:1px solid var(--border);vertical-align:middle;margin-inline-end:6px" onerror="this.style.display='none'" />` : (g.icon ? `${escapeHtml(g.icon)} ` : '▸ ');
     html.push(`<div class="cfg-group-card">
-      <h4>${g.icon || '▸'} ${escapeHtml(g.title)}</h4>
+      <h4>${iconHtml}${escapeHtml(g.title)}</h4>
       ${renderCategory(g, [...path, g.id], cfg)}
       ${ratioBadges([...path, g.id], cfg)}
     </div>`);

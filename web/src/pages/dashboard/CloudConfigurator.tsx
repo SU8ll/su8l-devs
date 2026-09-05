@@ -37,6 +37,16 @@ function categoriesForArea(schema: CloudConfigDto['schema'], area: Area): CloudC
   return schema.categories.filter((c) => map.categories.includes(c.id));
 }
 
+/* Event images for Weekly & Monthly Events — from /public/events/*.webp (copied from C:\Users\algha\Downloads\1212) */
+const EVENT_GROUP_IMAGES: Record<string, string> = {
+  'honor_ranking': '/events/stand-of-arms.webp',
+  'strongest_governor': '/events/strongest-governor.webp',
+  'alliance_brawl': '/events/alliance-brawl.webp',
+  'champions_eve': '',
+  'event_goals': '/events/armament-competition.webp',
+  'kingdom_of_power': '/events/kingdom-of-power.webp',
+};
+
 /* ─────────────────────────────────────────────────────────────────────────
    Ratios (100%-constrained Inf/Cav/Arch triplets)
    ───────────────────────────────────────────────────────────────────────── */
@@ -733,10 +743,11 @@ function GroupCard({
 }) {
   const [open, setOpen] = useState(depthDefault(group));
   const enabled = isGroupEnabled(cfg, path, group);
+  const eventImg = EVENT_GROUP_IMAGES[group.id];
   return (
     <div className="bs-group">
       <div className="bs-group-head" onClick={() => setOpen((o) => !o)} role="button" aria-expanded={open}>
-        {group.icon && <span>{group.icon}</span>}
+        {eventImg ? <img src={eventImg} alt={group.title} style={{ width: 28, height: 28, objectFit: 'cover', borderRadius: 7, border: '1px solid var(--bs-border)', flexShrink: 0 }} onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')} /> : group.icon ? <span>{group.icon}</span> : null}
         <span className="bs-group-title">{group.title}</span>
         {group.description && !open && <span className="bs-row-desc truncate" style={{ margin: 0, maxWidth: '40%' }}>{group.description}</span>}
         <span className="bs-group-state">
