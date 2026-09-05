@@ -12,7 +12,7 @@ type JsonObject = Record<string, unknown>;
 type Area = 'overview' | 'accounts' | 'automation' | 'events' | 'system';
 const AREA_MAP: { area: Area; categories: string[] }[] = [
   { area: 'automation', categories: ['connection', 'collection', 'law_edicts', 'vip_bank', 'development', 'gathering', 'pets', 'island'] },
-  { area: 'events', categories: ['alliance_systems', 'combat_traps', 'towers_arena', 'protection'] },
+  { area: 'events', categories: ['alliance_systems', 'combat_traps', 'towers_arena', 'protection', 'event_milestones'] },
   { area: 'system', categories: ['expert'] },
 ];
 function categoriesForArea(schema: CloudConfigDto['schema'], area: Area): CloudCategorySchema[] {
