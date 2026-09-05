@@ -13,6 +13,8 @@ import {
 } from '../../api';
 import { Spinner } from '../../components/ui';
 import { HeroSelect, isHeroFieldKey } from '../../components/HeroSelect';
+import { CloudLangSwitcher } from '../../components/CloudLangSwitcher';
+import { useSchemaT } from '../../lib/schemaI18n';
 
 type JsonObject = Record<string, unknown>;
 
@@ -299,6 +301,10 @@ export default function CloudConfigurator() {
             extraSlots={user?.extraSlots ?? 0}
           />
 
+          <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '8px 0 4px' }}>
+            <CloudLangSwitcher />
+          </div>
+
           <SlotExpansionBanner t={t} user={user} />
 
           {area === 'overview' && (
@@ -557,16 +563,19 @@ function FeatureLanding({
 }
 
 function FeatureCard({ category, enabled, onOpen }: { category: CloudCategorySchema; enabled: boolean; onOpen: () => void }) {
+  const { t } = useI18n();
+  const title = t(`schema.category.${category.id}`) !== `schema.category.${category.id}` ? t(`schema.category.${category.id}`) : category.title;
+  const desc = t(`schema.category.${category.id}.desc`) !== `schema.category.${category.id}.desc` ? t(`schema.category.${category.id}.desc`) : category.description;
   return (
     <div className="bs-feature-card">
       <div className="bs-feature-head">
         <span className="bs-feature-ic">{category.icon ?? '⚙️'}</span>
         <div className="min-w-0">
-          <div className="bs-feature-title">{category.title}</div>
+          <div className="bs-feature-title">{title}</div>
           <div className={`bs-state-badge ${enabled ? 'active' : 'paused'}`}>{enabled ? '● ACTIVE' : '○ PAUSED'}</div>
         </div>
       </div>
-      {category.description && <div className="bs-feature-desc">{category.description}</div>}
+      {desc && <div className="bs-feature-desc">{desc}</div>}
       <div className="bs-feature-actions">
         {enabled && <span className="bs-row-tag">Enabled</span>}
         <button type="button" className="bs-btn" onClick={onOpen} style={{ marginLeft: 'auto' }}>

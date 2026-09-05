@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
-export type Lang = 'en' | 'ar';
+export type Lang = 'en' | 'ar' | 'fr' | 'de' | 'tr';
 
 type Dict = Record<string, string>;
 
@@ -877,7 +877,165 @@ const ar: Dict = {
   'notif.staffReplyBody': 'التذكرة #{id} — {subject}',
 };
 
-const dicts: Record<Lang, Dict> = { en, ar };
+const fr: Dict = {
+  // Navigation & global (fallback to EN for now, override cloud)
+  'nav.home': 'Accueil',
+  'nav.pricing': 'Tarifs',
+  'nav.status': 'Statut',
+  'nav.dashboard': 'Tableau de bord',
+  'cloud.title': 'Configurateur Cloud',
+  'cloud.subtitle': 'PANNEAU DE PRÉFÉRENCES',
+  'cloud.subtitleLong': 'Commandez votre bot cloud avec précision.',
+  'cloud.lockedTitle': 'Configuration verrouillée',
+  'cloud.lockedDesc': 'Lecture seule. Abonnez-vous pour modifier.',
+  'cloud.edit': 'Modifier la configuration',
+  'cloud.editing': 'Mode édition',
+  'cloud.cancel': 'Annuler',
+  'cloud.save': 'Enregistrer',
+  'cloud.saving': 'Enregistrement…',
+  'cloud.unsaved': 'Modifications non enregistrées',
+  'cloud.switchAccount': 'Changer de compte',
+  'cloud.ratioGridWarning': 'Chaque répartition de troupes par tour doit totaliser exactement 100% pour enregistrer.',
+  'cloud.ratioSumInvalid': 'doit être exactement 100%',
+  // Schema — catégories
+  'schema.category.connection': 'Connexion',
+  'schema.category.collection': 'Collection & Récompenses',
+  'schema.category.law_edicts': 'Lois (Édits)',
+  'schema.category.vip_bank': 'VIP & Banque',
+  'schema.category.alliance_systems': 'Systèmes d’Alliance',
+  'schema.category.combat_traps': 'Combat & Pièges',
+  'schema.category.protection': 'Protection',
+  'schema.category.development': 'Développement',
+  'schema.category.towers_arena': 'Tours & Arène',
+  'schema.category.gathering': 'Collecte',
+  'schema.category.pets': 'Animaux',
+  'schema.category.island': 'Île',
+  'schema.category.event_milestones': 'Événements Hebdomadaires & Mensuels',
+  'schema.category.expert': 'Expert',
+  // Schema — groupes
+  'schema.group.bear_group': 'Chasse à l’Ours',
+  'schema.group.honor_ranking': 'Classement d’Honneur',
+  'schema.group.strongest_governor': 'Gouverneur le Plus Puissant',
+  'schema.group.alliance_brawl': 'Mêlée d’Alliance',
+  'schema.group.champions_eve': 'Tyran Flammedragon',
+  'schema.group.event_goals': 'Compétition d’Armement',
+  'schema.group.kingdom_of_power': 'Royaume de Puissance',
+  // Schema — champs Bear Hunt
+  'schema.field.bear_enable': 'Activer Chasse à l’Ours Auto-Join',
+  'schema.field.bear_joiner_1': 'Héros Rejoigneur #1',
+  'schema.field.bear_leader_1': 'Héros Chef #1',
+  'schema.field.bear_separate_cap': 'Utiliser un plafond séparé en tant que chef',
+  'schema.field.bear_max_leading': 'Troupes max en tant que chef',
+  'schema.field.chase_enable': 'Chasser les paliers d’événement',
+  // Options
+  'schema.option.Highest reachable': 'Le plus haut atteignable',
+  'schema.option.Tier 1 only': 'Palier 1 uniquement',
+  'schema.option.Every tier': 'Chaque palier',
+};
+
+const de: Dict = {
+  'nav.home': 'Startseite',
+  'nav.pricing': 'Preise',
+  'nav.status': 'Status',
+  'nav.dashboard': 'Dashboard',
+  'cloud.title': 'Cloud-Konfigurator',
+  'cloud.subtitle': 'EINSTELLUNGSPANEL',
+  'cloud.subtitleLong': 'Steuern Sie Ihren Cloud-Bot mit Präzision.',
+  'cloud.lockedTitle': 'Konfiguration gesperrt',
+  'cloud.lockedDesc': 'Nur Lesen. Abonnieren zum Bearbeiten.',
+  'cloud.edit': 'Konfiguration bearbeiten',
+  'cloud.editing': 'Bearbeitungsmodus',
+  'cloud.cancel': 'Abbrechen',
+  'cloud.save': 'Speichern',
+  'cloud.saving': 'Speichern…',
+  'cloud.unsaved': 'Ungespeicherte Änderungen',
+  'cloud.switchAccount': 'Konto wechseln',
+  'cloud.ratioGridWarning': 'Jede Turm-Truppenaufteilung muss genau 100% ergeben zum Speichern.',
+  'cloud.ratioSumInvalid': 'muss genau 100% sein',
+  'schema.category.connection': 'Verbindung',
+  'schema.category.collection': 'Sammlung & Belohnungen',
+  'schema.category.law_edicts': 'Gesetze (Erlasse)',
+  'schema.category.vip_bank': 'VIP & Bank',
+  'schema.category.alliance_systems': 'Allianzsysteme',
+  'schema.category.combat_traps': 'Kampf & Fallen',
+  'schema.category.protection': 'Schutz',
+  'schema.category.development': 'Entwicklung',
+  'schema.category.towers_arena': 'Türme & Arena',
+  'schema.category.gathering': 'Sammeln',
+  'schema.category.pets': 'Haustiere',
+  'schema.category.island': 'Insel',
+  'schema.category.event_milestones': 'Wöchentliche & Monatliche Events',
+  'schema.category.expert': 'Experte',
+  'schema.group.bear_group': 'Bärenjagd',
+  'schema.group.honor_ranking': 'Ehrenrangliste',
+  'schema.group.strongest_governor': 'Stärkster Gouverneur',
+  'schema.group.alliance_brawl': 'Allianz-Rauferei',
+  'schema.group.champions_eve': 'Flammendrachen-Tyrann',
+  'schema.group.event_goals': 'Rüstungswettbewerb',
+  'schema.group.kingdom_of_power': 'Königreich der Macht',
+  'schema.field.bear_enable': 'Bärenjagd Auto-Beitritt aktivieren',
+  'schema.field.bear_joiner_1': 'Beitrittsheld #1',
+  'schema.field.bear_leader_1': 'Anführer-Held #1',
+  'schema.field.bear_separate_cap': 'Separates Truppenlimit als Anführer',
+  'schema.field.bear_max_leading': 'Max. Truppen als Anführer',
+  'schema.field.chase_enable': 'Event-Meilensteine jagen',
+  'schema.option.Highest reachable': 'Höchste erreichbare',
+  'schema.option.Tier 1 only': 'Nur Stufe 1',
+  'schema.option.Every tier': 'Jede Stufe',
+};
+
+const tr: Dict = {
+  'nav.home': 'Ana Sayfa',
+  'nav.pricing': 'Fiyatlar',
+  'nav.status': 'Durum',
+  'nav.dashboard': 'Panel',
+  'cloud.title': 'Bulut Yapılandırıcı',
+  'cloud.subtitle': 'TERCİHLER PANELİ',
+  'cloud.subtitleLong': 'Bulut botunuzu hassasiyetle yönetin.',
+  'cloud.lockedTitle': 'Yapılandırma Kilitli',
+  'cloud.lockedDesc': 'Salt okunur. Düzenlemek için abone olun.',
+  'cloud.edit': 'Yapılandırmayı Düzenle',
+  'cloud.editing': 'Düzenleme Modu',
+  'cloud.cancel': 'İptal',
+  'cloud.save': 'Kaydet',
+  'cloud.saving': 'Kaydediliyor…',
+  'cloud.unsaved': 'Kaydedilmemiş değişiklikler',
+  'cloud.switchAccount': 'Hesap değiştir',
+  'cloud.ratioGridWarning': 'Her kule birlik dağılımı kaydetmek için tam %100 olmalıdır.',
+  'cloud.ratioSumInvalid': 'tam %100 olmalı',
+  'schema.category.connection': 'Bağlantı',
+  'schema.category.collection': 'Koleksiyon & Ödüller',
+  'schema.category.law_edicts': 'Yasalar (Kararnameler)',
+  'schema.category.vip_bank': 'VIP & Banka',
+  'schema.category.alliance_systems': 'İttifak Sistemleri',
+  'schema.category.combat_traps': 'Savaş & Tuzaklar',
+  'schema.category.protection': 'Koruma',
+  'schema.category.development': 'Geliştirme',
+  'schema.category.towers_arena': 'Kuleler & Arena',
+  'schema.category.gathering': 'Toplama',
+  'schema.category.pets': 'Evcil Hayvanlar',
+  'schema.category.island': 'Ada',
+  'schema.category.event_milestones': 'Haftalık & Aylık Etkinlikler',
+  'schema.category.expert': 'Uzman',
+  'schema.group.bear_group': 'Ayı Avı',
+  'schema.group.honor_ranking': 'Onur Sıralaması',
+  'schema.group.strongest_governor': 'En Güçlü Vali',
+  'schema.group.alliance_brawl': 'İttifak Kavgası',
+  'schema.group.champions_eve': 'Alev Ejderha Tiranı',
+  'schema.group.event_goals': 'Silahlanma Yarışması',
+  'schema.group.kingdom_of_power': 'Güç Krallığı',
+  'schema.field.bear_enable': 'Ayı Avı Otomatik Katılımı Etkinleştir',
+  'schema.field.bear_joiner_1': 'Katılım Kahramanı #1',
+  'schema.field.bear_leader_1': 'Lider Kahraman #1',
+  'schema.field.bear_separate_cap': 'Liderken ayrı birlik limiti kullan',
+  'schema.field.bear_max_leading': 'Liderken maks. birlik',
+  'schema.field.chase_enable': 'Etkinlik kilometre taşlarını kovala',
+  'schema.option.Highest reachable': 'Ulaşılabilir en yüksek',
+  'schema.option.Tier 1 only': 'Yalnızca Kademe 1',
+  'schema.option.Every tier': 'Her kademe',
+};
+
+const dicts: Record<Lang, Dict> = { en, ar, fr, de, tr };
 
 interface I18nContextValue {
   lang: Lang;
@@ -896,7 +1054,7 @@ const I18nContext = createContext<I18nContextValue>({
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>(() => {
     const saved = localStorage.getItem('su8l_lang');
-    return saved === 'ar' || saved === 'en' ? saved : 'en';
+    return saved === 'ar' || saved === 'en' || saved === 'fr' || saved === 'de' || saved === 'tr' ? (saved as Lang) : 'en';
   });
 
   const setLang = useCallback((l: Lang) => {
