@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useI18n } from '../i18n';
 import { useAuth } from '../AuthContext';
-import { api, type CloudCategorySchema, type CloudConfig, type CloudConfigDto, type CloudFieldSchema, type SaveCloudConfigResponse } from '../api';
+import { api, type CloudCategorySchema, type CloudConfig, type CloudConfigDto, type CloudFieldSchema, type CloudSlot, type SaveCloudConfigResponse } from '../api';
 import { Spinner } from '../components/ui';
 import { HeroSelect, isHeroFieldKey } from '../components/HeroSelect';
 
