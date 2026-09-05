@@ -18,6 +18,30 @@ import { notifyNewTicket, notifyTicketReply } from '../lib/telegram.js';
 
 const router = Router();
 
+// Public — language request from preview (no auth, appears in admin panel as ticket)
+router.post('/public-language-request', async (req, res) => {
+  try {
+    const language = String((req.body as Record<string, unknown>)?.language ?? '').trim();
+    if (!language || language.length < 2 || language.length > 80) return res.status(400).json({ error: 'invalid language' });
+    const guestId = '00000000-0000-4000-a000-000000000001'; // synthetic guest for language requests
+    // Ensure guest user exists in users table minimally (upsert)
+    const { getUser, createUser } = await import('../db.js');
+    let guest = await getUser(guestId);
+    if (!guest) {
+      try { await createUser({ id: guestId, email: 'guest-language@su8l.local', username: 'Language Guest' }); } catch { /* ignore if exists */ }
+      guest = await getUser(guestId);
+    }
+    const subject = `طلب لغة جديدة — ${language}`;
+    const body = `ما هي لغتك المفضلة؟\n${language}\n\n— طلب من صفحة اختيار اللغة (Cloud Configurator)\nIP: ${req.ip}\nUser-Agent: ${String(req.headers['user-agent'] ?? '').slice(0, 180)}`;
+    const ticket = await createTicket({ userId: guestId, subject, body, priority: 'normal' });
+    try { const { emitTicketEvent } = await import('../lib/ticketBus.js'); emitTicketEvent({ type: 'new', ticketId: ticket.id, userId: guestId, subject: ticket.subject }); } catch {}
+    try { const { notifyNewTicket } = await import('../lib/telegram.js'); notifyNewTicket(ticket.id, ticket.subject, 'Language Guest').catch(()=>{}); } catch {}
+    return res.status(201).json({ ok: true, ticketId: ticket.id });
+  } catch (e) {
+    return res.status(500).json({ error: 'internal' });
+  }
+});
+
 async function isStaff(userId: string): Promise<boolean> {
   const discordIds = (await getAccounts(userId)).filter((a) => a.provider === 'discord').map((a) => a.provider_id);
   return discordIds.some((id) => config.staffDiscordIds.includes(id));

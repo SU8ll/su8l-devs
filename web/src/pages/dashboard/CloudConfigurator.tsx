@@ -632,13 +632,17 @@ function FeatureCard({ category, enabled, onOpen }: { category: CloudCategorySch
 }
 
 function CategoryHeader({ category, onBack }: { category: CloudCategorySchema; onBack: () => void }) {
+  const { t } = useI18n();
+  const title = t(`schema.category.${category.id}`) !== `schema.category.${category.id}` ? t(`schema.category.${category.id}`) : category.title;
+  const descKey = `schema.category.${category.id}.desc`;
+  const desc = t(descKey) !== descKey ? t(descKey) : category.description;
   return (
     <div className="flex items-center gap-3">
       <button type="button" className="bs-btn bs-btn-ghost" style={{ minHeight: 34, padding: '0 10px' }} onClick={onBack} title="Back">←</button>
       <span className="bs-feature-ic" style={{ width: 44, height: 44 }}>{category.icon ?? '⚙️'}</span>
       <div>
-        <div className="bs-panel-title">{category.title}</div>
-        {category.description && <div className="bs-panel-sub">{category.description}</div>}
+        <div className="bs-panel-title">{title}</div>
+        {desc && <div className="bs-panel-sub">{desc}</div>}
       </div>
     </div>
   );
@@ -798,12 +802,15 @@ function GroupCard({
   const [open, setOpen] = useState(depthDefault(group));
   const enabled = isGroupEnabled(cfg, path, group);
   const eventImg = EVENT_GROUP_IMAGES[group.id];
+  const { t: tGroup } = useI18n();
+  const gTitle = tGroup(`schema.group.${group.id}`) !== `schema.group.${group.id}` ? tGroup(`schema.group.${group.id}`) : group.title;
+  const gDesc = tGroup(`schema.group.${group.id}.desc`) !== `schema.group.${group.id}.desc` ? tGroup(`schema.group.${group.id}.desc`) : group.description;
   return (
     <div className="bs-group">
       <div className="bs-group-head" onClick={() => setOpen((o) => !o)} role="button" aria-expanded={open}>
-        {eventImg ? <img src={eventImg} alt={group.title} style={{ width: 28, height: 28, objectFit: 'cover', borderRadius: 7, border: '1px solid var(--bs-border)', flexShrink: 0 }} onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')} /> : group.icon ? <span>{group.icon}</span> : null}
-        <span className="bs-group-title">{group.title}</span>
-        {group.description && !open && <span className="bs-row-desc truncate" style={{ margin: 0, maxWidth: '40%' }}>{group.description}</span>}
+        {eventImg ? <img src={eventImg} alt={gTitle} style={{ width: 28, height: 28, objectFit: 'cover', borderRadius: 7, border: '1px solid var(--bs-border)', flexShrink: 0 }} onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')} /> : group.icon ? <span>{group.icon}</span> : null}
+        <span className="bs-group-title">{gTitle}</span>
+        {gDesc && !open && <span className="bs-row-desc truncate" style={{ margin: 0, maxWidth: '40%' }}>{gDesc}</span>}
         <span className="bs-group-state">
           {enabled ? <span className="bs-state-badge active">● ON</span> : <span className="bs-state-badge off">○ OFF</span>}
         </span>
@@ -922,11 +929,15 @@ function RatioInput({ value, disabled, onChange }: { value: number; disabled: bo
 
 /* ── Field primitives ───────────────────────────────────────────────────── */
 function BooleanRow({ field, value, disabled, onChange }: { field: CloudFieldSchema; value: boolean; disabled: boolean; onChange: (v: boolean) => void }) {
+  const { t } = useI18n();
+  const label = t(`schema.field.${field.key}`) !== `schema.field.${field.key}` ? t(`schema.field.${field.key}`) : field.label;
+  const descKey = `schema.field.${field.key}.desc`;
+  const desc = (t(descKey) !== descKey ? t(descKey) : field.description);
   return (
     <div className="bs-row">
       <div className="min-w-0">
-        <div className="bs-row-label">{field.label}</div>
-        {field.description && <div className="bs-row-desc">{field.description}</div>}
+        <div className="bs-row-label">{label}</div>
+        {desc && <div className="bs-row-desc">{desc}</div>}
       </div>
       <div className="bs-row-control">
         <Toggle checked={value} disabled={disabled} onChange={onChange} />
@@ -936,10 +947,14 @@ function BooleanRow({ field, value, disabled, onChange }: { field: CloudFieldSch
 }
 
 function Field({ field, children }: { field: CloudFieldSchema; children: ReactNode }) {
+  const { t } = useI18n();
+  const label = t(`schema.field.${field.key}`) !== `schema.field.${field.key}` ? t(`schema.field.${field.key}`) : field.label;
+  const descKey = `schema.field.${field.key}.desc`;
+  const desc = (t(descKey) !== descKey ? t(descKey) : field.description);
   return (
     <div className="min-w-0">
-      <label className="mb-1.5 block text-[13px] font-semibold text-[var(--bs-text)]">{field.label}</label>
-      {field.description && <div className="mb-2 text-[11.5px] text-[var(--bs-text-3)]">{field.description}</div>}
+      <label className="mb-1.5 block text-[13px] font-semibold text-[var(--bs-text)]">{label}</label>
+      {desc && <div className="mb-2 text-[11.5px] text-[var(--bs-text-3)]">{desc}</div>}
       {children}
     </div>
   );
@@ -986,14 +1001,18 @@ function Slider({ field, value, disabled, onChange }: { field: CloudFieldSchema;
 }
 
 function SelectInput({ value, options, disabled, onChange }: { value: string; options: string[]; disabled: boolean; onChange: (v: string) => void }) {
-  return <select className="bs-select" value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)}>{options.map((o) => <option key={o} value={o}>{o}</option>)}</select>;
+  const { t } = useI18n();
+  const tr = (v: string) => { const k = `schema.option.${v}`; const r = t(k); return r === k ? v : r; };
+  return <select className="bs-select" value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)}>{options.map((o) => <option key={o} value={o}>{tr(o)}</option>)}</select>;
 }
 
 function RadioGroup({ value, options, disabled, onChange }: { value: string; options: string[]; disabled: boolean; onChange: (v: string) => void }) {
+  const { t } = useI18n();
+  const tr = (v: string) => { const k = `schema.option.${v}`; const r = t(k); return r === k ? v : r; };
   return (
     <div className="bs-radio-group">
       {options.map((o) => (
-        <button key={o} type="button" aria-pressed={value === o} disabled={disabled} onClick={() => onChange(o)} className="bs-radio">{o}</button>
+        <button key={o} type="button" aria-pressed={value === o} disabled={disabled} onClick={() => onChange(o)} className="bs-radio">{tr(o)}</button>
       ))}
     </div>
   );

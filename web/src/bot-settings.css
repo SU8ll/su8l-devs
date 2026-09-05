@@ -581,5 +581,15 @@
 .bs-lang-item-sub { font-size: 11px; color: var(--bs-text-3); }
 .bs-lang-check { color: var(--bs-gold); font-weight: 800; }
 .bs-lang-premium-foot { margin-top: 4px; padding: 8px 10px 4px; border-top: 1px solid var(--bs-border); font-size: 10.5px; color: var(--bs-text-3); text-align: center; letter-spacing: .06em; }
-.bs-lang-premium-foot-link { display: block; margin-top: 4px; padding: 9px 10px; border-top: 1px solid var(--bs-border); font-size: 12px; font-weight: 700; color: #a78bfa; text-align: center; text-decoration: none; border-radius: 10px; background: rgba(168,85,247,.08); transition: all .15s; }
+.bs-lang-premium-foot-link { display: block; margin-top: 4px; padding: 9px 10px; border-top: 1px solid var(--bs-border); font-size: 12px; font-weight: 700; color: #a78bfa; text-align: center; text-decoration: none; border-radius: 10px; background: rgba(168,85,247,.08); transition: all .15s; width: 100%; cursor: pointer; }
 .bs-lang-premium-foot-link:hover { background: rgba(168,85,247,.14); color: #fff; border-color: rgba(168,85,247,.3); }
+.bs-lang-ask-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.55); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px; }
+.bs-lang-ask-modal { width: 100%; max-width: 420px; border-radius: 18px; border: 1px solid rgba(168,85,247,.3); background: #121229; padding: 20px; box-shadow: 0 24px 60px rgba(0,0,0,.6); }
+.bs-lang-ask-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.bs-lang-ask-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: rgba(168,85,247,.18); border: 1px solid rgba(168,85,247,.3); font-size: 16px; }
+.bs-lang-ask-title { font-size: 15px; font-weight: 800; color: #fff; }
+.bs-lang-ask-sub { font-size: 12px; color: var(--bs-text-3); margin-top: 2px; }
+.bs-lang-ask-input { width: 100%; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--bs-border); background: var(--bs-surface-2); color: var(--bs-text); font-size: 13.5px; outline: none; margin-top: 4px; }
+.bs-lang-ask-input:focus { border-color: rgba(168,85,247,.6); box-shadow: 0 0 0 3px rgba(168,85,247,.18); }
+.bs-lang-ask-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 14px; }
+.bs-lang-ask-sent { margin-top: 10px; text-align: center; font-size: 12.5px; font-weight: 700; color: #34d399; }

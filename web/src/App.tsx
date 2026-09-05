@@ -36,7 +36,6 @@ import TicketDetailMobile from './mobile/TicketDetailMobile';
 import Referral from './pages/dashboard/Referral';
 import ReferralMobile from './mobile/ReferralMobile';
 import Chat from './pages/dashboard/Chat';
-import DeveloperProfile from './pages/DeveloperProfile';
 import { useTicketNotifications } from './pages/dashboard/useTicketNotifications';
 import { useIsMobile } from './hooks/useIsMobile';
 import { api, type StatusHistoryDto, type StatusSummaryDto } from './api';
@@ -186,7 +185,7 @@ export default function App() {
           }
         />
 
-        <Route path="/developer" element={<DeveloperProfile />} />
+
 
         <Route path="/checkout" element={<Protected><Checkout /></Protected>} />
         <Route path="/checkout/return" element={<Protected><CheckoutReturn /></Protected>} />

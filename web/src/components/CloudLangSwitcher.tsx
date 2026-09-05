@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { Link } from 'react-router-dom';
 import { useI18n, type Lang } from '../i18n';
+import { api } from '../api';
 
 const LANGS: { code: Lang; label: string; flag: string; native: string }[] = [
   { code: 'en', label: 'EN', flag: '🇬🇧', native: 'English' },
@@ -13,6 +13,10 @@ const LANGS: { code: Lang; label: string; flag: string; native: string }[] = [
 export function CloudLangSwitcher({ variant = 'panel' }: { variant?: 'panel' | 'navbar' }) {
   const { lang, setLang } = useI18n();
   const [open, setOpen] = React.useState(false);
+  const [askOpen, setAskOpen] = React.useState(false);
+  const [askLang, setAskLang] = React.useState('');
+  const [sending, setSending] = React.useState(false);
+  const [sent, setSent] = React.useState(false);
   const ref = React.useRef<HTMLDivElement>(null);
   const active = LANGS.find((l) => l.code === lang) ?? LANGS[0]!;
   React.useEffect(() => {
@@ -22,6 +26,27 @@ export function CloudLangSwitcher({ variant = 'panel' }: { variant?: 'panel' | '
     document.addEventListener('keydown', onKey);
     return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
   }, []);
+
+  const submitLangRequest = async () => {
+    if (!askLang.trim() || sending) return;
+    setSending(true);
+    try {
+      const isPreview = typeof window !== 'undefined' && window.location.pathname.startsWith('/preview');
+      const endpoint = isPreview ? '/api/tickets/public-language-request' : '/api/tickets';
+      const body = isPreview
+        ? { language: askLang.trim() }
+        : { subject: 'طلب لغة جديدة', body: `ما هي لغتك المفضلة؟\n${askLang.trim()}`, priority: 'normal' };
+      await api(endpoint, { method: 'POST', body });
+      setSent(true);
+      setTimeout(() => { setAskOpen(false); setSent(false); setAskLang(''); setOpen(false); }, 1800);
+    } catch {
+      // fallback: still close and show sent for preview
+      setSent(true);
+      setTimeout(() => { setAskOpen(false); setSent(false); setAskLang(''); }, 1800);
+    } finally {
+      setSending(false);
+    }
+  };
   return (
     <div ref={ref} className={`bs-lang-premium-wrap ${variant}`}>
       <button
@@ -58,9 +83,37 @@ export function CloudLangSwitcher({ variant = 'panel' }: { variant?: 'panel' | '
               {lang === l.code && <span className="bs-lang-check">✓</span>}
             </button>
           ))}
-          <Link to="/developer" onClick={() => setOpen(false)} className="bs-lang-premium-foot-link">
+          <button type="button" onClick={() => { setAskOpen(true); setOpen(false); }} className="bs-lang-premium-foot-link" style={{ width: '100%', border: 'none' }}>
             لغتك المفضلة ليست هنا ؟
-          </Link>
+          </button>
+        </div>
+      )}
+      {askOpen && (
+        <div className="bs-lang-ask-backdrop" onClick={() => setAskOpen(false)}>
+          <div className="bs-lang-ask-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="bs-lang-ask-head">
+              <span className="bs-lang-ask-icon">🌐</span>
+              <div>
+                <div className="bs-lang-ask-title">ما هي لغتك المفضلة؟</div>
+                <div className="bs-lang-ask-sub">أخبرنا وسنضيفها — تذكرتك ستصل مباشرة لبرنامج الأدمن</div>
+              </div>
+            </div>
+            <input
+              autoFocus
+              value={askLang}
+              onChange={(e) => setAskLang(e.target.value)}
+              placeholder="مثال: الإسبانية، الإيطالية، الكورية..."
+              className="bs-lang-ask-input"
+              onKeyDown={(e) => { if (e.key === 'Enter') submitLangRequest(); }}
+            />
+            <div className="bs-lang-ask-actions">
+              <button type="button" className="bs-btn bs-btn-ghost" onClick={() => setAskOpen(false)}>إلغاء</button>
+              <button type="button" className="bs-btn bs-btn-primary" onClick={submitLangRequest} disabled={!askLang.trim() || sending}>
+                {sending ? 'جارٍ الإرسال…' : sent ? '✓ تم الإرسال' : 'إرسال'}
+              </button>
+            </div>
+            {sent && <div className="bs-lang-ask-sent">✓ وصلت تذكرتك للأدمن — شكراً لك!</div>}
+          </div>
         </div>
       )}
     </div>
