@@ -7,10 +7,9 @@ const SECTIONS_T = ['s1','s2','s3','s4','s5','s6','s7'];
 const SECTIONS_R = ['s1','s2','s3','s4','s5'];
 
 export function TermsMobile(){
-  const { t, lang } = useI18n();
+  const { t } = useI18n();
   const { user } = useAuth();
   const navigate=useNavigate();
-  const isAr=lang==='ar';
   const nav = user
     ? [
         {to:'/', label:t('nav.home'), icon:MIcons.home, end:true},
@@ -24,7 +23,7 @@ export function TermsMobile(){
         {to:'/pricing', label:t('nav.pricing'), icon:MIcons.pricing},
         {to:'/status', label:t('nav.status'), icon:MIcons.status},
         {to:'/terms', label:t('nav.terms'), icon:MIcons.terms},
-        {to:'/login', label:isAr?'دخول':'Login', icon:MIcons.login},
+        {to:'/login', label:t('nav.login'), icon:MIcons.login},
       ];
   return (
     <MobileLayout title={t('terms.title')} subtitle={t('terms.intro').slice(0,48)+'…'} items={nav} onHome={()=>navigate('/')}>
@@ -48,10 +47,9 @@ export function TermsMobile(){
 }
 
 export function RefundMobile(){
-  const { t, lang } = useI18n();
+  const { t } = useI18n();
   const { user } = useAuth();
   const navigate=useNavigate();
-  const isAr=lang==='ar';
   const nav = user
     ? [
         {to:'/', label:t('nav.home'), icon:MIcons.home, end:true},
@@ -65,7 +63,7 @@ export function RefundMobile(){
         {to:'/pricing', label:t('nav.pricing'), icon:MIcons.pricing},
         {to:'/status', label:t('nav.status'), icon:MIcons.status},
         {to:'/terms', label:t('nav.terms'), icon:MIcons.terms},
-        {to:'/login', label:isAr?'دخول':'Login', icon:MIcons.login},
+        {to:'/login', label:t('nav.login'), icon:MIcons.login},
       ];
   return (
     <MobileLayout title={t('refund.title')} subtitle={t('refund.intro').slice(0,48)+'…'} items={nav} onHome={()=>navigate('/')}>

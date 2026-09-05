@@ -12,7 +12,7 @@ export default function Overview() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    api<DashboardDto>('/api/dashboard').then(setData).catch(() => setError('Failed to load dashboard'));
+    api<DashboardDto>('/api/dashboard').then(setData).catch(() => setError(t('dashboard.error.loadFailed')));
   }, [user?.avatar]);
 
   if (error) return <div className="text-red-300">{error}</div>;
@@ -39,7 +39,7 @@ export default function Overview() {
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-3">
               <h1 className="font-display text-2xl font-extrabold text-gradient text-glow">{data.user.username}</h1>
-              <Badge tone="green">✓ {data.activeSubscriptions > 0 ? 'ACTIVE' : 'GUEST'}</Badge>
+              <Badge tone="green">✓ {data.activeSubscriptions > 0 ? t('dashboard.badge.active') : t('dashboard.badge.guest')}</Badge>
             </div>
             <p className="mt-1 text-sm text-muted">{data.user.email}</p>
             <div className="mt-4 flex flex-wrap gap-3">
@@ -107,7 +107,7 @@ export default function Overview() {
                   <p className="mt-1 max-w-md text-sm text-muted">{t('dash.extraSlotDesc')}</p>
                   <div className="mt-2 flex items-center gap-2">
                     <Badge tone="purple">$15</Badge>
-                    <span className="text-xs text-muted">one-time · permanent</span>
+                    <span className="text-xs text-muted">{t('dash.extraSlotOneTime')}</span>
                   </div>
                 </div>
               </div>

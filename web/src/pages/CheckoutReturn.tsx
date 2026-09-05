@@ -16,7 +16,7 @@ export default function CheckoutReturn() {
     ran.current = true;
     const token = params.get('token');
     if (!token) {
-      setError('No payment token in URL.');
+      setError(t('checkoutReturn.error.noToken'));
       return;
     }
     api<{ orderId: string; status: string }>('/api/checkout/capture', {
@@ -24,8 +24,8 @@ export default function CheckoutReturn() {
       body: { paypalOrderId: token },
     })
       .then((res) => navigate(`/success?order=${res.orderId}`, { replace: true }))
-      .catch((e) => setError(e instanceof Error ? e.message : 'Capture failed'));
-  }, [params, navigate]);
+      .catch((e) => setError(e instanceof Error ? e.message : t('checkoutReturn.error.captureFailed')));
+  }, [params, navigate, t]);
 
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-md flex-col items-center justify-center px-4 pb-20 text-center">

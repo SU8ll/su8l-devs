@@ -7,10 +7,9 @@ import MobileLayout, { MIcons, type MobileNavItem } from './MobileLayout';
 import { api, type StatusSummaryDto } from '../api';
 
 export default function LandingMobile() {
-  const { t, lang } = useI18n();
+  const { t } = useI18n();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const isAr = lang === 'ar';
   const [summary, setSummary] = useState<StatusSummaryDto | null>(null);
 
   useEffect(() => {
@@ -32,7 +31,7 @@ export default function LandingMobile() {
         { to: '/pricing', label: t('nav.pricing'), icon: MIcons.pricing },
         { to: '/status', label: t('nav.status'), icon: MIcons.status },
         { to: '/terms', label: t('nav.terms'), icon: MIcons.terms },
-        { to: '/login', label: isAr ? 'دخول' : 'Login', icon: MIcons.login },
+        { to: '/login', label: t('nav.login'), icon: MIcons.login },
       ];
 
   return (
@@ -79,13 +78,13 @@ export default function LandingMobile() {
 
       {/* Products */}
       <section className="m-section">
-        <div className="m-section-title">{isAr ? 'منتجاتنا' : 'OUR PRODUCTS'}</div>
+        <div className="m-section-title">{t('landing.products.kicker')}</div>
         <div className="m-card space-y-4" style={{ padding: '0.75rem' }}>
           {[
-            { icon: '🏛️', imageKey: 'cloud-city-bot', title: isAr ? 'بوت المدينة السحابي' : 'Cloud City Bot', desc: isAr ? 'أتمتة شاملة للمدينة — بناء، تقنية، موارد 24/7' : 'Full city automation — build, tech, resources 24/7' },
-            { icon: '⚔️', imageKey: 'command-center', title: isAr ? 'القيادة العسكرية' : 'Military Command', desc: isAr ? 'تدريب وتجمع ودفاع آلي — صفر توقف' : 'Auto train, gather, defend — zero downtime' },
-            { icon: '🌐', imageKey: 'osota', title: isAr ? 'أدوات الترجمة' : 'Translation Tools', desc: isAr ? 'OSotA Kutlu — ترجمة فورية لأكثر من 9 لغات' : 'OSotA Kutlu — instant translation for 9+ languages' },
-            { icon: '👑', imageKey: 'kingshot', title: isAr ? 'Kingshot Bot' : 'Kingshot Bot', desc: isAr ? 'إدارة تحالف كامل مع OCR والحضور' : 'Complete alliance management with OCR & attendance' },
+            { icon: '🏛️', imageKey: 'cloud-city-bot', title: t('landing.product.cloudCityTitle'), desc: t('landing.product.cloudCityDesc') },
+            { icon: '⚔️', imageKey: 'command-center', title: t('landing.product.militaryTitle'), desc: t('landing.product.militaryDesc') },
+            { icon: '🌐', imageKey: 'osota', title: t('landing.product.translationTitle'), desc: t('landing.product.translationDesc') },
+            { icon: '👑', imageKey: 'kingshot', title: t('landing.product.kingshotTitle'), desc: t('landing.product.kingshotDesc') },
           ].map((item, i) => (
             <Link key={i} to="/pricing" className="m-product-row" style={{textDecoration:'none'}}>
               <div style={{width:48,height:48,flexShrink:0,borderRadius:12,border:'1px solid rgba(255,255,255,0.07)',background:'rgba(255,255,255,0.03)',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden'}}>

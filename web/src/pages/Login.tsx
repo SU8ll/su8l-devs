@@ -56,7 +56,7 @@ export default function Login() {
       }
     } catch (err: unknown) {
       const apiErr = err as { detail?: { error?: string; email?: string }; message?: string };
-      setFormError(apiErr?.detail?.error || apiErr?.message || 'Login failed');
+      setFormError(apiErr?.detail?.error || apiErr?.message || t('login.error.generic'));
     } finally {
       setLoading(false);
     }

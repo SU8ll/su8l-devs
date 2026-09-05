@@ -12,7 +12,7 @@ export default function OverviewMobile({ openAvatarPicker }: { openAvatarPicker?
   const [error, setError] = useState('');
 
   useEffect(() => {
-    api<DashboardDto>('/api/dashboard').then(setData).catch(() => setError('Failed to load dashboard'));
+    api<DashboardDto>('/api/dashboard').then(setData).catch(() => setError(t('dashboard.error.loadFailed')));
   }, [user?.avatar]);
 
   if (error) return <div style={{color:'#F87171', fontSize:14, padding:24}}>{error}</div>;
@@ -36,32 +36,32 @@ export default function OverviewMobile({ openAvatarPicker }: { openAvatarPicker?
         <div style={{minWidth:0, flex:1}}>
           <div style={{fontSize:17, fontWeight:750, letterSpacing:'-0.015em', color:'#F5F5F7', lineHeight:1.1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{data.user.username}</div>
           <div style={{fontSize:12.5, color:'#9A99A6', marginTop:3, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{data.user.email}</div>
-          <div style={{marginTop:8}}><Badge tone="green">✓ ACTIVE</Badge></div>
+          <div style={{marginTop:8}}><Badge tone="green">✓ {t('dashboard.badge.active')}</Badge></div>
         </div>
       </section>
 
       {/* Stats — two metrics */}
       <section>
-        <div className="m-section-title">At a glance</div>
+        <div className="m-section-title">{t('overview.atAGlance')}</div>
         <div className="m-stats">
           <div className="m-stat">
             <div style={{fontSize:28, fontWeight:800, letterSpacing:'-0.03em', color:'#A78BFA', lineHeight:1}}>{data.activeSubscriptions}</div>
-            <div style={{marginTop:6, fontSize:10.5, fontWeight:600, letterSpacing:'0.08em', textTransform:'uppercase', color:'#6B6A78'}}>Active plan</div>
+            <div style={{marginTop:6, fontSize:10.5, fontWeight:600, letterSpacing:'0.08em', textTransform:'uppercase', color:'#6B6A78'}}>{t('overview.activePlan')}</div>
           </div>
           <div className="m-stat">
             <div style={{fontSize:28, fontWeight:800, letterSpacing:'-0.03em', color: data.ownsExtraSlot ? '#A78BFA' : '#3F3E48', lineHeight:1}}>{data.ownsExtraSlot ? '+1' : '—'}</div>
-            <div style={{marginTop:6, fontSize:10.5, fontWeight:600, letterSpacing:'0.08em', textTransform:'uppercase', color:'#6B6A78'}}>Extra slot</div>
+            <div style={{marginTop:6, fontSize:10.5, fontWeight:600, letterSpacing:'0.08em', textTransform:'uppercase', color:'#6B6A78'}}>{t('overview.extraSlot')}</div>
           </div>
         </div>
       </section>
 
       {/* Active subscription — Elite */}
       <section>
-        <div className="m-section-title">Active subscription</div>
+        <div className="m-section-title">{t('overview.activeSubscription')}</div>
         {data.subscriptions.length === 0 ? (
           <div className="m-card" style={{textAlign:'center', padding:'22px 16px'}}>
             <div style={{fontSize:22}}>◆</div>
-            <div style={{marginTop:8, fontWeight:700, color:'#F5F5F7'}}>No active plan</div>
+            <div style={{marginTop:8, fontWeight:700, color:'#F5F5F7'}}>{t('overview.noActivePlan')}</div>
             <div style={{marginTop:4, fontSize:13, color:'#9A99A6'}}>{t('dash.noSubDesc')}</div>
             <Link to="/pricing" className="m-btn m-btn-primary" style={{width:'100%', marginTop:16}}>{t('dash.upgrade')}</Link>
           </div>
@@ -87,11 +87,11 @@ export default function OverviewMobile({ openAvatarPicker }: { openAvatarPicker?
       {/* Expand fleet */}
       {data.activeSubscriptions > 0 && (
         <section className="m-card" style={{padding:18}}>
-          <div style={{fontSize:15, fontWeight:750, color:'#F5F5F7'}}>Expand your fleet</div>
+          <div style={{fontSize:15, fontWeight:750, color:'#F5F5F7'}}>{t('dash.extraSlotTitle')}</div>
           <div style={{marginTop:6, fontSize:13, lineHeight:1.5, color:'#9A99A6'}}>{t('dash.extraSlotDesc')}</div>
           <div style={{marginTop:12, display:'flex', alignItems:'center', gap:8}}>
             <span style={{fontSize:13, fontWeight:700, padding:'6px 10px', borderRadius:999, background:'rgba(124,58,237,0.13)', border:'1px solid rgba(124,58,237,0.18)', color:'#A78BFA'}}>$15</span>
-            <span style={{fontSize:12, color:'#6B6A78'}}>one-time · permanent</span>
+            <span style={{fontSize:12, color:'#6B6A78'}}>{t('dash.extraSlotOneTime')}</span>
           </div>
           {data.ownsExtraSlot ? (
             <div style={{marginTop:14}}><Badge tone="green">{t('dash.extraSlotOwned')}</Badge></div>
@@ -109,7 +109,7 @@ export default function OverviewMobile({ openAvatarPicker }: { openAvatarPicker?
             <div style={{fontSize:14, fontWeight:700, color:'#F5F5F7'}}>{statusUp === undefined ? '…' : statusUp ? t('status.operational') : t('status.degraded')}</div>
             <div style={{fontSize:12, color:'#6B6A78', marginTop:2}}>{t('dash.livePing')}: {ping != null ? `${ping}ms` : '—'}</div>
           </div>
-          <Link to="/dashboard/status" style={{fontSize:12.5, fontWeight:600, color:'#A78BFA', textDecoration:'none', whiteSpace:'nowrap'}}>Status →</Link>
+          <Link to="/dashboard/status" style={{fontSize:12.5, fontWeight:600, color:'#A78BFA', textDecoration:'none', whiteSpace:'nowrap'}}>{t('dash.viewStatus')} →</Link>
         </div>
         <div className="m-stats" style={{marginTop:14}}>
           <div className="m-stat" style={{padding:'10px 8px'}}><div style={{fontSize:16, fontWeight:800, color:'#F5F5F7'}}>{data.status.uptime24h}%</div><div style={{fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase', color:'#6B6A78', marginTop:4}}>{t('status.uptime24')}</div></div>
@@ -121,12 +121,12 @@ export default function OverviewMobile({ openAvatarPicker }: { openAvatarPicker?
       <section className="m-card" style={{padding:18}}>
         <div style={{fontSize:15, fontWeight:750, color:'#F5F5F7'}}>{t('referral.headline')}</div>
         <div style={{marginTop:6, fontSize:13, lineHeight:1.5, color:'#9A99A6'}}>{t('referral.subtitle')}</div>
-        <Link to="/dashboard/referral" className="m-btn m-btn-ghost" style={{width:'100%', marginTop:14}}>Friends &amp; Rewards</Link>
+        <Link to="/dashboard/referral" className="m-btn m-btn-ghost" style={{width:'100%', marginTop:14}}>{t('referral.title')}</Link>
       </section>
 
       {/* Quick actions */}
       <section>
-        <div className="m-section-title">Quick actions</div>
+        <div className="m-section-title">{t('dash.quick')}</div>
         <div style={{display:'flex', flexDirection:'column', gap:10}}>
           <Link to="/dashboard/bot" className="m-card" style={{display:'flex', alignItems:'center', gap:12, padding:'14px 16px', textDecoration:'none'}}>
             <span style={{width:36, height:36, borderRadius:11, background:'rgba(124,58,237,0.12)', border:'1px solid rgba(124,58,237,0.16)', display:'flex', alignItems:'center', justifyContent:'center', color:'#A78BFA', flexShrink:0}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 2.8 4.2 7v10L12 21.2 19.8 17V7L12 2.8Z"/></svg></span>

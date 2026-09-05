@@ -41,7 +41,6 @@ export default function Checkout() {
   const [params] = useSearchParams();
   const extra = params.get('extra') === '1';
   const cloudHosting = params.get('cloud') === '1';
-  const isAr = lang === 'ar';
 
   const [plans, setPlans] = useState<PlanDto[] | null>(null);
   const [dashboard, setDashboard] = useState<DashboardDto | null>(null);
@@ -81,7 +80,7 @@ export default function Checkout() {
             .catch(() => {});
         }
       })
-      .catch(() => setError('Failed to load plans'));
+      .catch(() => setError(t('pricing.loadError')));
     api<DashboardDto>('/api/dashboard').then(setDashboard).catch(() => {});
   }, [params, extra]);
 
@@ -177,11 +176,11 @@ export default function Checkout() {
       } else if (res.approvalUrl) {
         window.location.href = res.approvalUrl;
       } else {
-        setError('The payment provider did not return a checkout link.');
+        setError(t('checkout.error.noLink'));
         setBusy(false);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to create payment.');
+      setError(e instanceof Error ? e.message : t('checkout.error.createFailed'));
       setBusy(false);
     }
   };
@@ -224,11 +223,11 @@ export default function Checkout() {
             </div>
           ) : isProduct && productInfo ? (
             <div className="mt-6 space-y-4">
-              <Row label={t('checkout.plan')} value={isAr ? productInfo.nameAr : productInfo.name} />
+              <Row label={t('checkout.plan')} value={lang === 'ar' ? productInfo.nameAr : productInfo.name} />
               <Row label={t('checkout.type')} value={t('checkout.oneTime')} />
-              <Row label={isAr ? 'المنتج' : 'Product'} value={`$${productInfo.price}`} />
+              <Row label={t('checkout.product')} value={`$${productInfo.price}`} />
               {cloudHosting && (
-                <Row label={isAr ? 'الاستضافة السحابية' : 'Cloud Hosting'} value={`$${CLOUD_HOSTING_PRICE}`} />
+                <Row label={t('checkout.cloudHosting')} value={`$${CLOUD_HOSTING_PRICE}`} />
               )}
             </div>
           ) : !plan || !plans ? (

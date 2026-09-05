@@ -10,7 +10,7 @@ export default function ReferralMobile(){
   const [copied,setCopied]=useState(false);
   const [claiming,setClaiming]=useState(false);
   const [claimMsg,setClaimMsg]=useState<{ok:boolean; text:string}|null>(null);
-  const load=()=> getReferral().then(setData).catch(()=> setError('Failed to load referral'));
+  const load=()=> getReferral().then(setData).catch(()=> setError(t('referral.error.loadFailed')));
   useEffect(()=>{ load(); },[]);
   const goal = data?.goal ?? data?.freeMonthThreshold ?? 5;
   const progress = useMemo(()=> data? Math.min(100, (data.count/goal)*100) : 0, [data, goal]);

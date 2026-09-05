@@ -8,10 +8,9 @@ import UptimeChart from '../components/UptimeChart';
 import MobileLayout, { MIcons } from './MobileLayout';
 
 export default function StatusMobile(){
-  const { t, lang } = useI18n();
+  const { t } = useI18n();
   const { user } = useAuth();
   const navigate=useNavigate();
-  const isAr=lang==='ar';
   const [summary,setSummary]=useState<StatusSummaryDto|null>(null);
   const [history,setHistory]=useState<StatusHistoryDto|null>(null);
   const [probing,setProbing]=useState(false);
@@ -35,7 +34,7 @@ export default function StatusMobile(){
         {to:'/pricing', label:t('nav.pricing'), icon:MIcons.pricing},
         {to:'/status', label:t('nav.status'), icon:MIcons.status},
         {to:'/terms', label:t('nav.terms'), icon:MIcons.terms},
-        {to:'/login', label:isAr?'دخول':'Login', icon:MIcons.login},
+        {to:'/login', label:t('nav.login'), icon:MIcons.login},
       ];
 
   if(!summary) return <MobileLayout title={t('status.title')} subtitle={t('status.subtitle')} items={nav} onHome={()=>navigate('/')}><div className="flex justify-center py-20"><Spinner size={28}/></div></MobileLayout>;

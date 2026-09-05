@@ -11,7 +11,7 @@ export default function Referral() {
   const [claiming, setClaiming] = useState(false);
   const [claimMsg, setClaimMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
-  const load = () => getReferral().then(setData).catch(() => setError('Failed to load referral'));
+  const load = () => getReferral().then(setData).catch(() => setError(t('referral.error.loadFailed')));
 
   useEffect(() => {
     load();

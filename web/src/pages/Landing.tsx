@@ -62,10 +62,9 @@ function AnimatedCounter({ target, suffix = '' }: { target: number; suffix?: str
 }
 
 export default function Landing() {
-  const { t, lang } = useI18n();
+  const { t } = useI18n();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const isAr = lang === 'ar';
   useScrollReveal();
   const [summary, setSummary] = useState<StatusSummaryDto | null>(null);
 
@@ -154,18 +153,18 @@ export default function Landing() {
       {/* ═══ Products preview ═══════════════════════════════════════════════ */}
       <section className="py-16 sm:py-24">
         <div className="reveal text-center">
-          <Kicker>{isAr ? 'منتجاتنا' : 'OUR PRODUCTS'}</Kicker>
+          <Kicker>{t('landing.products.kicker')}</Kicker>
           <p className="mx-auto mt-3 max-w-2xl text-muted">
-            {isAr ? 'أدوات أتمتة احترافية وبرمجيات مكتبية — مصممة للعمل دون توقف' : 'Professional automation tools and desktop software — engineered for non-stop performance'}
+            {t('landing.products.subtitle')}
           </p>
         </div>
 
         <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { icon: '🏛️', imageKey: 'cloud-city-bot', title: isAr ? 'بوت المدينة السحابي' : 'Cloud City Bot', desc: isAr ? 'أتمتة شاملة للمدينة — بناء، تقنية، موارد 24/7' : 'Full city automation — build, tech, resources 24/7' },
-            { icon: '⚔️', imageKey: 'command-center', title: isAr ? 'القيادة العسكرية' : 'Military Command', desc: isAr ? 'تدريب وتجمع ودفاع آلي — صفر توقف' : 'Auto train, gather, defend — zero downtime' },
-            { icon: '🌐', imageKey: 'osota', title: isAr ? 'أدوات الترجمة' : 'Translation Tools', desc: isAr ? 'OSotA Kutlu — ترجمة فورية لأكثر من 9 لغات' : 'OSotA Kutlu — instant translation for 9+ languages' },
-            { icon: '👑', imageKey: 'kingshot', title: isAr ? 'Kingshot Bot' : 'Kingshot Bot', desc: isAr ? 'نظام إدارةتحالف كامل مع التعرف الضوئي على الحروف والحضور' : 'Complete alliance management with OCR & attendance tracking' },
+            { icon: '🏛️', imageKey: 'cloud-city-bot', title: t('landing.product.cloudCityTitle'), desc: t('landing.product.cloudCityDesc') },
+            { icon: '⚔️', imageKey: 'command-center', title: t('landing.product.militaryTitle'), desc: t('landing.product.militaryDesc') },
+            { icon: '🌐', imageKey: 'osota', title: t('landing.product.translationTitle'), desc: t('landing.product.translationDesc') },
+            { icon: '👑', imageKey: 'kingshot', title: t('landing.product.kingshotTitle'), desc: t('landing.product.kingshotDesc') },
           ].map((item, i) => (
             <div
               key={i}

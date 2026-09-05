@@ -33,13 +33,12 @@ export default function Pricing() {
   const [cycle, setCycle] = useState<Cycle>('monthly');
   const [error, setError] = useState('');
   const [hostingModal, setHostingModal] = useState<ProductDto | null>(null);
-  const isAr = lang === 'ar';
   useScrollReveal();
 
   useEffect(() => {
     api<PlansResponse>('/api/plans')
       .then((r) => setPlans(r.plans))
-      .catch(() => setError('Failed to load plans'));
+      .catch(() => setError('pricing.loadError'));
     api<ProductDto[]>('/api/plans/products')
       .then(setProducts)
       .catch(() => {});
@@ -58,7 +57,7 @@ export default function Pricing() {
   );
   const planActive = (key: string) => activeKeys.has(key);
 
-  if (error) return <div className="mx-auto max-w-3xl px-4 py-20 text-center text-red-300">{error}</div>;
+  if (error) return <div className="mx-auto max-w-3xl px-4 py-20 text-center text-red-300">{t(error)}</div>;
 
   return (
     <div className="mx-auto max-w-7xl px-4 pb-20 sm:px-6">
@@ -166,9 +165,9 @@ export default function Pricing() {
       {products && products.length > 0 && (
         <div className="mt-24">
           <div className="reveal text-center">
-            <Kicker>{isAr ? 'منتجات أخرى' : 'OTHER PRODUCTS'}</Kicker>
+            <Kicker>{t('pricing.products.kicker')}</Kicker>
             <p className="mx-auto mt-3 max-w-2xl text-muted">
-              {isAr ? 'أدوات وأدوات احترافية — جاهزة للعمل' : 'Professional tools & bots — ready to deploy'}
+              {t('pricing.products.subtitle')}
             </p>
           </div>
 
@@ -194,17 +193,17 @@ export default function Pricing() {
                   <span className={`text-4xl ${productImage(prod.key) ? 'hidden' : ''}`}>{productFallback(prod.key)}</span>
                 </div>
                 <h3 className="font-display text-lg font-extrabold text-gradient">
-                  {isAr ? prod.nameAr : prod.name}
+                  {lang === 'ar' ? prod.nameAr : prod.name}
                 </h3>
                 <p className="mt-1 text-sm text-muted min-h-[40px]">
-                  {isAr ? prod.taglineAr : prod.tagline}
+                  {lang === 'ar' ? prod.taglineAr : prod.tagline}
                 </p>
                 <div className="mt-4 flex items-end gap-1">
                   <span className="font-display text-3xl font-black text-gradient">${prod.price}</span>
-                  <span className="mb-1 text-xs text-muted">{isAr ? 'دفعة واحدة' : 'one-time'}</span>
+                  <span className="mb-1 text-xs text-muted">{t('pricing.oneTime')}</span>
                 </div>
                 <ul className="mt-4 flex-1 space-y-2 text-sm">
-                  {(isAr ? prod.featuresAr : prod.features).map((f) => (
+                  {(lang === 'ar' ? prod.featuresAr : prod.features).map((f) => (
                     <li key={f} className="flex items-start gap-2">
                       <svg className="mt-0.5 shrink-0 text-glow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                         <path d="M5 13l4 4L19 7" />
@@ -216,7 +215,7 @@ export default function Pricing() {
                 <div className="mt-6">
                   {prod.comingSoon ? (
                     <div className="btn-ghost w-full text-sm cursor-not-allowed opacity-60">
-                      {isAr ? 'قيد التطوير' : 'Coming Soon'}
+                      {t('pricing.comingSoon')}
                     </div>
                   ) : (
                   <button
@@ -235,7 +234,7 @@ export default function Pricing() {
                       navigate(`/checkout?plan=${prod.key}&cycle=monthly`);
                     }}
                   >
-                    {isAr ? 'شراء' : 'Buy Now'}
+                    {t('pricing.buyNow')}
                   </button>
                   )}
                 </div>
@@ -257,11 +256,11 @@ export default function Pricing() {
                 <img src={productImage(hostingModal.key)!} alt={hostingModal.name} className="mx-auto mb-2 h-12 w-12 rounded-xl object-contain" />
               ) : (
                 <span className="text-3xl">{hostingModal.icon}</span>
-              )}{' '}
-              {isAr ? hostingModal.nameAr : hostingModal.name}
+              )}              {' '}
+              {lang === 'ar' ? hostingModal.nameAr : hostingModal.name}
             </h2>
             <p className="mt-2 text-center text-sm text-muted">
-              {isAr ? 'اختر نوع الاستضافة' : 'Choose your hosting type'}
+              {t('pricing.hosting.chooseType')}
             </p>
 
             <div className="mt-8 grid gap-4 sm:grid-cols-2">
@@ -280,10 +279,10 @@ export default function Pricing() {
                 <div className="text-3xl transition-transform duration-300 group-hover:scale-110">🏠</div>
                 <div>
                   <div className="font-display text-lg font-bold text-emerald-400">
-                    {isAr ? 'استضافة محلية' : 'Local Hosting'}
+                    {t('pricing.hosting.localTitle')}
                   </div>
                   <div className="text-sm text-muted mt-1">
-                    {isAr ? 'مجاني — تشغيل على جهازك' : 'Free — runs on your PC'}
+                    {t('pricing.hosting.localDesc')}
                   </div>
                 </div>
                 <div className="rounded-full bg-emerald-400/10 px-4 py-1.5 text-sm font-bold text-emerald-400">
@@ -306,14 +305,14 @@ export default function Pricing() {
                 <div className="text-3xl transition-transform duration-300 group-hover:scale-110">☁️</div>
                 <div>
                   <div className="font-display text-lg font-bold text-glow">
-                    {isAr ? 'استضافة سحابية' : 'Cloud Hosting'}
+                    {t('pricing.hosting.cloudTitle')}
                   </div>
                   <div className="text-sm text-muted mt-1">
-                    {isAr ? '24/7 — على سيرفرنا' : '24/7 — on our server'}
+                    {t('pricing.hosting.cloudDesc')}
                   </div>
                 </div>
                 <div className="rounded-full bg-glow/10 px-4 py-1.5 text-sm font-bold text-glow">
-                  $8<span className="text-xs font-normal text-muted">/mo</span>
+                  $8<span className="text-xs font-normal text-muted">{t('pricing.perMonthShort')}</span>
                 </div>
               </button>
             </div>
@@ -323,7 +322,7 @@ export default function Pricing() {
               className="mt-6 w-full text-sm text-muted hover:text-white transition-colors"
               onClick={() => setHostingModal(null)}
             >
-              {isAr ? 'إلغاء' : 'Cancel'}
+              {t('pricing.cancel')}
             </button>
           </div>
         </div>

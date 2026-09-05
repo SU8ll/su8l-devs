@@ -213,7 +213,7 @@ export default function Chat() {
               setTimeout(()=> setReplyToast(prev=> prev && prev.from===msg.user.username && prev.body===msg.body ? null : prev), 4200);
               try{
                 if(typeof Notification!=='undefined'){
-                  if(Notification.permission==='granted') new Notification(siteIsAr? `رد من ${msg.user.username}` : `Reply from ${msg.user.username}`,{body: msg.body.slice(0,80), icon: msg.user.avatar || '/logo.png'});
+                  if(Notification.permission==='granted') new Notification(t('chat.replyFrom').replace('{name}', msg.user.username),{body: msg.body.slice(0,80), icon: msg.user.avatar || '/logo.png'});
                   else if(Notification.permission!=='denied') Notification.requestPermission();
                 }
                 if(navigator.vibrate) navigator.vibrate([80,40,80]);
@@ -384,43 +384,43 @@ export default function Chat() {
             <div style={{display:'flex', alignItems:'center', gap:12, marginBottom:10}}>
               <img src="/logo.png" alt="" style={{width:40,height:40, borderRadius:11, objectFit:'contain', border:'1px solid rgba(255,255,255,0.06)', background:'#0E0E12'}} onError={e=>{ (e.target as HTMLImageElement).style.display='none'; }}/>
               <div>
-                <div style={{fontSize:10, fontWeight:800, letterSpacing:'0.14em', textTransform:'uppercase', color:'#A78BFA'}}>SU8L DEVs • {siteIsAr? 'المجتمع العالمي' : 'Global Community'}</div>
-                <div style={{fontSize:17, fontWeight:800, letterSpacing:'-0.02em', color:'#F5F5F7', marginTop:2, textAlign: siteIsAr? 'right':'left'}}>{siteIsAr? 'إرشادات المجتمع' : 'Community Guidelines'}</div>
+                <div style={{fontSize:10, fontWeight:800, letterSpacing:'0.14em', textTransform:'uppercase', color:'#A78BFA'}}>SU8L DEVs • {t('chat.globalCommunity')}</div>
+                <div style={{fontSize:17, fontWeight:800, letterSpacing:'-0.02em', color:'#F5F5F7', marginTop:2, textAlign: siteIsAr? 'right':'left'}}>{t('chat.communityGuidelines')}</div>
               </div>
             </div>
-            <div style={{fontSize:12.5, lineHeight:1.6, color:'#9A99A6', marginBottom:14, textAlign: siteIsAr? 'right':'left'}}>{siteIsAr? 'مرحبًا بك في المحادثة العالمية. للحفاظ على بيئة آمنة ومحترمة للجميع، يرجى الالتزام:' : 'Welcome to the global chat. To keep it safe and respectful for everyone, please follow:'}</div>
+            <div style={{fontSize:12.5, lineHeight:1.6, color:'#9A99A6', marginBottom:14, textAlign: siteIsAr? 'right':'left'}}>{t('chat.guidelinesIntro')}</div>
 
             <div style={{display:'flex', flexDirection:'column', gap:10}}>
               <div style={{display:'flex', gap:12, padding:12, borderRadius:12, background:'rgba(255,255,255,0.02)', border:'1px solid rgba(255,255,255,0.06)'}}>
                 <span style={{width:32,height:32, borderRadius:9, background:'rgba(239,68,68,0.09)', border:'1px solid rgba(239,68,68,0.14)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, fontSize:16}}>🛡️</span>
                 <div>
-                  <div style={{fontSize:13, fontWeight:700, color:'#F5F5F7', textAlign: siteIsAr? 'right':'left'}}>{siteIsAr? 'لا تشارك معلوماتك الخاصة' : 'Protect your privacy'}</div>
-                  <div style={{fontSize:12, lineHeight:1.5, color:'#9A99A6', marginTop:3, textAlign: siteIsAr? 'right':'left'}}>{siteIsAr? 'لا تنشر رقم المملكة، اسم التحالف، الإحداثيات أو أي تفاصيل تحدد هويتك.' : "Don't share kingdom number, alliance, coordinates or anything that identifies you."}</div>
+                  <div style={{fontSize:13, fontWeight:700, color:'#F5F5F7', textAlign: siteIsAr? 'right':'left'}}>{t('chat.protectPrivacyTitle')}</div>
+                  <div style={{fontSize:12, lineHeight:1.5, color:'#9A99A6', marginTop:3, textAlign: siteIsAr? 'right':'left'}}>{t('chat.protectPrivacyDesc')}</div>
                 </div>
               </div>
               <div style={{display:'flex', gap:12, padding:12, borderRadius:12, background:'rgba(255,255,255,0.02)', border:'1px solid rgba(255,255,255,0.06)'}}>
                 <span style={{width:32,height:32, borderRadius:9, background:'rgba(245,158,11,0.09)', border:'1px solid rgba(245,158,11,0.14)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, fontSize:16}}>🔒</span>
                 <div>
-                  <div style={{fontSize:13, fontWeight:700, color:'#F5F5F7', textAlign: siteIsAr? 'right':'left'}}>{siteIsAr? 'حافظ على أمان حسابك' : 'Keep your account safe'}</div>
-                  <div style={{fontSize:12, lineHeight:1.5, color:'#9A99A6', marginTop:3, textAlign: siteIsAr? 'right':'left'}}>{siteIsAr? 'لا تشارك كلمات المرور أو بيانات الدفع. SU8L DEVs لن تطلبها منك أبدًا هنا.' : 'Never share passwords or payment info. SU8L DEVs will never ask for them here.'}</div>
+                  <div style={{fontSize:13, fontWeight:700, color:'#F5F5F7', textAlign: siteIsAr? 'right':'left'}}>{t('chat.keepSafeTitle')}</div>
+                  <div style={{fontSize:12, lineHeight:1.5, color:'#9A99A6', marginTop:3, textAlign: siteIsAr? 'right':'left'}}>{t('chat.keepSafeDesc')}</div>
                 </div>
               </div>
             </div>
 
             <div style={{marginTop:14, display:'flex', gap:10, padding:12, borderRadius:12, background:'rgba(59,130,246,0.06)', border:'1px solid rgba(59,130,246,0.14)'}}>
               <span style={{fontSize:16, flexShrink:0, marginTop:1}}>⏰</span>
-              <div style={{fontSize:12, lineHeight:1.5, color:'#93C5FD', textAlign: siteIsAr? 'right':'left'}}>{siteIsAr? 'المحادثات تُحذف تلقائيًا كل 6 ساعات للحفاظ على خفة الموقع — خاصة على الهواتف البسيطة.' : 'Chats auto-delete every 6 hours to keep the site fast — especially on low-end phones.'}</div>
+              <div style={{fontSize:12, lineHeight:1.5, color:'#93C5FD', textAlign: siteIsAr? 'right':'left'}}>{t('chat.autoDeleteNote')}</div>
             </div>
 
             <label style={{display:'flex', gap:10, alignItems:'flex-start', marginTop:16, cursor:'pointer', padding:12, borderRadius:12, border: disclaimerChecked? '1px solid rgba(124,58,237,0.28)' : '1px solid rgba(255,255,255,0.06)', background: disclaimerChecked? 'rgba(124,58,237,0.06)' : 'rgba(255,255,255,0.02)', flexDirection: siteIsAr? 'row-reverse':'row'}}>
               <input type="checkbox" checked={disclaimerChecked} onChange={e=>setDisclaimerChecked(e.target.checked)} style={{marginTop:2, width:18, height:18, accentColor:'#7C3AED', flexShrink:0}}/>
-              <span style={{fontSize:12.5, lineHeight:1.5, color: disclaimerChecked? '#D1D1D6' : '#9A99A6', textAlign: siteIsAr? 'right':'left'}}>{siteIsAr? 'أقر بأنني قرأت وفهمت الإرشادات، وأتحمل مسؤولية ما أنشره، وأوافق على عدم مشاركة معلومات حساسة.' : 'I have read and understood the guidelines, take responsibility for what I post, and agree not to share sensitive information.'}</span>
+              <span style={{fontSize:12.5, lineHeight:1.5, color: disclaimerChecked? '#D1D1D6' : '#9A99A6', textAlign: siteIsAr? 'right':'left'}}>{t('chat.agreeGuidelines')}</span>
             </label>
 
             <button type="button" disabled={!disclaimerChecked} onClick={()=>{ try{ if(user) localStorage.setItem(`su8l_chat_agree_${user.id}`,'1'); }catch{} setDisclaimerAccepted(true); }} style={{width:'100%', marginTop:14, padding:'13px', borderRadius:12, border:'none', background: disclaimerChecked? '#7C3AED':'rgba(255,255,255,0.07)', color: disclaimerChecked? '#fff':'#6B6A78', fontWeight:800, fontSize:14, boxShadow: disclaimerChecked? '0 8px 20px rgba(124,58,237,0.28)' : 'none', transition:'all 0.15s'}}>
-              {siteIsAr? 'موافق — دخول المحادثة →' : 'Agree & Enter Chat →'}
+              {t('chat.agreeEnter')}
             </button>
-            <div style={{textAlign:'center', marginTop:10, fontSize:11, color:'#6B6A78'}}><a href="/terms" target="_blank" rel="noreferrer" style={{color:'#A78BFA', textDecoration:'none'}}>{siteIsAr? 'الشروط' : 'Terms'}</a> • <a href="/refund" target="_blank" rel="noreferrer" style={{color:'#A78BFA', textDecoration:'none'}}>{siteIsAr? 'سياسة الاسترجاع' : 'Refund'}</a></div>
+            <div style={{textAlign:'center', marginTop:10, fontSize:11, color:'#6B6A78'}}><a href="/terms" target="_blank" rel="noreferrer" style={{color:'#A78BFA', textDecoration:'none'}}>{t('nav.terms')}</a> • <a href="/refund" target="_blank" rel="noreferrer" style={{color:'#A78BFA', textDecoration:'none'}}>{t('nav.refund')}</a></div>
           </div>
         </div>
       </div>
@@ -447,7 +447,7 @@ export default function Chat() {
           <div onClick={()=>setReplyToast(null)} style={{display:'flex', gap:10, alignItems:'center', padding:'10px 12px', borderRadius:12, background:'#1A1628', border:'1px solid rgba(124,58,237,0.24)', boxShadow:'0 8px 24px rgba(0,0,0,0.35)', cursor:'pointer'}}>
             <span style={{width:28,height:28, borderRadius:8, background:'#7C3AED', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:14}}>↩</span>
             <div style={{flex:1, minWidth:0}}>
-              <div style={{fontSize:12, fontWeight:700, color:'#A78BFA'}}>{siteIsAr? `رد من ${replyToast.from}` : `Reply from ${replyToast.from}`}</div>
+              <div style={{fontSize:12, fontWeight:700, color:'#A78BFA'}}>{t('chat.replyFrom').replace('{name}', replyToast.from)}</div>
               <div style={{fontSize:12, color:'#D1D1D6', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{replyToast.body}</div>
             </div>
             <span style={{color:'#6B6A78'}}>✕</span>
@@ -458,14 +458,14 @@ export default function Chat() {
           <div className="m-card" style={{padding:12}}>
             <div style={{display:'flex', gap:8}}>
               <input value={usernameDraft} onChange={e=>{setUsernameDraft(e.target.value); setNameUpdated(false);}} maxLength={24} placeholder={t('chat.namePlaceholder')} style={{flex:1, padding:'11px 12px', borderRadius:11, border:'1px solid rgba(255,255,255,0.08)', background:'rgba(255,255,255,0.04)', color:'#F5F5F7', outline:'none'}}/>
-              <button type="button" onClick={()=>void saveUsername()} style={{padding:'11px 14px', borderRadius:11, background:'#7C3AED', color:'#fff', fontWeight:700, border:'none'}}>OK</button>
+              <button type="button" onClick={()=>void saveUsername()} style={{padding:'11px 14px', borderRadius:11, background:'#7C3AED', color:'#fff', fontWeight:700, border:'none'}}>{t('chat.save')}</button>
               <button type="button" onClick={()=>setUsernameEdit(false)} style={{padding:'11px 12px', borderRadius:11, border:'1px solid rgba(255,255,255,0.07)', background:'rgba(255,255,255,0.04)', color:'#9A99A6'}}>✕</button>
             </div>
             {usernameError && <div style={{marginTop:8, fontSize:12, color:'#F87171'}}>{usernameError}</div>}
             {nameUpdated && !usernameError && <div style={{marginTop:8, fontSize:12, color:'#6EE7B7'}}>{t('chat.nameSaved')}</div>}
           </div>
         )}
-        <div style={{padding:'8px 10px', borderRadius:10, background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.06)', fontSize:11, color:'#6B6A78', textAlign:'center', lineHeight:1.4}}>⏰ {siteIsAr? 'المحادثات تُحذف تلقائيًا كل 6 ساعات للحفاظ على خفة الموقع بالهواتف البسيطة.' : 'Chats are auto-deleted every 6 hours to keep the site light.'}</div>
+        <div style={{padding:'8px 10px', borderRadius:10, background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.06)', fontSize:11, color:'#6B6A78', textAlign:'center', lineHeight:1.4}}>⏰ {t('chat.autoDeleteNoteLong')}</div>
 
         {/* Messages — airy rows, not boxed cards */}
         <div style={{flex:1, overflowY:'auto', display:'flex', flexDirection:'column', gap:14, padding:'4px 2px'}}>
@@ -561,7 +561,7 @@ export default function Chat() {
         <div onClick={()=>setReplyToast(null)} style={{display:'flex', gap:10, alignItems:'center', padding:'10px 12px', borderRadius:12, background:'#1A1628', border:'1px solid rgba(124,58,237,0.24)', boxShadow:'0 8px 24px rgba(0,0,0,0.25)', cursor:'pointer', marginBottom:12}}>
           <span style={{width:28,height:28, borderRadius:8, background:'#7C3AED', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff'}}>↩</span>
           <div style={{flex:1, minWidth:0}}>
-            <div style={{fontSize:12, fontWeight:700, color:'#A78BFA'}}>{siteIsAr? `رد من ${replyToast.from}` : `Reply from ${replyToast.from}`}</div>
+            <div style={{fontSize:12, fontWeight:700, color:'#A78BFA'}}>{t('chat.replyFrom').replace('{name}', replyToast.from)}</div>
             <div style={{fontSize:12, color:'#D1D1D6', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{replyToast.body}</div>
           </div>
           <span style={{color:'#6B6A78'}}>✕</span>

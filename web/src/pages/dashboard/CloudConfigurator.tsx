@@ -163,7 +163,7 @@ export default function CloudConfigurator() {
       setActiveSlotId(d.activeSlotId ?? slotId ?? '');
       setEditing(false);
     } catch {
-      setError('Failed to load Cloud Configurator');
+      setError(t('cloud.errorLoad'));
       throw new Error('load failed');
     }
   };
@@ -194,7 +194,7 @@ export default function CloudConfigurator() {
           setSnapshot(JSON.stringify(mockCfg));
           setActiveSlotId(mockSlots[0]!.id);
         } catch {
-          setError('Failed to load Cloud Configurator (preview)');
+          setError(t('cloud.errorLoadPreview'));
         }
       })();
       return;
@@ -249,7 +249,7 @@ export default function CloudConfigurator() {
       setEditing(false);
       setModalOpen(true);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to save configuration.');
+      setError(e instanceof Error ? e.message : t('cloud.errorSave'));
     } finally {
       setSaving(false);
     }
@@ -291,7 +291,7 @@ export default function CloudConfigurator() {
     <div className="bs-root min-w-0">
       {isPreview && (
         <div className="mb-5 rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-[13px] leading-relaxed text-amber-200">
-          🔍 <strong>Preview Mode</strong> — You are automatically logged in as <strong>Elite Preview</strong> (2 slots, all features unlocked). No login required. Use the language pills above to test AR/FR/DE/TR translations. Changes are local only.
+          🔍 <strong>{t('cloud.previewMode')}</strong> — {t('cloud.previewBanner')}
         </div>
       )}
       {/* Edit banner */}
@@ -407,6 +407,7 @@ function walkEnabled(cfg: CloudConfig, path: string[], cat: CloudCategorySchema)
    Navigation rail
    ───────────────────────────────────────────────────────────────────────── */
 function NavRail({ area, onArea, counts }: { area: Area; onArea: (a: Area) => void; counts: { automation: number; events: number } }) {
+  const { t } = useI18n();
   const [logoFailed, setLogoFailed] = useState(false);
   const item = (a: Area, label: string, icon: ReactNode, count?: number) => (
     <button type="button" className={`bs-nav-item ${area === a ? 'active' : ''}`} onClick={() => onArea(a)}>
@@ -423,20 +424,20 @@ function NavRail({ area, onArea, counts }: { area: Area; onArea: (a: Area) => vo
         ) : (
           <img src="/logo.png" alt="SU8L" className="bs-nav-logo" onError={() => setLogoFailed(true)} />
         )}
-        <div className="bs-nav-brand">SU8LDEVs BOT<small>Control Console</small></div>
+        <div className="bs-nav-brand">{t('cloud.navBrand')}<small>{t('cloud.navConsole')}</small></div>
       </div>
 
-      <div className="bs-area-label">Command</div>
-      {item('overview', 'Overview', I.overview)}
+      <div className="bs-area-label">{t('cloud.navCommand')}</div>
+      {item('overview', t('cloud.navOverview'), I.overview)}
 
-      <div className="bs-area-label">Automation</div>
-      {item('automation', 'Automation', I.automation, counts.automation)}
+      <div className="bs-area-label">{t('cloud.navAutomation')}</div>
+      {item('automation', t('cloud.navAutomation'), I.automation, counts.automation)}
 
-      <div className="bs-area-label">Combat</div>
-      {item('events', 'Events', I.events, counts.events)}
+      <div className="bs-area-label">{t('cloud.navCombat')}</div>
+      {item('events', t('cloud.navEvents'), I.events, counts.events)}
 
-      <div className="bs-area-label">System</div>
-      {item('system', 'System', I.system)}
+      <div className="bs-area-label">{t('cloud.navSystem')}</div>
+      {item('system', t('cloud.navSystem'), I.system)}
     </aside>
   );
 }
@@ -456,7 +457,14 @@ function Topbar({
   extraSlots?: number;
 }) {
   const [open, setOpen] = useState(false);
-  const areaTitle = area.charAt(0).toUpperCase() + area.slice(1);
+  const areaTitle = (() => {
+    if (area === 'overview') return t('cloud.title');
+    if (area === 'automation') return t('cloud.navAutomation');
+    if (area === 'events') return t('cloud.navEvents');
+    if (area === 'system') return t('cloud.navSystem');
+    if (area === 'accounts') return t('cloud.statAccounts');
+    return t('cloud.title');
+  })();
   const ownedCount = 1 + (extraSlots ?? 0);
   const ownedSlots = slots.filter((_, i) => i < ownedCount);
   return (
@@ -546,23 +554,23 @@ function OverviewArea({
   return (
     <div className="space-y-4">
       <div className="bs-stat-grid">
-        <div className="bs-stat"><div className="bs-stat-num">{ownedSlots}</div><div className="bs-stat-label">Accounts</div></div>
-        <div className="bs-stat"><div className="bs-stat-num">{totalEnabled}</div><div className="bs-stat-label">Active Features</div></div>
-        <div className="bs-stat"><div className="bs-stat-num">{activeAuto}</div><div className="bs-stat-label">Automation</div></div>
-        <div className="bs-stat"><div className="bs-stat-num">{activeEvents}</div><div className="bs-stat-label">Events</div></div>
+        <div className="bs-stat"><div className="bs-stat-num">{ownedSlots}</div><div className="bs-stat-label">{t('cloud.statAccounts')}</div></div>
+        <div className="bs-stat"><div className="bs-stat-num">{totalEnabled}</div><div className="bs-stat-label">{t('cloud.statActiveFeatures')}</div></div>
+        <div className="bs-stat"><div className="bs-stat-num">{activeAuto}</div><div className="bs-stat-label">{t('cloud.statAutomation')}</div></div>
+        <div className="bs-stat"><div className="bs-stat-num">{activeEvents}</div><div className="bs-stat-label">{t('cloud.statEvents')}</div></div>
       </div>
 
       <div className="bs-panel">
         <div className="bs-panel-head">
           <div>
-            <div className="bs-panel-title">Account</div>
-            <div className="bs-panel-sub">Current configuration profile</div>
+            <div className="bs-panel-title">{t('cloud.accountTitle')}</div>
+            <div className="bs-panel-sub">{t('cloud.accountProfile')}</div>
           </div>
         </div>
         <div className="bs-panel-body">
           <div className="bs-row">
             <div><div className="bs-row-label">{activeSlot?.name ?? t('cloud.switchAccount')}</div><div className="bs-row-desc">{t('botpanel.running')}</div></div>
-            <span className="bs-badge online"><span className="dot" />ONLINE</span>
+            <span className="bs-badge online"><span className="dot" />{t('botpanel.online')}</span>
           </div>
         </div>
       </div>
@@ -595,6 +603,7 @@ function FeatureLanding({
   categories: CloudCategorySchema[];
   onOpen: (id: string) => void;
 }) {
+  const { t } = useI18n();
   return (
     <div className="space-y-4">
       <div className="bs-feature-grid">
@@ -602,7 +611,7 @@ function FeatureLanding({
           <FeatureCard key={c.id} category={c} enabled={enabledCount(cfg)(c)} onOpen={() => onOpen(c.id)} />
         ))}
       </div>
-      {categories.length === 0 && <div className="bs-empty">No features available.</div>}
+      {categories.length === 0 && <div className="bs-empty">{t('cloud.noFeatures')}</div>}
     </div>
   );
 }
@@ -617,14 +626,14 @@ function FeatureCard({ category, enabled, onOpen }: { category: CloudCategorySch
         <span className="bs-feature-ic">{category.icon ?? '⚙️'}</span>
         <div className="min-w-0">
           <div className="bs-feature-title">{title}</div>
-          <div className={`bs-state-badge ${enabled ? 'active' : 'paused'}`}>{enabled ? '● ACTIVE' : '○ PAUSED'}</div>
+          <div className={`bs-state-badge ${enabled ? 'active' : 'paused'}`}>{enabled ? t('cloud.stateActive') : t('cloud.statePaused')}</div>
         </div>
       </div>
       {desc && <div className="bs-feature-desc">{desc}</div>}
       <div className="bs-feature-actions">
-        {enabled && <span className="bs-row-tag">Enabled</span>}
+        {enabled && <span className="bs-row-tag">{t('cloud.enabled')}</span>}
         <button type="button" className="bs-btn" onClick={onOpen} style={{ marginLeft: 'auto' }}>
-          Configure {I.chevron}
+          {t('cloud.configure')} {I.chevron}
         </button>
       </div>
     </div>
@@ -638,7 +647,7 @@ function CategoryHeader({ category, onBack }: { category: CloudCategorySchema; o
   const desc = t(descKey) !== descKey ? t(descKey) : category.description;
   return (
     <div className="flex items-center gap-3">
-      <button type="button" className="bs-btn bs-btn-ghost" style={{ minHeight: 34, padding: '0 10px' }} onClick={onBack} title="Back">←</button>
+      <button type="button" className="bs-btn bs-btn-ghost" style={{ minHeight: 34, padding: '0 10px' }} onClick={onBack} title={t('cloud.backLabel')}>{t('cloud.back')}</button>
       <span className="bs-feature-ic" style={{ width: 44, height: 44 }}>{category.icon ?? '⚙️'}</span>
       <div>
         <div className="bs-panel-title">{title}</div>
@@ -672,10 +681,11 @@ function CategoryPanel({
   const masters = master ? booleans.filter((b) => b.key === master.key) : [];
   const restBooleans = booleans.filter((b) => !masters.includes(b));
 
+  const { t } = useI18n();
   return (
     <div className="space-y-4">
       {depth === 0 && category.groups && category.groups.length > 1 && (
-        <div className="bs-section-title">Modules <span className="rule" /></div>
+        <div className="bs-section-title">{t('cloud.modules')} <span className="rule" /></div>
       )}
 
       {/* master toggle row */}
@@ -737,7 +747,7 @@ function CategoryPanel({
             )}
             {joiners.length > 0 && (
               <div className="mt-1">
-                <div className="bs-hero-section-hint">Joiner heroes (first slot, in order of preference - empty = best rally buff)</div>
+                <div className="bs-hero-section-hint">{t('cloud.joinerHint')}</div>
                 <div className="space-y-2">
                   {joiners.map((f, idx) => (
                     <div key={f.key} className="bs-hero-row">
@@ -754,7 +764,7 @@ function CategoryPanel({
             )}
             {leaders.length > 0 && (
               <div className="mt-2">
-                <div className="bs-hero-section-hint">Leader heroes (up to 3, in order of preference - empty = today's best-per-army-type auto-pick)</div>
+                <div className="bs-hero-section-hint">{t('cloud.leaderHint')}</div>
                 <div className="space-y-2">
                   {leaders.map((f, idx) => (
                     <div key={f.key} className="bs-hero-row">
@@ -784,7 +794,7 @@ function CategoryPanel({
       ))}
 
       {depth === 0 && category.fields && category.fields.length === 0 && !category.groups && (
-        <div className="bs-empty">No configuration available.</div>
+        <div className="bs-empty">{t('cloud.noConfig')}</div>
       )}
     </div>
   );
@@ -812,7 +822,7 @@ function GroupCard({
         <span className="bs-group-title">{gTitle}</span>
         {gDesc && !open && <span className="bs-row-desc truncate" style={{ margin: 0, maxWidth: '40%' }}>{gDesc}</span>}
         <span className="bs-group-state">
-          {enabled ? <span className="bs-state-badge active">● ON</span> : <span className="bs-state-badge off">○ OFF</span>}
+          {enabled ? <span className="bs-state-badge active">{tGroup('cloud.stateOn')}</span> : <span className="bs-state-badge off">{tGroup('cloud.stateOff')}</span>}
         </span>
         <span className={`chev ${open ? 'rotate-180' : ''}`} style={{ color: 'var(--bs-text-3)', transition: 'transform .18s' }}>{I.chevron}</span>
       </div>
@@ -843,6 +853,23 @@ function isGroupEnabled(cfg: CloudConfig, path: string[], group: CloudCategorySc
 }
 
 /* ── Ratio panel (matrix) ───────────────────────────────────────────────── */
+function trRatioName(name: string, t: (k: string) => string): string {
+  const m: Record<string, string> = {
+    'Championship': t('cloud.ratioChampionship'),
+    'Coliseum': t('cloud.ratioColiseum'),
+    'Forest of Life': t('cloud.ratioForestOfLife'),
+    'Crystal Cave': t('cloud.ratioCrystalCave'),
+    'Knowledge Nexus': t('cloud.ratioKnowledgeNexus'),
+    'Molten Fort': t('cloud.ratioMoltenFort'),
+    'Radiant Spire': t('cloud.ratioRadiantSpire'),
+    'Alliance Defense': t('cloud.ratioAllianceDefense'),
+    'Bear Trap (Joining)': t('cloud.ratioBearJoining'),
+    'Bear Trap (Master)': t('cloud.ratioBearMaster'),
+    'Viking Vengeance': t('cloud.ratioViking'),
+  };
+  return m[name] ?? name;
+}
+
 function RatioPanel({
   groups, path, cfg, disabled, onChange,
 }: {
@@ -852,6 +879,7 @@ function RatioPanel({
   disabled: boolean;
   onChange: (path: string[], v: unknown) => void;
 }) {
+  const { t: tRatio } = useI18n();
   if (groups.length <= 1) {
     // single triplet — stack vertically for clarity (Championship etc.)
     const rg = groups[0];
@@ -859,12 +887,12 @@ function RatioPanel({
   }
   return (
     <div className="bs-panel">
-      <div className="bs-panel-head"><div className="bs-panel-title">Troop Distribution</div></div>
+      <div className="bs-panel-head"><div className="bs-panel-title">{tRatio('cloud.troopDistribution')}</div></div>
       <div className="overflow-x-auto">
         <table className="bs-ratio-table">
           <thead>
             <tr>
-              <th> </th><th>Tower / Group</th><th>Inf %</th><th>Cav %</th><th>Arch %</th><th>Total</th>
+              <th> </th><th>{tRatio('cloud.thTowerGroup')}</th><th>{tRatio('cloud.thInf')}</th><th>{tRatio('cloud.thCav')}</th><th>{tRatio('cloud.thArch')}</th><th>{tRatio('cloud.thTotal')}</th>
             </tr>
           </thead>
           <tbody>
@@ -876,7 +904,7 @@ function RatioPanel({
               return (
                 <tr key={rg.name} className={`bs-ratio-row ${ok ? '' : 'invalid'}`}>
                   <td>{rg.enable && <Toggle checked={enabled} disabled={disabled} onChange={(v) => onChange([...path, rg.enable!], v)} />}</td>
-                  <td className="tower" style={{ opacity: enabled ? 1 : 0.45 }}>{rg.name}</td>
+                  <td className="tower" style={{ opacity: enabled ? 1 : 0.45 }}>{trRatioName(rg.name, tRatio)}</td>
                   {rg.keys.map((k, i) => (
                     <td key={k}><RatioInput value={vals[i]} disabled={disabled} onChange={(v) => onChange([...path, k], v)} /></td>
                   ))}
@@ -901,7 +929,7 @@ function RatioStack({ rg, path, cfg, disabled, onChange }: { rg: RatioGroupDef; 
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div>
-          <div className="bs-feature-title">{rg.name}</div>
+          <div className="bs-feature-title">{trRatioName(rg.name, t)}</div>
           <div className={`bs-state-badge ${ok ? 'active' : 'paused'}`}>{ok ? '✓ 100%' : `${sum}% — ${t('cloud.ratioSumInvalid')}`}</div>
         </div>
         {rg.enable && <Toggle checked={enabled} disabled={disabled} onChange={(v) => onChange([...path, rg.enable!], v)} />}
@@ -909,8 +937,8 @@ function RatioStack({ rg, path, cfg, disabled, onChange }: { rg: RatioGroupDef; 
       <div className="grid grid-cols-3 gap-3">
         {rg.keys.map((k, i) => {
           const label = i === 2 && rg.keys.length === 3
-            ? (rg.keys[2].endsWith('_rng') ? 'Ranged %' : 'Archer %')
-            : (i === 1 ? 'Cavalry %' : 'Infantry %');
+            ? (rg.keys[2].endsWith('_rng') ? t('cloud.rangedPct') : t('cloud.archerPct'))
+            : (i === 1 ? t('cloud.cavalryPct') : t('cloud.infantryPct'));
           return (
             <div key={k}>
               <div className="bs-input-hint" style={{ marginTop: 0, marginBottom: 6 }}>{label}</div>

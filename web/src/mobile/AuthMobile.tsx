@@ -6,9 +6,8 @@ import { api, apiUrl } from '../api';
 import MobileLayout, { MIcons } from './MobileLayout';
 
 export function LoginMobile(){
-  const { t, lang } = useI18n();
+  const { t } = useI18n();
   const { user } = useAuth();
-  const isAr=lang==='ar';
   const location=useLocation();
   const navigate=useNavigate();
   const params=new URLSearchParams(location.search);
@@ -33,7 +32,7 @@ export function LoginMobile(){
         {to:'/pricing', label:t('nav.pricing'), icon:MIcons.pricing},
         {to:'/status', label:t('nav.status'), icon:MIcons.status},
         {to:'/terms', label:t('nav.terms'), icon:MIcons.terms},
-        {to:'/login', label:isAr?'دخول':'Login', icon:MIcons.login},
+        {to:'/login', label:t('nav.login'), icon:MIcons.login},
       ];
   const handleEmailLogin=async(e:React.FormEvent)=>{
     e.preventDefault(); setFormError(''); setLoading(true);
@@ -42,7 +41,7 @@ export function LoginMobile(){
       if(data.ok && data.token){ localStorage.setItem('su8l_token', data.token); window.location.href='/dashboard'; }
     }catch(err:unknown){
       const apiErr=err as {detail?:{error?:string}; message?:string};
-      setFormError(apiErr?.detail?.error || apiErr?.message || 'Login failed');
+      setFormError(apiErr?.detail?.error || apiErr?.message || t('login.error.generic'));
     }finally{ setLoading(false); }
   };
   return (
@@ -98,9 +97,8 @@ export function LoginMobile(){
 }
 
 export function RegisterMobile(){
-  const { t, lang } = useI18n();
+  const { t } = useI18n();
   const { user } = useAuth();
-  const isAr=lang==='ar';
   const [params]=useSearchParams();
   const refCode=params.get('ref')??undefined;
   const navigate=useNavigate();
@@ -119,7 +117,7 @@ export function RegisterMobile(){
         {to:'/pricing', label:t('nav.pricing'), icon:MIcons.pricing},
         {to:'/status', label:t('nav.status'), icon:MIcons.status},
         {to:'/terms', label:t('nav.terms'), icon:MIcons.terms},
-        {to:'/login', label:isAr?'دخول':'Login', icon:MIcons.login},
+        {to:'/login', label:t('nav.login'), icon:MIcons.login},
       ];
   const handleSubmit=async(e:React.FormEvent)=>{
     e.preventDefault(); setFormError('');
@@ -128,7 +126,7 @@ export function RegisterMobile(){
     if(username.length<3||username.length>32){ setFormError(t('register.error.usernameLength')); return; }
     setLoading(true);
     try{ const data=await api<{ok:boolean; userId:string}>('/api/auth/register',{method:'POST', body:{email,username,password,ref:refCode}}); if(data.ok) window.location.href='/login?registered=1'; }
-    catch(err:unknown){ const apiErr=err as {detail?:{error?:string}; message?:string}; setFormError(apiErr?.detail?.error || apiErr?.message || 'Registration failed'); } finally{ setLoading(false); }
+    catch(err:unknown){ const apiErr=err as {detail?:{error?:string}; message?:string}; setFormError(apiErr?.detail?.error || apiErr?.message || t('register.error.generic')); } finally{ setLoading(false); }
   };
   return (
     <MobileLayout title={t('register.title')} subtitle={t('register.subtitle')} items={nav} onHome={()=>navigate('/')}>

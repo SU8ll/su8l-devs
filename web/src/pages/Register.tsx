@@ -50,7 +50,7 @@ export default function Register() {
       }
     } catch (err: unknown) {
       const apiErr = err as { detail?: { error?: string }; message?: string };
-      setFormError(apiErr?.detail?.error || apiErr?.message || 'Registration failed');
+      setFormError(apiErr?.detail?.error || apiErr?.message || t('register.error.generic'));
     } finally {
       setLoading(false);
     }

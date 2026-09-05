@@ -30,7 +30,7 @@ export default function Tickets() {
     api<{ tickets: Ticket[] }>('/api/tickets')
       .then((r) => setTickets(r.tickets))
       .catch((e) => {
-        setError(e instanceof Error ? e.message : 'Failed to load tickets.');
+        setError(e instanceof Error ? e.message : t('tickets.error.loadFailed'));
         setTickets([]);
       });
   useEffect(() => {
@@ -51,7 +51,7 @@ export default function Tickets() {
       setShowForm(false);
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to create ticket.');
+      setError(e instanceof Error ? e.message : t('tickets.error.createFailed'));
     } finally {
       setCreating(false);
     }

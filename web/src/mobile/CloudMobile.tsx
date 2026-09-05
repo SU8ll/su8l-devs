@@ -82,11 +82,11 @@ function walkEnabled(cfg: CloudConfig, path: string[], cat: CloudCategorySchema)
   return false;
 }
 
-const AREAS: { id: Area; label: string }[] = [
-  { id: 'overview', label: 'Home' },
-  { id: 'automation', label: 'Automation' },
-  { id: 'events', label: 'Events' },
-  { id: 'system', label: 'More' },
+const AREAS: { id: Area; labelKey: string }[] = [
+  { id: 'overview', labelKey: 'cloud.mobileHome' },
+  { id: 'automation', labelKey: 'cloud.mobileAutomation' },
+  { id: 'events', labelKey: 'cloud.mobileEvents' },
+  { id: 'system', labelKey: 'cloud.mobileMore' },
 ];
 
 export default function CloudMobile() {
@@ -114,7 +114,7 @@ export default function CloudMobile() {
       const d = await api<CloudConfigDto>(`/api/dashboard/cloud-config${q}`);
       setData(d); setCfg(d.config); setSnapshot(JSON.stringify(d.config));
       setActiveSlotId(d.activeSlotId ?? slotId ?? ''); setEditing(false);
-    } catch { setError('Failed to load'); throw new Error('load failed'); }
+    } catch { setError(t('cloud.errorLoadShort')); throw new Error('load failed'); }
   };
   useEffect(() => {
     if (isPreview) {
@@ -142,7 +142,7 @@ export default function CloudMobile() {
           setSnapshot(JSON.stringify(mockCfg));
           setActiveSlotId(mockSlots[0]!.id);
         } catch {
-          setError('Failed to load Cloud Configurator (preview)');
+          setError(t('cloud.errorLoadPreview'));
         }
       })();
       return;
@@ -173,7 +173,7 @@ export default function CloudMobile() {
     try {
       const res = await api<SaveCloudConfigResponse>('/api/dashboard/cloud-config', { method: 'PUT', body: { config: cfg, slotId: activeSlotId || undefined } });
       setSnapshot(JSON.stringify(res.config)); setCfg(res.config); setActiveSlotId(res.activeSlotId); setEditing(false);
-    } catch (e) { setError(e instanceof Error ? e.message : 'Failed'); } finally { setSaving(false); }
+    } catch (e) { setError(e instanceof Error ? e.message : t('cloud.errorFailed')); } finally { setSaving(false); }
   };
   const exitEdit = () => { setEditing(false); if (cfg && snapshot) try { setCfg(JSON.parse(snapshot) as CloudConfig); } catch { /* ignore */ } };
 
@@ -209,7 +209,7 @@ export default function CloudMobile() {
         {AREAS.map((a) => (
           <button key={a.id} type="button" onClick={() => { setArea(a.id); setActiveCatId(null); }}
             style={{ padding: '9px 2px', borderRadius: 9, fontSize: 11, fontWeight: 700, border: 'none', cursor: 'pointer', background: area === a.id ? 'var(--bs-surface-3)' : 'transparent', color: area === a.id ? 'var(--bs-gold-bright)' : 'var(--bs-text-3)', boxShadow: area === a.id ? 'inset 0 0 0 1px var(--bs-border)' : 'none' }}>
-            {a.label}
+            {t(a.labelKey)}
           </button>
         ))}
       </div>
@@ -236,10 +236,10 @@ export default function CloudMobile() {
       )}
       {(area === 'automation' || area === 'events' || area === 'system') && activeCat && (
         <div>
-          <button type="button" onClick={() => setActiveCatId(null)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--bs-text-2)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', marginBottom: 8 }}>← Back</button>
+          <button type="button" onClick={() => setActiveCatId(null)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--bs-text-2)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', marginBottom: 8 }}>{t('cloud.back')}</button>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
             <span style={{ fontSize: 22 }}>{activeCat.icon ?? '⚙️'}</span>
-            <div><div style={{ fontSize: 16, fontWeight: 800 }}>{activeCat.title}</div></div>
+            <div><div style={{ fontSize: 16, fontWeight: 800 }}>{t(`schema.category.${activeCat.id}`) !== `schema.category.${activeCat.id}` ? t(`schema.category.${activeCat.id}`) : activeCat.title}</div></div>
           </div>
           <div className="bs-panel" style={{ opacity: editing ? 1 : 0.75 }}>
             <MobileCategoryPanel category={activeCat} path={[activeCat.id]} cfg={cfg} disabled={!editing} onChange={update} />
@@ -261,6 +261,7 @@ export default function CloudMobile() {
 }
 
 function MobileOverview({ cfg, schema, onOpen }: { cfg: CloudConfig; schema: CloudConfigDto['schema']; onOpen: (id: string) => void }) {
+  const { t } = useI18n();
   const automation = categoriesForArea(schema, 'automation');
   const events = categoriesForArea(schema, 'events');
   const all = [...automation, ...events];
@@ -268,39 +269,44 @@ function MobileOverview({ cfg, schema, onOpen }: { cfg: CloudConfig; schema: Clo
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10 }}>
-        <div className="bs-stat"><div className="bs-stat-num">{all.length}</div><div className="bs-stat-label">Features</div></div>
-        <div className="bs-stat"><div className="bs-stat-num">{active}</div><div className="bs-stat-label">Active</div></div>
+        <div className="bs-stat"><div className="bs-stat-num">{all.length}</div><div className="bs-stat-label">{t('cloud.mobileFeatures')}</div></div>
+        <div className="bs-stat"><div className="bs-stat-num">{active}</div><div className="bs-stat-label">{t('cloud.mobileActive')}</div></div>
       </div>
-      <div className="m-section-title" style={{ color: 'var(--bs-text-3)' }}>Quick access</div>
-      {all.map((c) => (
+      <div className="m-section-title" style={{ color: 'var(--bs-text-3)' }}>{t('cloud.mobileQuickAccess')}</div>
+      {all.map((c) => {
+        const title = t(`schema.category.${c.id}`) !== `schema.category.${c.id}` ? t(`schema.category.${c.id}`) : c.title;
+        return (
         <div key={c.id} className="bs-feature-card" onClick={() => onOpen(c.id)} role="button">
           <div className="bs-feature-head">
             <span className="bs-feature-ic">{c.icon ?? '⚙️'}</span>
-            <div className="min-w-0"><div className="bs-feature-title">{c.title}</div>
-              <div className={`bs-state-badge ${enabledCount(cfg)(c) ? 'active' : 'paused'}`}>{enabledCount(cfg)(c) ? '● ACTIVE' : '○ PAUSED'}</div>
+            <div className="min-w-0"><div className="bs-feature-title">{title}</div>
+              <div className={`bs-state-badge ${enabledCount(cfg)(c) ? 'active' : 'paused'}`}>{enabledCount(cfg)(c) ? t('cloud.stateActive') : t('cloud.statePaused')}</div>
             </div>
           </div>
         </div>
-      ))}
+      );})}
     </div>
   );
 }
 
 function MobileLanding({ cfg, categories, onOpen }: { cfg: CloudConfig; categories: CloudCategorySchema[]; onOpen: (id: string) => void }) {
+  const { t } = useI18n();
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      {categories.map((c) => (
+      {categories.map((c) => {
+        const title = t(`schema.category.${c.id}`) !== `schema.category.${c.id}` ? t(`schema.category.${c.id}`) : c.title;
+        return (
         <div key={c.id} className="bs-feature-card" onClick={() => onOpen(c.id)} role="button">
           <div className="bs-feature-head">
             <span className="bs-feature-ic">{c.icon ?? '⚙️'}</span>
-            <div className="min-w-0"><div className="bs-feature-title">{c.title}</div>
-              <div className={`bs-state-badge ${enabledCount(cfg)(c) ? 'active' : 'paused'}`}>{enabledCount(cfg)(c) ? '● ACTIVE' : '○ PAUSED'}</div>
+            <div className="min-w-0"><div className="bs-feature-title">{title}</div>
+              <div className={`bs-state-badge ${enabledCount(cfg)(c) ? 'active' : 'paused'}`}>{enabledCount(cfg)(c) ? t('cloud.stateActive') : t('cloud.statePaused')}</div>
             </div>
             <span style={{ marginInlineStart: 'auto', color: 'var(--bs-text-3)' }}>›</span>
           </div>
         </div>
-      ))}
-      {categories.length === 0 && <div className="bs-empty">No features available.</div>}
+      );})}
+      {categories.length === 0 && <div className="bs-empty">{t('cloud.noFeatures')}</div>}
     </div>
   );
 }
@@ -330,6 +336,7 @@ function MobileSlotBanner({ t, user }: {
 function MobileCategoryPanel({ category, path, cfg, disabled, onChange }: {
   category: CloudCategorySchema; path: string[]; cfg: CloudConfig; disabled: boolean; onChange: (p: string[], v: unknown) => void;
 }) {
+  const { t } = useI18n();
   const localRatioGroups = ratioGroupsIn(path);
   const gridRatioKeys = new Set(localRatioGroups.flatMap((r) => r.keys));
   const gridEnableKeys = new Set(localRatioGroups.flatMap((r) => (r.enable ? [r.enable] : [])));
@@ -342,31 +349,44 @@ function MobileCategoryPanel({ category, path, cfg, disabled, onChange }: {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
-      {booleans.map((f) => (
+      {booleans.map((f) => {
+        const label = t(`schema.field.${f.key}`) !== `schema.field.${f.key}` ? t(`schema.field.${f.key}`) : f.label;
+        const descKey = `schema.field.${f.key}.desc`;
+        const desc = (t(descKey) !== descKey ? t(descKey) : f.description);
+        return (
         <div key={f.key}>
           <div className="bs-row">
-            <div><div className="bs-row-label">{f.label}</div>{f.description && <div className="bs-row-desc">{f.description}</div>}</div>
+            <div><div className="bs-row-label">{label}</div>{desc && <div className="bs-row-desc">{desc}</div>}</div>
             <Toggle checked={Boolean(getValue(cfg, [...path, f.key]))} disabled={disabled} onChange={(v) => onChange([...path, f.key], v)} />
           </div>
-          {isBearGroup && f.key === 'bear_separate_cap' && separateCapEnabled && bearMaxLeading && (
+          {isBearGroup && f.key === 'bear_separate_cap' && separateCapEnabled && bearMaxLeading && (() => {
+            const bLabel = t(`schema.field.${bearMaxLeading.key}`) !== `schema.field.${bearMaxLeading.key}` ? t(`schema.field.${bearMaxLeading.key}`) : bearMaxLeading.label;
+            const bDescKey = `schema.field.${bearMaxLeading.key}.desc`;
+            const bDesc = (t(bDescKey) !== bDescKey ? t(bDescKey) : bearMaxLeading.description);
+            return (
             <div style={{ padding: '8px 18px 10px 36px', borderLeft: '2px solid var(--bs-border)', marginLeft: 18 }}>
-              <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--bs-text)' }}>{bearMaxLeading.label}</label>
-              {bearMaxLeading.description && <div style={{ fontSize: 11.5, color: 'var(--bs-text-3)', margin: '2px 0 6px' }}>{bearMaxLeading.description}</div>}
+              <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--bs-text)' }}>{bLabel}</label>
+              {bDesc && <div style={{ fontSize: 11.5, color: 'var(--bs-text-3)', margin: '2px 0 6px' }}>{bDesc}</div>}
               <FieldControl field={bearMaxLeading} value={getValue(cfg, [...path, bearMaxLeading.key])} disabled={disabled} onChange={(v) => onChange([...path, bearMaxLeading.key], v)} />
             </div>
-          )}
+            );
+          })()}
         </div>
-      ))}
+        );})}
 
       {others.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '12px 18px' }}>
-          {others.map((f) => (
+          {others.map((f) => {
+            const label = t(`schema.field.${f.key}`) !== `schema.field.${f.key}` ? t(`schema.field.${f.key}`) : f.label;
+            const descKey = `schema.field.${f.key}.desc`;
+            const desc = (t(descKey) !== descKey ? t(descKey) : f.description);
+            return (
             <div key={f.key}>
-              <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--bs-text)' }}>{f.label}</label>
-              {f.description && <div style={{ fontSize: 11.5, color: 'var(--bs-text-3)', margin: '2px 0 6px' }}>{f.description}</div>}
+              <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--bs-text)' }}>{label}</label>
+              {desc && <div style={{ fontSize: 11.5, color: 'var(--bs-text-3)', margin: '2px 0 6px' }}>{desc}</div>}
               <FieldControl field={f} value={getValue(cfg, [...path, f.key])} disabled={disabled} onChange={(v) => onChange([...path, f.key], v)} />
             </div>
-          ))}
+          );})}
         </div>
       )}
 
@@ -386,18 +406,20 @@ function MobileCategoryPanel({ category, path, cfg, disabled, onChange }: {
 function GroupCard({ group, path, cfg, disabled, onChange }: {
   group: CloudCategorySchema; path: string[]; cfg: CloudConfig; disabled: boolean; onChange: (p: string[], v: unknown) => void;
 }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState((group.fields?.length ?? 0) <= 6);
   const enabled = (() => {
     for (const f of group.fields ?? []) if (f.type === 'boolean' && getValue(cfg, [...path, f.key]) === true) return true;
     return false;
   })();
   const eventImg = EVENT_GROUP_IMAGES[group.id];
+  const gTitle = t(`schema.group.${group.id}`) !== `schema.group.${group.id}` ? t(`schema.group.${group.id}`) : group.title;
   return (
     <div className="bs-group" style={{ marginTop: 0, borderRadius: 0, borderLeft: 'none', borderRight: 'none', borderBottom: 'none', background: 'transparent' }}>
       <div className="bs-group-head" onClick={() => setOpen((o) => !o)}>
-        {eventImg ? <img src={eventImg} alt={group.title} style={{ width: 26, height: 26, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--bs-border)', flexShrink: 0 }} onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')} /> : group.icon ? <span>{group.icon}</span> : null}
-        <span className="bs-group-title">{group.title}</span>
-        <span className="bs-group-state">{enabled ? <span className="bs-state-badge active">● ON</span> : <span className="bs-state-badge off">○ OFF</span>}</span>
+        {eventImg ? <img src={eventImg} alt={gTitle} style={{ width: 26, height: 26, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--bs-border)', flexShrink: 0 }} onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')} /> : group.icon ? <span>{group.icon}</span> : null}
+        <span className="bs-group-title">{gTitle}</span>
+        <span className="bs-group-state">{enabled ? <span className="bs-state-badge active">{t('cloud.stateOn')}</span> : <span className="bs-state-badge off">{t('cloud.stateOff')}</span>}</span>
         <span style={{ marginInlineStart: 'auto', color: 'var(--bs-text-3)', transform: open ? 'rotate(90deg)' : 'none', transition: 'transform .18s' }}>›</span>
       </div>
       {open && <MobileCategoryPanel category={group} path={path} cfg={cfg} disabled={disabled} onChange={onChange} />}
@@ -405,10 +427,28 @@ function GroupCard({ group, path, cfg, disabled, onChange }: {
   );
 }
 
+function trRatioNameMobile(name: string, t: (k: string) => string): string {
+  const m: Record<string, string> = {
+    'Championship': t('cloud.ratioChampionship'),
+    'Coliseum': t('cloud.ratioColiseum'),
+    'Forest of Life': t('cloud.ratioForestOfLife'),
+    'Crystal Cave': t('cloud.ratioCrystalCave'),
+    'Knowledge Nexus': t('cloud.ratioKnowledgeNexus'),
+    'Molten Fort': t('cloud.ratioMoltenFort'),
+    'Radiant Spire': t('cloud.ratioRadiantSpire'),
+    'Alliance Defense': t('cloud.ratioAllianceDefense'),
+    'Bear Trap (Joining)': t('cloud.ratioBearJoining'),
+    'Bear Trap (Master)': t('cloud.ratioBearMaster'),
+    'Viking Vengeance': t('cloud.ratioViking'),
+  };
+  return m[name] ?? name;
+}
+
 /* Mobile ratio — stacked rows, no horizontal scroll */
 function MobileRatio({ groups, path, cfg, disabled, onChange }: {
   groups: RatioGroupDef[]; path: string[]; cfg: CloudConfig; disabled: boolean; onChange: (p: string[], v: unknown) => void;
 }) {
+  const { t } = useI18n();
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {groups.map((rg) => {
@@ -416,11 +456,11 @@ function MobileRatio({ groups, path, cfg, disabled, onChange }: {
         const sum = vals.reduce((a, b) => a + b, 0);
         const ok = sum === 100;
         const enabled = rg.enable ? Boolean(getValue(cfg, [...path, rg.enable])) : true;
-        const labels = [rg.keys[2]?.endsWith('_rng') ? 'Ranged' : 'Archer', 'Cavalry', 'Infantry'];
+        const labels = [rg.keys[2]?.endsWith('_rng') ? t('cloud.ranged') : t('cloud.archer'), t('cloud.cavalry'), t('cloud.infantry')];
         return (
           <div key={rg.name} style={{ border: '1px solid var(--bs-border)', borderRadius: 12, padding: 12, background: 'var(--bs-surface-2)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-              <span style={{ fontSize: 14, fontWeight: 700, color: enabled ? 'var(--bs-text)' : 'var(--bs-text-3)' }}>{rg.name}</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: enabled ? 'var(--bs-text)' : 'var(--bs-text-3)' }}>{trRatioNameMobile(rg.name, t)}</span>
               <span style={{ marginInlineStart: 'auto', fontSize: 12, fontWeight: 800, color: ok ? 'var(--bs-success)' : 'var(--bs-warning)' }}>{ok ? '100% ✓' : `${sum}%`}</span>
               {rg.enable && <Toggle checked={enabled} disabled={disabled} onChange={(v) => onChange([...path, rg.enable!], v)} />}
             </div>
@@ -442,6 +482,8 @@ function RatioInput({ value, disabled, onChange }: { value: number; disabled: bo
 }
 
 function FieldControl({ field, value, disabled, onChange }: { field: CloudFieldSchema; value: unknown; disabled: boolean; onChange: (v: unknown) => void }) {
+  const { t } = useI18n();
+  const trOpt = (v: string) => { const k = `schema.option.${v}`; const r = t(k); return r === k ? v : r; };
   switch (field.type) {
     case 'number':
       return (
@@ -460,9 +502,9 @@ function FieldControl({ field, value, disabled, onChange }: { field: CloudFieldS
     case 'string': return <input className="bs-input" value={String(value ?? '')} maxLength={field.maxLength} placeholder={field.placeholder} disabled={disabled} onChange={(e) => onChange(e.target.value)} />;
     case 'select': {
       if (isHeroFieldKey(field.key)) return <HeroSelect fieldKey={field.key} value={String(value ?? '')} disabled={disabled} onChange={(v) => onChange(v)} />;
-      return <select className="bs-select" value={String(value ?? '')} disabled={disabled} onChange={(e) => onChange(e.target.value)}>{(field.options ?? []).map((o) => <option key={o} value={o}>{o}</option>)}</select>;
+      return <select className="bs-select" value={String(value ?? '')} disabled={disabled} onChange={(e) => onChange(e.target.value)}>{(field.options ?? []).map((o) => <option key={o} value={o}>{trOpt(o)}</option>)}</select>;
     }
-    case 'radio': return <div className="bs-radio-group">{(field.options ?? []).map((o) => <button key={o} type="button" aria-pressed={value === o} className="bs-radio" disabled={disabled} onClick={() => onChange(o)}>{o}</button>)}</div>;
+    case 'radio': return <div className="bs-radio-group">{(field.options ?? []).map((o) => <button key={o} type="button" aria-pressed={value === o} className="bs-radio" disabled={disabled} onClick={() => onChange(o)}>{trOpt(o)}</button>)}</div>;
     default: return null;
   }
 }

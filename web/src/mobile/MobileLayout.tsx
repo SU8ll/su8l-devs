@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
+import { useI18n } from '../i18n';
 import { CloudLangSwitcher } from '../components/CloudLangSwitcher';
 
 export interface MobileNavItem {
@@ -70,6 +71,7 @@ export default function MobileLayout({
   onHome?: () => void;
   children: ReactNode;
 }) {
+  const { t } = useI18n();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [logoFailed, setLogoFailed] = useState(false);
@@ -98,7 +100,7 @@ export default function MobileLayout({
           </button>
         )}
         {user && (
-          <button type="button" onClick={async () => { if(window.confirm('تسجيل خروج؟')){ await logout(); navigate('/'); } }} className="m-topbar-icon-btn" aria-label="logout" style={{opacity:0.92}}>
+          <button type="button" onClick={async () => { if(window.confirm(t('common.logoutConfirm'))){ await logout(); navigate('/'); } }} className="m-topbar-icon-btn" aria-label="logout" style={{opacity:0.92}}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17 15 12 10 7"/><path d="M15 12H3"/></svg>
           </button>
         )}

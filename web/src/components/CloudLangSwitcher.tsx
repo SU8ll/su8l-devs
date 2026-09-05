@@ -11,7 +11,7 @@ const LANGS: { code: Lang; label: string; flag: string; native: string }[] = [
 ];
 
 export function CloudLangSwitcher({ variant = 'panel' }: { variant?: 'panel' | 'navbar' }) {
-  const { lang, setLang } = useI18n();
+  const { lang, setLang, t } = useI18n();
   const [open, setOpen] = React.useState(false);
   const [askOpen, setAskOpen] = React.useState(false);
   const [askLang, setAskLang] = React.useState('');
@@ -84,7 +84,7 @@ export function CloudLangSwitcher({ variant = 'panel' }: { variant?: 'panel' | '
             </button>
           ))}
           <button type="button" onClick={() => { setAskOpen(true); setOpen(false); }} className="bs-lang-premium-foot-link" style={{ width: '100%', border: 'none' }}>
-            لغتك المفضلة ليست هنا ؟
+            {t('cloud.langFooter')}
           </button>
         </div>
       )}
@@ -94,25 +94,25 @@ export function CloudLangSwitcher({ variant = 'panel' }: { variant?: 'panel' | '
             <div className="bs-lang-ask-head">
               <span className="bs-lang-ask-icon">🌐</span>
               <div>
-                <div className="bs-lang-ask-title">ما هي لغتك المفضلة؟</div>
-                <div className="bs-lang-ask-sub">أخبرنا وسنضيفها — تذكرتك ستصل مباشرة لبرنامج الأدمن</div>
+                <div className="bs-lang-ask-title">{t('cloud.langModalTitle')}</div>
+                <div className="bs-lang-ask-sub">{t('cloud.langModalSub')}</div>
               </div>
             </div>
             <input
               autoFocus
               value={askLang}
               onChange={(e) => setAskLang(e.target.value)}
-              placeholder="مثال: الإسبانية، الإيطالية، الكورية..."
+              placeholder={t('cloud.langPlaceholder')}
               className="bs-lang-ask-input"
               onKeyDown={(e) => { if (e.key === 'Enter') submitLangRequest(); }}
             />
             <div className="bs-lang-ask-actions">
-              <button type="button" className="bs-btn bs-btn-ghost" onClick={() => setAskOpen(false)}>إلغاء</button>
+              <button type="button" className="bs-btn bs-btn-ghost" onClick={() => setAskOpen(false)}>{t('cloud.langCancel')}</button>
               <button type="button" className="bs-btn bs-btn-primary" onClick={submitLangRequest} disabled={!askLang.trim() || sending}>
-                {sending ? 'جارٍ الإرسال…' : sent ? '✓ تم الإرسال' : 'إرسال'}
+                {sending ? t('cloud.langSending') : sent ? t('cloud.langSent') : t('cloud.langSend')}
               </button>
             </div>
-            {sent && <div className="bs-lang-ask-sent">✓ وصلت تذكرتك للأدمن — شكراً لك!</div>}
+            {sent && <div className="bs-lang-ask-sent">{t('cloud.langSentConfirm')}</div>}
           </div>
         </div>
       )}

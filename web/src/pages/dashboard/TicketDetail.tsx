@@ -66,7 +66,7 @@ export default function TicketDetail() {
       setReply('');
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to send.');
+      setError(e instanceof Error ? e.message : t('tickets.error.sendFailed'));
     } finally {
       sendingRef.current = false;
       setSending(false);

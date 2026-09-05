@@ -17,7 +17,7 @@ export default function TicketDetailMobile(){
   useEffect(()=>{ sendingRef.current=false; void load(); const timer=window.setInterval(()=>{ if(!sendingRef.current) void load(); },15000); const onChange=(e:Event)=>{ const d=(e as CustomEvent).detail as {ticketId?:number}|undefined; if(d?.ticketId===Number(id)) void load(); }; window.addEventListener('su8l:tickets-changed', onChange); return()=>{ window.clearInterval(timer); window.removeEventListener('su8l:tickets-changed', onChange); }; },[id]);
   if(error) return <div style={{color:'#F87171', padding:16}}>{error}</div>;
   if(!data) return <div className="flex justify-center py-20"><Spinner size={28}/></div>;
-  const send=async()=>{ if(!reply.trim()||sending) return; sendingRef.current=true; setSending(true); try{ await api(`/api/tickets/${data.ticket.id}/messages`,{method:'POST', body:{body:reply}}); setReply(''); await load(); }catch(e){ setError(e instanceof Error? e.message : 'Failed'); } finally{ sendingRef.current=false; setSending(false);} };
+  const send=async()=>{ if(!reply.trim()||sending) return; sendingRef.current=true; setSending(true); try{ await api(`/api/tickets/${data.ticket.id}/messages`,{method:'POST', body:{body:reply}}); setReply(''); await load(); }catch(e){ setError(e instanceof Error? e.message : t('tickets.error.sendFailed')); } finally{ sendingRef.current=false; setSending(false);} };
   const setStatus=async(status:'open'|'closed')=>{ await api(`/api/tickets/${data.ticket.id}/status`,{method:'POST', body:{status}}); await load(); };
   return (
     <div style={{display:'flex', flexDirection:'column', gap:12}}>

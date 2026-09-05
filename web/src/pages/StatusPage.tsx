@@ -20,7 +20,7 @@ export default function StatusPage() {
       setSummary(s);
       setHistory(h);
     } catch {
-      setError('Failed to load status.');
+      setError(t('status.error.loadFailed'));
     }
   }, []);
 
@@ -38,7 +38,7 @@ export default function StatusPage() {
       const h = await api<StatusHistoryDto>('/api/status/history?days=30');
       setHistory(h);
     } catch {
-      setError('Probe failed.');
+      setError(t('status.error.probeFailed'));
     } finally {
       setProbing(false);
     }

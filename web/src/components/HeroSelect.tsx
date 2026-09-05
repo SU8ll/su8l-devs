@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { HEROES, HERO_BY_ID, starsLabel } from '../lib/heroes';
+import { useI18n } from '../i18n';
 
-function heroEmptyLabel(fieldKey: string): string {
-  if (fieldKey.startsWith('bear_leader_')) return '— Today\'s best-per-army-type auto-pick';
-  return '— Best buff (auto)';
+function heroEmptyLabel(fieldKey: string, t: (k: string) => string): string {
+  if (fieldKey.startsWith('bear_leader_')) return t('cloud.heroEmptyLeader');
+  return t('cloud.heroEmptyAuto');
 }
 
 export function HeroSelect({
@@ -17,6 +18,7 @@ export function HeroSelect({
   disabled: boolean;
   onChange: (v: string) => void;
 }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   const hero = HERO_BY_ID.get(value);
@@ -32,7 +34,7 @@ export function HeroSelect({
     return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
   }, [open]);
 
-  const emptyLabel = heroEmptyLabel(fieldKey);
+  const emptyLabel = heroEmptyLabel(fieldKey, t);
 
   return (
     <div className="bs-hero-select-wrap" ref={wrapRef}>

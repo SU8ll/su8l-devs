@@ -12,13 +12,13 @@ export default function TicketsMobile(){
   const [showForm,setShowForm]=useState(false);
   const [subject,setSubject]=useState(''); const [body,setBody]=useState(''); const [priority,setPriority]=useState<'low'|'normal'|'high'>('normal');
   const [creating,setCreating]=useState(false); const [error,setError]=useState('');
-  const load=()=> api<{tickets:Ticket[]}>('/api/tickets').then(r=>setTickets(r.tickets)).catch(e=>{ setError(e instanceof Error? e.message : 'Failed'); setTickets([]); });
+  const load=()=> api<{tickets:Ticket[]}>('/api/tickets').then(r=>setTickets(r.tickets)).catch(e=>{ setError(e instanceof Error? e.message : t('tickets.error.generic')); setTickets([]); });
   useEffect(()=>{ void load(); const onChange=()=>void load(); window.addEventListener('su8l:tickets-changed', onChange); return()=>window.removeEventListener('su8l:tickets-changed', onChange); },[]);
   const create=async()=>{
     if(!subject.trim()||!body.trim()||creating) return;
     setCreating(true); setError('');
     try{ await api('/api/tickets',{method:'POST', body:{subject, body, priority}}); setSubject(''); setBody(''); setShowForm(false); await load(); }
-    catch(e){ setError(e instanceof Error? e.message : 'Failed'); } finally{ setCreating(false); }
+    catch(e){ setError(e instanceof Error? e.message : t('tickets.error.generic')); } finally{ setCreating(false); }
   };
   return (
     <div style={{display:'flex', flexDirection:'column', gap:14}}>

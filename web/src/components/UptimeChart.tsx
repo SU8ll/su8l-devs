@@ -1,3 +1,5 @@
+import { useI18n } from '../i18n';
+
 export default function UptimeChart({
   history,
   height = 160,
@@ -5,6 +7,7 @@ export default function UptimeChart({
   history: { day: string; ok: number; total: number; latency: number | null }[];
   height?: number;
 }) {
+  const { t } = useI18n();
   if (!history || history.length === 0) {
     return <div className="h-40 w-full rounded-xl border border-white/5 bg-white/[0.02]" />;
   }
@@ -34,7 +37,7 @@ export default function UptimeChart({
 
   return (
     <div className="w-full">
-      <svg viewBox={`0 0 ${W} ${H + 22}`} className="w-full" role="img" aria-label="30-day uptime chart">
+      <svg viewBox={`0 0 ${W} ${H + 22}`} className="w-full" role="img" aria-label={t('status.history')}>
         {labels.map(({ d, i }) => (
           <text
             key={i}
