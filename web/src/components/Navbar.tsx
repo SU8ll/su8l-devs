@@ -1,34 +1,8 @@
 import { useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { useI18n, useLang, type Lang } from '../i18n';
+import { useI18n } from '../i18n';
 import { useAuth } from '../AuthContext';
-
-function LangToggle() {
-  const { lang, setLang } = useLang();
-  const next: Lang = lang === 'en' ? 'ar' : 'en';
-  return (
-    <button
-      type="button"
-      className="lang-pill"
-      onClick={() => setLang(next)}
-      aria-label="Toggle language"
-    >
-      <span className="inline-flex items-center gap-1">
-        {lang === 'en' ? (
-          <>
-            <span className="text-glow">EN</span>
-            <span className="opacity-50">/ AR</span>
-          </>
-        ) : (
-          <>
-            <span className="opacity-50">EN /</span>
-            <span className="text-glow">AR</span>
-          </>
-        )}
-      </span>
-    </button>
-  );
-}
+import { CloudLangSwitcher } from './CloudLangSwitcher';
 
 export default function Navbar() {
   const { t } = useI18n();
@@ -83,7 +57,7 @@ export default function Navbar() {
           </nav>
 
           <div className="hidden items-center gap-3 lg:flex">
-            <LangToggle />
+            <CloudLangSwitcher variant="navbar" />
             {user ? (
               <button type="button" className="btn-primary !px-5 !py-2.5" onClick={() => navigate('/dashboard')}>
                 {t('nav.dashboard')}
@@ -96,7 +70,7 @@ export default function Navbar() {
           </div>
 
           <div className="flex shrink-0 items-center gap-2 sm:gap-3 lg:hidden">
-            <LangToggle />
+            <CloudLangSwitcher variant="navbar" />
             <button
               type="button"
               className="btn-ghost !px-3 !py-2"

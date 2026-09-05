@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
-import { useLang, type Lang } from '../i18n';
+import { CloudLangSwitcher } from '../components/CloudLangSwitcher';
 
 export interface MobileNavItem {
   to: string;
@@ -16,19 +16,7 @@ function IconWrap({ children }: { children: ReactNode }) {
 }
 
 function LangToggle() {
-  const { lang, setLang } = useLang();
-  const next: Lang = lang === 'en' ? 'ar' : 'en';
-  return (
-    <button
-      type="button"
-      className="m-topbar-icon-btn"
-      onClick={() => setLang(next)}
-      aria-label="Toggle language"
-      style={{ padding: '0 10px', fontSize: 12, fontWeight: 700, letterSpacing: '0.04em' }}
-    >
-      <span>{lang === 'en' ? 'AR' : 'EN'}</span>
-    </button>
-  );
+  return <CloudLangSwitcher variant="navbar" />;
 }
 
 export const MIcons = {
