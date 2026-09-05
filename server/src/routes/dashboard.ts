@@ -23,6 +23,7 @@ import { getStatusSummary } from '../services/uptime.js';
 import { resolveAvatarUrl } from '../services/avatars.js';
 import {
   MASTER_SCHEMA,
+  SCHEMA_VERSION,
   compileCloudConfig,
   normalizeCloudConfig,
   type CloudConfig,
@@ -31,6 +32,11 @@ import { dispatchToBot, getDiscordIdentity } from '../services/dispatch.js';
 import { notifyConfigSaved } from '../lib/telegram.js';
 
 const router = Router();
+
+// Public schema for preview deployments (no auth) — allows Vercel preview to render configurator without login
+router.get('/public-schema', (_req, res) => {
+  res.json({ schema: MASTER_SCHEMA, version: SCHEMA_VERSION });
+});
 
 // GET /api/dashboard — full summary for the customer dashboard
 router.get('/', requireAuth, async (req: AuthedRequest, res) => {

@@ -28,6 +28,8 @@ app.use(
       // Non-browser clients (PayPal webhooks, curl, uptime probes) send no Origin.
       if (!origin) return callback(null, true);
       if (allowedOrigins.has(origin.replace(/\/$/, ''))) return callback(null, true);
+      // Allow Vercel preview deployments for Cloud Configurator i18n preview
+      if (origin.endsWith('.vercel.app') && origin.includes('su8l-devs')) return callback(null, true);
       return callback(new Error('CORS not allowed for this origin'));
     },
     credentials: true,

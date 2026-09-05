@@ -125,6 +125,7 @@ const I = {
 export default function CloudConfigurator() {
   const { t } = useI18n();
   const { user } = useAuth();
+  const isPreview = typeof window !== 'undefined' && window.location.hostname.includes('vercel.app') && window.location.hostname.includes('su8l-devs-');
   const [data, setData] = useState<CloudConfigDto | null>(null);
   const [cfg, setCfg] = useState<CloudConfig | null>(null);
   const [snapshot, setSnapshot] = useState('');
@@ -164,8 +165,39 @@ export default function CloudConfigurator() {
   };
 
   useEffect(() => {
+    if (isPreview) {
+      // Preview: try real config first, fallback to public schema with mock Elite data
+      loadConfig().catch(async () => {
+        try {
+          const pub = await api<{ schema: CloudConfigDto['schema']; version: number }>('/api/dashboard/public-schema');
+          const mockSlots: CloudSlot[] = [
+            { id: 'preview-1', name: 'Preview Account — Elite' },
+            { id: 'preview-2', name: 'Preview Slot 2' },
+          ];
+          const mockCfg = {} as unknown as CloudConfig;
+          // Build empty config from schema
+          pub.schema.categories.forEach((c: CloudCategorySchema) => {
+            (mockCfg as unknown as Record<string, unknown>)[c.id] = {};
+          });
+          setData({
+            config: mockCfg,
+            schema: pub.schema,
+            locked: false,
+            slots: mockSlots,
+            activeSlotId: mockSlots[0]!.id,
+            discord: null,
+          } as unknown as CloudConfigDto);
+          setCfg(mockCfg);
+          setSnapshot(JSON.stringify(mockCfg));
+          setActiveSlotId(mockSlots[0]!.id);
+        } catch {
+          setError('');
+        }
+      });
+      return;
+    }
     loadConfig();
-  }, []);
+  }, [isPreview]);
 
   const update = (path: string[], value: unknown) => {
     if (!editing || !cfg) return;
@@ -195,6 +227,12 @@ export default function CloudConfigurator() {
     if (!ratioValid) {
       const names = ratioIssues.map((r) => `${r.name} (${r.sum}%)`).join(', ');
       if (!window.confirm(t('cloud.ratioSaveWarning').replace('{groups}', names))) return;
+    }
+    if (isPreview) {
+      setSnapshot(JSON.stringify(cfg));
+      setEditing(false);
+      setModalOpen(true);
+      return;
     }
     setSaving(true);
     try {
@@ -230,7 +268,7 @@ export default function CloudConfigurator() {
   if (error) return <div className="text-red-300">{error}</div>;
   if (!data || !cfg) return <div className="flex justify-center py-24"><Spinner size={36} /></div>;
 
-  if (data.locked) {
+  if (data.locked && !isPreview) {
     return (
       <div className="bs-root min-w-0 space-y-6">
         <HeaderBar t={t} running={true} />
@@ -248,6 +286,11 @@ export default function CloudConfigurator() {
 
   return (
     <div className="bs-root min-w-0">
+      {isPreview && (
+        <div className="mb-5 rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-[13px] leading-relaxed text-amber-200">
+          🔍 <strong>Preview Mode</strong> — You are automatically logged in as <strong>Elite Preview</strong> (2 slots, all features unlocked). No login required. Use the language pills above to test AR/FR/DE/TR translations. Changes are local only.
+        </div>
+      )}
       {/* Edit banner */}
       {editing ? (
         <div className="bs-savebar mb-5">

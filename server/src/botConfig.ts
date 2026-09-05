@@ -1,6 +1,7 @@
 import {
   MASTER_SCHEMA,
   DEFAULT_CLOUD_CONFIG,
+  SCHEMA_VERSION,
   RATIO_GROUPS,
   emptyValue,
   cloudConfigSchema,
@@ -18,7 +19,7 @@ import {
  * There is no per-field logic left in this file.
  */
 
-export { MASTER_SCHEMA, DEFAULT_CLOUD_CONFIG, cloudConfigSchema };
+export { MASTER_SCHEMA, DEFAULT_CLOUD_CONFIG, SCHEMA_VERSION, cloudConfigSchema };
 export type { CloudConfig, CloudCategorySchema, CloudFieldSchema };
 
 /** Cross-field rules the per-field zod schema cannot express. */
