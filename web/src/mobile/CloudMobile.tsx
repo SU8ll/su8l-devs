@@ -114,11 +114,11 @@ export default function CloudMobile() {
       const d = await api<CloudConfigDto>(`/api/dashboard/cloud-config${q}`);
       setData(d); setCfg(d.config); setSnapshot(JSON.stringify(d.config));
       setActiveSlotId(d.activeSlotId ?? slotId ?? ''); setEditing(false);
-    } catch { setError('Failed to load'); }
+    } catch { setError('Failed to load'); throw new Error('load failed'); }
   };
   useEffect(() => {
     if (isPreview) {
-      loadConfig().catch(async () => {
+      (async () => {
         try {
           const pub = await api<{ schema: CloudConfigDto['schema']; version: number }>('/api/dashboard/public-schema');
           const mockSlots: CloudSlot[] = [
@@ -129,6 +129,7 @@ export default function CloudMobile() {
           pub.schema.categories.forEach((c: CloudCategorySchema) => {
             (mockCfg as unknown as Record<string, unknown>)[c.id] = {};
           });
+          setError('');
           setData({
             config: mockCfg,
             schema: pub.schema,
@@ -141,12 +142,12 @@ export default function CloudMobile() {
           setSnapshot(JSON.stringify(mockCfg));
           setActiveSlotId(mockSlots[0]!.id);
         } catch {
-          setError('');
+          setError('Failed to load Cloud Configurator (preview)');
         }
-      });
+      })();
       return;
     }
-    loadConfig();
+    loadConfig().catch(() => {});
   }, [isPreview]);
 
   const update = (path: string[], value: unknown) => {

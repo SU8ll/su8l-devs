@@ -164,13 +164,13 @@ export default function CloudConfigurator() {
       setEditing(false);
     } catch {
       setError('Failed to load Cloud Configurator');
+      throw new Error('load failed');
     }
   };
 
   useEffect(() => {
     if (isPreview) {
-      // Preview: try real config first, fallback to public schema with mock Elite data
-      loadConfig().catch(async () => {
+      (async () => {
         try {
           const pub = await api<{ schema: CloudConfigDto['schema']; version: number }>('/api/dashboard/public-schema');
           const mockSlots: CloudSlot[] = [
@@ -178,10 +178,10 @@ export default function CloudConfigurator() {
             { id: 'preview-2', name: 'Preview Slot 2' },
           ];
           const mockCfg = {} as unknown as CloudConfig;
-          // Build empty config from schema
           pub.schema.categories.forEach((c: CloudCategorySchema) => {
             (mockCfg as unknown as Record<string, unknown>)[c.id] = {};
           });
+          setError('');
           setData({
             config: mockCfg,
             schema: pub.schema,
@@ -194,12 +194,12 @@ export default function CloudConfigurator() {
           setSnapshot(JSON.stringify(mockCfg));
           setActiveSlotId(mockSlots[0]!.id);
         } catch {
-          setError('');
+          setError('Failed to load Cloud Configurator (preview)');
         }
-      });
+      })();
       return;
     }
-    loadConfig();
+    loadConfig().catch(() => {});
   }, [isPreview]);
 
   const update = (path: string[], value: unknown) => {
