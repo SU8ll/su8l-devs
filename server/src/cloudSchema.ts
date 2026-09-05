@@ -907,9 +907,9 @@ function burnFields(prefix: string): CloudFieldSchema[] {
 
 const EVENT_MILESTONES_CATEGORY: CloudCategorySchema = {
   id: 'event_milestones',
-  title: 'Event Milestones',
-  icon: '🎯',
-  description: 'Spends resources, speedups and hero shards to reach event score tiers. Off by default: it changes what the account burns.',
+  title: 'Weekly & Monthly Events',
+  icon: '🗓️',
+  description: 'الأحداث الأسبوعية والشهرية — Weekly & monthly milestones. Spends resources, speedups and hero shards to reach event score tiers.',
   fields: [
     { ...bool(false), key: 'chase_enable', label: 'Chase event milestones', description: 'Spends resources, speedups and hero shards to reach event score tiers. Off by default: it changes what the account burns.' },
   ],
@@ -922,8 +922,6 @@ const EVENT_MILESTONES_CATEGORY: CloudCategorySchema = {
       fields: [
         { ...bool(false), key: 'honor_on', label: 'On' },
         { ...sel('Target', 'Highest reachable', CHASE_TARGET_OPTIONS), key: 'honor_target' },
-        { ...num('Max/stage', 0), key: 'honor_max_stage' },
-        { ...num('Priority', 0), key: 'honor_priority' },
         ...burnFields('honor_'),
       ],
     },
@@ -934,8 +932,6 @@ const EVENT_MILESTONES_CATEGORY: CloudCategorySchema = {
       fields: [
         { ...bool(false), key: 'gov_on', label: 'On' },
         { ...sel('Target', 'Highest reachable', CHASE_TARGET_OPTIONS), key: 'gov_target' },
-        { ...num('Max/stage', 0), key: 'gov_max_stage' },
-        { ...num('Priority', 0), key: 'gov_priority' },
         ...burnFields('gov_'),
       ],
     },
@@ -946,8 +942,6 @@ const EVENT_MILESTONES_CATEGORY: CloudCategorySchema = {
       fields: [
         { ...bool(false), key: 'brawl_on', label: 'On' },
         { ...sel('Target', 'Highest reachable', CHASE_TARGET_OPTIONS), key: 'brawl_target' },
-        { ...num('Max/stage', 0), key: 'brawl_max_stage' },
-        { ...num('Priority', 0), key: 'brawl_priority' },
         ...burnFields('brawl_'),
       ],
     },
@@ -958,8 +952,6 @@ const EVENT_MILESTONES_CATEGORY: CloudCategorySchema = {
       fields: [
         { ...bool(false), key: 'champ_eve_on', label: 'On' },
         { ...sel('Target', 'Highest reachable', CHASE_TARGET_OPTIONS), key: 'champ_eve_target' },
-        { ...num('Max/stage', 0), key: 'champ_eve_max_stage' },
-        { ...num('Priority', 0), key: 'champ_eve_priority' },
         ...burnFields('champ_eve_'),
       ],
     },
@@ -970,8 +962,6 @@ const EVENT_MILESTONES_CATEGORY: CloudCategorySchema = {
       fields: [
         { ...bool(false), key: 'goals_on', label: 'On' },
         { ...sel('Target', 'Highest reachable', CHASE_TARGET_OPTIONS), key: 'goals_target' },
-        { ...num('Max/stage', 0), key: 'goals_max_stage' },
-        { ...num('Priority', 0), key: 'goals_priority' },
         ...burnFields('goals_'),
       ],
     },
@@ -982,8 +972,6 @@ const EVENT_MILESTONES_CATEGORY: CloudCategorySchema = {
       fields: [
         { ...bool(false), key: 'kop_on', label: 'On' },
         { ...sel('Target', 'Highest reachable', CHASE_TARGET_OPTIONS), key: 'kop_target' },
-        { ...num('Max/stage', 0), key: 'kop_max_stage' },
-        { ...num('Priority', 0), key: 'kop_priority' },
         ...burnFields('kop_'),
       ],
     },
@@ -1032,7 +1020,7 @@ export function emptyValue(f: CloudFieldSchema): boolean | number | string {
 }
 
 /** Bumped whenever the schema shape changes so the panel refreshes its defaults. */
-export const SCHEMA_VERSION = 20;
+export const SCHEMA_VERSION = 21;
 
 export const FLAT_SCHEMA = flattenedSchema(MASTER_SCHEMA);
 
