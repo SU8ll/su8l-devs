@@ -14,7 +14,6 @@ import {
 import { Spinner } from '../../components/ui';
 import { HeroSelect, isHeroFieldKey } from '../../components/HeroSelect';
 import { CloudLangSwitcher } from '../../components/CloudLangSwitcher';
-import { useSchemaT } from '../../lib/schemaI18n';
 
 type JsonObject = Record<string, unknown>;
 

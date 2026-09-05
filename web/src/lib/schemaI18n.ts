@@ -1,4 +1,3 @@
-import type { Lang } from '../i18n';
 import { useI18n } from '../i18n';
 
 /**
@@ -8,7 +7,7 @@ import { useI18n } from '../i18n';
  */
 
 export function useSchemaT() {
-  const { lang, t } = useI18n();
+  const { t } = useI18n();
   return (key: string, fallback: string) => {
     const v = t(key);
     // t returns key itself if missing; detect that and fallback
@@ -23,7 +22,7 @@ export function tSchemaKeyForField(key: string) { return `schema.field.${key}`; 
 export function tSchemaKeyForOption(value: string) { return `schema.option.${value}`; }
 
 // Helper to get translated label for a select/radio option value
-export function translateOption(lang: string, t: (k:string)=>string, value: string): string {
+export function translateOption(_lang: string, t: (k:string)=>string, value: string): string {
   const k = `schema.option.${value}`;
   const v = t(k);
   return v === k ? value : v;
