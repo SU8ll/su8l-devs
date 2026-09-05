@@ -37,12 +37,12 @@ function categoriesForArea(schema: CloudConfigDto['schema'], area: Area): CloudC
   return schema.categories.filter((c) => map.categories.includes(c.id));
 }
 
-/* Event images for Weekly & Monthly Events — from /public/events/*.webp (copied from C:\Users\algha\Downloads\1212) */
+/* Event images for Weekly & Monthly Events — from /public/events/* (copied from C:\Users\algha\Downloads\1212) */
 const EVENT_GROUP_IMAGES: Record<string, string> = {
   'honor_ranking': '/events/stand-of-arms.webp',
   'strongest_governor': '/events/strongest-governor.webp',
   'alliance_brawl': '/events/alliance-brawl.webp',
-  'champions_eve': '',
+  'champions_eve': '/events/flamedragon-tyrant.png',
   'event_goals': '/events/armament-competition.webp',
   'kingdom_of_power': '/events/kingdom-of-power.webp',
 };

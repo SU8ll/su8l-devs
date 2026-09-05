@@ -907,7 +907,7 @@ function burnFields(prefix: string): CloudFieldSchema[] {
 
 const EVENT_MILESTONES_CATEGORY: CloudCategorySchema = {
   id: 'event_milestones',
-  title: 'الأحداث الأسبوعية والشهرية',
+  title: 'Weekly & Monthly Events',
   description: 'Spends resources, speedups and hero shards to reach event score tiers. Off by default: it changes what the account burns.',
   fields: [
     { ...bool(false), key: 'chase_enable', label: 'Chase event milestones', description: 'Spends resources, speedups and hero shards to reach event score tiers. Off by default: it changes what the account burns.' },
